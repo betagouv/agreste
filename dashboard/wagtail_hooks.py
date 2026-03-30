@@ -8,7 +8,7 @@ from wagtail.admin.menu import MenuItem
 from wagtail.admin.ui.components import Component
 from wagtail.rich_text import LinkHandler
 
-from dashboard.views import ShortcutsPanel, TutorialsPanel
+from dashboard.views import InformationPanel, ShortcutsPanel, TutorialsPanel
 
 
 @hooks.register("insert_global_admin_css")
@@ -96,6 +96,7 @@ def remove_all_summary_items(request, items):
 
 @hooks.register("construct_homepage_panels")
 def add_shortcuts_panel(request, panels):
+    panels.insert(0, InformationPanel())
     panels.append(ShortcutsPanel())
     if not settings.SF_DISABLE_TUTORIALS:
         panels.append(TutorialsPanel())

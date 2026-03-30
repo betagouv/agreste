@@ -73,3 +73,37 @@ class TutorialsPanel(Component):
 
 
 tutorials_panel = TutorialsPanel()
+
+INFORMATION = {
+    "items": [
+        {
+            "type": "news",
+            "title": "Exemple de nouveauté",
+            "description": "Description courte de la fonctionnalité.",
+            "url": "https://github.com/numerique-gouv/sites-faciles/releases",
+            "date": "2026-03-28",
+            "end_date": "2026-03-30",
+        },
+        {
+            "type": "alert",
+            "title": "Exemple de nouveauté",
+            "description": "Description courte de la fonctionnalité.",
+            "url": "https://github.com/numerique-gouv/sites-faciles/releases",
+            "date": "2026-03-28",
+            "end_date": "2026-03-30",
+        },
+    ]
+}
+
+
+class InformationPanel(Component):
+    order = 20
+    template_name = "wagtailadmin/home/panels/_information.html"
+    panel_id = "information"
+
+    def get_context_data(self, parent_context=None):
+        # Plus tard : res = requests.get(INFORMATION_URL, timeout=10)
+        # data = res.json()
+        data = INFORMATION
+        items = data.get("items", [])
+        return {"information_items": items}
