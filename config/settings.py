@@ -478,3 +478,6 @@ DSFR_USE_INTEGRITY_CHECKSUMS = True if os.getenv("DSFR_USE_INTEGRITY_CHECKSUMS")
 
 SF_DISABLE_TUTORIALS = True if os.getenv("SF_DISABLE_TUTORIALS") in ["1", "True"] else False
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
+INFORMATION_URL = "https://raw.githubusercontent.com/Luzzzi/test-information-panel/main/test.json"
+LATEST_RELEASE_URL = "https://api.github.com/repos/numerique-gouv/sites-faciles/releases/latest"
