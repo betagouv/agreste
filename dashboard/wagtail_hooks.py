@@ -8,12 +8,25 @@ from wagtail.admin.menu import MenuItem
 from wagtail.admin.ui.components import Component
 from wagtail.rich_text import LinkHandler
 
+from content_manager import __version__
 from dashboard.views import InformationPanel, ShortcutsPanel, TutorialsPanel
 
 
 @hooks.register("insert_global_admin_css")
 def global_admin_css():
     return format_html('\n<link rel="stylesheet" href="{}">', static("css/admin.css"))
+
+
+@hooks.register("insert_global_admin_js")
+def insert_sidebar_extra():
+    return format_html(
+        """
+        <script>window.__version__ = "{}";</script>
+        <script src="{}"></script>
+        """,
+        __version__,
+        static("js/sidebar_extra.js"),
+    )
 
 
 @hooks.register("register_icons")
