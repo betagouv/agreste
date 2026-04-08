@@ -12,14 +12,15 @@ The agreste version is in agreste_version.txt (this is not used anywhere in code
 
 To upgrade of Sites Conformes : 
  - on https://github.com/betagouv/agreste, run Sync Fork for `production` branch.
- - `git checkout production; git pull; git fetch --tags`
+ - `git pull upstream production --tags` (avoid pulling all branches from upstream, it creates unnecessary noise in git history)
+ - update the local branch as well (optional but avoids errors) : `git checkout production; git pull`
  - *Rebase `main-agreste` on top of `production`*. This only works while `main-agreste` has few changes.
- `git checkout main-agreste; git rebase production`. Solve conflicts, then `git push --force`.
- - Update the version number in `agreste_version.txt`
+ `git checkout main-agreste; git rebase upstream/production`. Solve conflicts, then `git push --force`.
+    - Note : you can squash commits at this point for a cleaner main-agreste : `git rebase upstream/production -i`
+ - Update the version number in `agreste_version.txt` : `VERSION="3.1.0-1.1.0"; git checkout main-agreste; echo $VERSION > agreste_version.txt; git add agreste_version.txt; git commit -m "Bump version to $VERSION"; git push`
  - Create the release : 
-   - Merge main-agreste into production-agreste : `git checkout production-agreste; git pull; git merge main-agreste`
-   - tag the commit : `git tag v3.0.0-0.1.0`
-   - push to github (this will trigger the release if autodeploy is configured on `production-agreste` branch) : `git pushl; git push --tags`
+   - Open a PR to merge `main-agreste` into `production-agreste`. Name it with the new version number. Solve any conflicts and merge (this will trigger the release if autodeploy is configured on `production-agreste` branch)
+   - Make a release in github, creating a tag named e.g. `v2.3.5-0.1.0`, on branch `production-agreste`.
 
 -----
 # Sites Conformes
