@@ -17,10 +17,10 @@ fi
 
 cd ${BACKUP_DIR}
 
-TAR_FILE=`ls *_${PROD_DB_NAME}.tar.gz -c | head -1`
+TAR_FILE=`ls -c *_${PROD_DB_NAME}.tar.gz | head -1`
 tar xzf ${TAR_FILE}
 
-BACKUP_FILE=`ls *_${PROD_DB_NAME}.pgsql -c | head -1`
+BACKUP_FILE=`ls -c *_${PROD_DB_NAME}.pgsql | head -1`
 
 echo "Restoring database ${DATABASE_NAME} with backup ${BACKUP_FILE}"
 

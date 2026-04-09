@@ -20,6 +20,6 @@ MEDIA_BACKUP_DIR="${BACKUP_DIR}/sites-conformes-prod-medias/"
 echo "Moving media files from ${MEDIA_BACKUP_DIR} to ${MEDIA_ROOT:=medias}"
 
 cd ${SCRIPT_DIR}
-rm ../${MEDIA_ROOT}/* -rf
+rm -rf ../${MEDIA_ROOT}/*
 
 cp -rp ${MEDIA_BACKUP_DIR}/* ../${MEDIA_ROOT}/
