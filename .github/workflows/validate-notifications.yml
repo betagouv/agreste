@@ -33,10 +33,21 @@ jobs:
           with open('notifications.schema.json') as f:
               schema = json.load(f)
 
-          try:
-              jsonschema.validate(data, schema)
-              print('✅ notifications.json est valide !')
-          except jsonschema.ValidationError as e:
-              print(f'❌ Erreur de validation : {e.message}')
+          errors = []
+          for error in jsonschema.Draft7Validator(schema).iter_errors(data):
+              path = '.'.join(str(p) for p in error.absolute_path) or 'root'
+              errors.append(f'{path}: {error.message}')
+
+          for i, item in enumerate(data.get('items', [])):
+              date, end_date = item.get('date', ''), item.get('end_date', '')
+              if date and end_date and date > end_date:
+                  errors.append(
+                      f'items[{i}].date ({date}) must be on or before items[{i}].end_date ({end_date})'
+                  )
+
+          if errors:
+              for error in errors:
+                  print(f'❌ {error}')
               sys.exit(1)
+          print('✅ notifications.json est valide !')
           "
