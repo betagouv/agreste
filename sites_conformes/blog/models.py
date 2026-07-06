@@ -291,7 +291,7 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
                 ],
                 "current": current.name,
             }
-            extra_title = taxonomy.filtered_title % {taxonomy.filtered_title_param: current.name}
+            extra_title = taxonomy.format_filtered_title(current.name)
             current_taxonomies[taxonomy.current_context_key] = current
 
         source = request.GET.get("source")
