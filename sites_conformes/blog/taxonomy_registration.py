@@ -4,23 +4,26 @@ Adding a new taxonomy (example: ``Collection`` on publications)
 ================================================================
 
 ``TaxonomyRegistration`` only describes how an *existing* setup is wired. You must also
-add models, fields, templates, and a migration. Below, ``slug`` is the URL /
-query-param name (``collection`` → ``?collection=agriculture``). Derived names
-come from ``TaxonomyRegistration`` properties unless you pass ``slug=`` explicitly.
+add models, fields, templates, and a migration.
 
-**1. Taxonomy model** (snippet rows: Agriculture, Environment, …)
+**1. Taxonomy model**
 
+Example: ``Collection`` model in ``https://github.com/betagouv/agreste/blob/main-agreste/publications/models.py``.
 - Subclass ``AbstractTaxonomy`` (``sites_conformes.blog.abstract_taxonomy``).
 - Run ``makemigrations``.
 
-**2. Entry page** (e.g. ``PublicationPage``)
+**2. Entry page**
+
+Example: ``PublicationPage`` model in ``https://github.com/betagouv/agreste/blob/main-agreste/publications/models.py``.
 
 - Add a ``ParentalManyToManyField`` to the taxonomy model (``collections``), usually
-  with a through ``Orderable`` table.
+  with a through ``Orderable`` table. (``CollectionPublication`` in our example).
 - Add the field to editor panels.
 - Run ``makemigrations``.
 
-**3. Index page** (subclass of ``BlogIndexPage``, e.g. ``PublicationIndexPage``)
+**3. Index page**
+
+Example: ``PublicationIndexPage`` model in ``https://github.com/betagouv/agreste/blob/main-agreste/publications/models.py``.
 
 - ``filter_by_{slug}`` boolean field — e.g. ``filter_by_collection``. This name
   is required: ``BlogIndexPage.show_filters`` reads it via
@@ -30,6 +33,8 @@ come from ``TaxonomyRegistration`` properties unless you pass ``slug=`` explicit
 - ``subpage_types`` must point at your entry page class.
 
 **4. Register the taxonomy** (your app's ``taxonomies.py`` + ``apps.py``)
+
+Example: ``publications.taxonomies.py`` in ``https://github.com/betagouv/agreste/blob/main-agreste/publications/taxonomies.py``.
 
 Pass ``filter_field``, ``list_template``, ``list_route_name``, and ``plural``
 explicitly — they must match the index page field (step 3), list template
@@ -61,20 +66,18 @@ The route ``name`` must match ``taxonomy.list_route_name`` (``collections_list``
 
 **6. Templates**
 
-- **Index page** (e.g. ``publication_index_page.html``): filter sidebar using
-  context keys ``collections``, ``current_collection``, and
-  ``page.filter_by_collection``. ``BlogIndexPage.get_context`` fills those keys
-  automatically.
-- **List page**: create the template passed as ``list_template`` on
-  ``TaxonomyRegistration`` (e.g. ``publications/collections_list_page.html``). Use dict keys
-  ``collection_slug``, ``collection_name``, ``collection_count`` in the loop
-  (see ``list_taxonomy_values``).
+- **Index page**: rewrite a template to use the new taxonomy
+filters sidebar in the sidebar, copying the existing code for the filters sidebar.
+Example: ``publications/publication_index_page.html`` in ``https://github.com/betagouv/agreste/blob/main-agreste/publications/templates/publications/publication_index_page.html``.
+
+- **List page**: create the template passed as ``list_template`` in your ``TaxonomyRegistration``.
+Example: ``publications/collections_list_page.html`` in ``https://github.com/betagouv/agreste/blob/main-agreste/publications/templates/publications/collections_list_page.html``.
 
 **7. Optional helpers**
 
 - ``get_collections()`` on the index page, calling
-  ``get_taxonomy_values(self, COLLECTION)`` — only needed if a block or template
-  calls it by name (see ``PublicationIndexPage.get_collections``).
+  ``get_taxonomy_values(self, COLLECTION)`` — will be removed in a future version
+  when the template will use the new taxonomy filters sidebar.
 
 **Provided by ``BlogIndexPage`` once the above exists** — no extra code:
 
