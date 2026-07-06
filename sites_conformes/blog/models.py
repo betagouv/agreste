@@ -274,7 +274,7 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
             extra_title = _("Posts tagged with %(tag)s") % {"tag": tag}
 
         taxonomies = get_taxonomy_types(self.get_entry_page_class())
-        taxonomy_current = {taxonomy.current_context_key: None for taxonomy in taxonomies}
+        current_taxonomies = {taxonomy.current_context_key: None for taxonomy in taxonomies}
         for taxonomy in taxonomies:
             slug_value = request.GET.get(taxonomy.slug)
             if not slug_value:
@@ -292,7 +292,7 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
                 "current": current.name,
             }
             extra_title = taxonomy.filtered_title % {taxonomy.filtered_title_param: current.name}
-            taxonomy_current[taxonomy.current_context_key] = current
+            current_taxonomies[taxonomy.current_context_key] = current
 
         source = request.GET.get("source")
         if source:
@@ -341,7 +341,7 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
 
         for taxonomy in taxonomies:
             context[taxonomy.list_context_key] = get_taxonomy_values(self, taxonomy)
-            context[taxonomy.current_context_key] = taxonomy_current[taxonomy.current_context_key]
+            context[taxonomy.current_context_key] = current_taxonomies[taxonomy.current_context_key]
 
         context["authors"] = self.get_authors()
         context["sources"] = self.get_sources()
