@@ -1,7 +1,7 @@
 """Taxonomy registry for index page filtering.
 
-Adding a new taxonomy (example: ``Collection`` on publications)
-================================================================
+Adding a new taxonomy to your fork of Sites Conformes
+=====================================================
 
 ``TaxonomyRegistration`` only describes how an *existing* setup is wired. You must also
 add models, fields, templates, and a migration.
