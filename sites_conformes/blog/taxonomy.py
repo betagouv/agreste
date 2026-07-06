@@ -10,7 +10,7 @@ come from ``Taxonomy`` properties unless you pass ``slug=`` explicitly.
 
 **1. Taxonomy model** (snippet rows: Agriculture, Environment, …)
 
-- Subclass ``AbstractTaxonomy`` (publications) or follow ``Category`` (blog).
+- Subclass ``AbstractTaxonomy`` (``sites_conformes.blog.abstract_taxonomy``).
 - Run ``makemigrations``.
 
 **2. Entry page** (e.g. ``PublicationPage``)

@@ -16,7 +16,7 @@ from sites_conformes.core.constants import LIMITED_RICHTEXTFIELD_FEATURES
 
 class AbstractTaxonomy(TranslatableMixin, index.Indexed, Orderable):
     """
-    Base model for hierarchical publication taxonomies (Collection, Theme, …).
+    Base model for taxonomy snippets (Category, Collection, Theme, …).
 
     Subclasses only need to set Meta.verbose_name / verbose_name_plural.
     """

@@ -7,7 +7,7 @@ from wagtail.api import APIField
 from wagtail.contrib.routable_page.models import path
 from wagtail.models import Orderable
 
-from publications.taxonomy import AbstractTaxonomy
+from sites_conformes.blog.abstract_taxonomy import AbstractTaxonomy
 from sites_conformes.blog.models import BlogEntryPage, BlogIndexPage
 
 
