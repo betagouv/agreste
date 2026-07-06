@@ -1,7 +1,7 @@
 from sites_conformes.blog.models import Category
-from sites_conformes.blog.taxonomy import Taxonomy
+from sites_conformes.blog.taxonomy_registration import TaxonomyRegistration
 
-CATEGORY = Taxonomy(
+CATEGORY = TaxonomyRegistration(
     Category,
     "blog_categories",
     "filter_by_category",

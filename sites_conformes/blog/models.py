@@ -22,7 +22,7 @@ from wagtail.snippets.models import register_snippet
 
 from sites_conformes.blog.abstract_taxonomy import AbstractTaxonomy
 from sites_conformes.blog.managers import CategoryManager
-from sites_conformes.blog.taxonomy import get_taxonomy_types, get_taxonomy_values, list_taxonomy_values
+from sites_conformes.blog.taxonomy_registration import get_taxonomy_types, get_taxonomy_values, list_taxonomy_values
 from sites_conformes.core.abstract import SitesFacilesBasePage
 from sites_conformes.core.models import Tag
 

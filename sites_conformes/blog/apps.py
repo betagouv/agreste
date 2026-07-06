@@ -9,6 +9,6 @@ class BlogConfig(AppConfig):
     def ready(self):
         from sites_conformes.blog.models import BlogEntryPage
         from sites_conformes.blog.taxonomies import CATEGORY
-        from sites_conformes.blog.taxonomy import register_taxonomies
+        from sites_conformes.blog.taxonomy_registration import register_taxonomies
 
         register_taxonomies(BlogEntryPage, [CATEGORY])

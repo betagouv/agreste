@@ -119,13 +119,13 @@ class PublicationIndexPage(BlogIndexPage):
 
     def get_collections(self):
         from publications.taxonomies import COLLECTION
-        from sites_conformes.blog.taxonomy import get_taxonomy_values
+        from sites_conformes.blog.taxonomy_registration import get_taxonomy_values
 
         return get_taxonomy_values(self, COLLECTION)
 
     def get_themes(self):
         from publications.taxonomies import THEME
-        from sites_conformes.blog.taxonomy import get_taxonomy_values
+        from sites_conformes.blog.taxonomy_registration import get_taxonomy_values
 
         return get_taxonomy_values(self, THEME)
 

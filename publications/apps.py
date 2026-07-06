@@ -20,6 +20,6 @@ class PublicationsConfig(AppConfig):
 
         from publications.models import PublicationPage
         from publications.taxonomies import COLLECTION, THEME
-        from sites_conformes.blog.taxonomy import register_taxonomies
+        from sites_conformes.blog.taxonomy_registration import register_taxonomies
 
         register_taxonomies(PublicationPage, [COLLECTION, THEME])

@@ -3,10 +3,10 @@
 Adding a new taxonomy (example: ``Collection`` on publications)
 ================================================================
 
-``Taxonomy`` only describes how an *existing* setup is wired. You must also
+``TaxonomyRegistration`` only describes how an *existing* setup is wired. You must also
 add models, fields, templates, and a migration. Below, ``slug`` is the URL /
 query-param name (``collection`` → ``?collection=agriculture``). Derived names
-come from ``Taxonomy`` properties unless you pass ``slug=`` explicitly.
+come from ``TaxonomyRegistration`` properties unless you pass ``slug=`` explicitly.
 
 **1. Taxonomy model** (snippet rows: Agriculture, Environment, …)
 
@@ -36,7 +36,7 @@ explicitly — they must match the index page field (step 3), list template
 (step 6), route name (step 5), and template context key (step 6)::
 
     # publications/taxonomies.py
-    COLLECTION = Taxonomy(
+    COLLECTION = TaxonomyRegistration(
         Collection,
         "collections",
         "filter_by_collection",
@@ -66,7 +66,7 @@ The route ``name`` must match ``taxonomy.list_route_name`` (``collections_list``
   ``page.filter_by_collection``. ``BlogIndexPage.get_context`` fills those keys
   automatically.
 - **List page**: create the template passed as ``list_template`` on
-  ``Taxonomy`` (e.g. ``publications/collections_list_page.html``). Use dict keys
+  ``TaxonomyRegistration`` (e.g. ``publications/collections_list_page.html``). Use dict keys
   ``collection_slug``, ``collection_name``, ``collection_count`` in the loop
   (see ``list_taxonomy_values``).
 
@@ -107,11 +107,11 @@ _taxonomies = {}
 DEFAULT_FILTERED_TITLE = _("Posts in %(type)s %(name)s")
 
 
-class Taxonomy:
+class TaxonomyRegistration:
     """Binding between a taxonomy model, an entry page M2M field, and an index page.
 
     See the module docstring above for the full checklist of what to implement
-    alongside a ``Taxonomy`` instance.
+    alongside a ``TaxonomyRegistration`` instance.
     """
 
     def __init__(
@@ -180,7 +180,7 @@ def get_taxonomy_types(entry_page_class):
     Example::
 
         get_taxonomy_types(BlogEntryPage)
-        # → [CATEGORY]   # the Taxonomy object from taxonomies.py
+        # → [CATEGORY]   # the TaxonomyRegistration object from taxonomies.py
 
         get_taxonomy_types(PublicationPage)
         # → [COLLECTION, THEME]

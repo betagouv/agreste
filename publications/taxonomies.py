@@ -1,7 +1,7 @@
 from publications.models import Collection, Theme
-from sites_conformes.blog.taxonomy import Taxonomy
+from sites_conformes.blog.taxonomy_registration import TaxonomyRegistration
 
-COLLECTION = Taxonomy(
+COLLECTION = TaxonomyRegistration(
     Collection,
     "collections",
     "filter_by_collection",
@@ -9,7 +9,7 @@ COLLECTION = Taxonomy(
     "collections_list",
     "collections",
 )
-THEME = Taxonomy(
+THEME = TaxonomyRegistration(
     Theme,
     "themes",
     "filter_by_theme",
