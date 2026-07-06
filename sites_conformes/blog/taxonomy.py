@@ -31,9 +31,9 @@ come from ``Taxonomy`` properties unless you pass ``slug=`` explicitly.
 
 **4. Register the taxonomy** (your app's ``taxonomies.py`` + ``apps.py``)
 
-Pass ``filter_field``, ``list_template``, and ``list_route_name`` explicitly —
-they must match the index page field (step 3), list template (step 6), and route
-name (step 5)::
+Pass ``filter_field``, ``list_template``, ``list_route_name``, and ``plural``
+explicitly — they must match the index page field (step 3), list template
+(step 6), route name (step 5), and template context key (step 6)::
 
     # publications/taxonomies.py
     COLLECTION = Taxonomy(
@@ -42,6 +42,7 @@ name (step 5)::
         "filter_by_collection",
         "publications/collections_list_page.html",
         "collections_list",
+        "collections",
     )
 
     # publications/apps.py → ready()
@@ -90,7 +91,7 @@ The route ``name`` must match ``taxonomy.list_route_name`` (``collections_list``
 +======================+===============================+
 | Query param          | ``collection``                |
 | Index boolean field  | ``filter_by_collection``      |
-| Context (all values) | ``collections``               |
+| Context (all values) | ``collections`` (``plural``)    |
 | Context (active)     | ``current_collection``        |
 | List route name      | ``collections_list``          |
 | List template        | ``publications/collections_list_page.html`` |
@@ -120,6 +121,7 @@ class Taxonomy:
         filter_field,
         list_template,
         list_route_name,
+        plural,
         *,
         slug=None,
         filtered_title=None,
@@ -129,6 +131,7 @@ class Taxonomy:
         self.filter_field = filter_field
         self.list_template = list_template
         self.list_route_name = list_route_name
+        self.plural = plural
         self.slug = slug or model._meta.model_name
         self._custom_filtered_title = filtered_title
 
@@ -147,10 +150,6 @@ class Taxonomy:
     @property
     def list_label_plural(self):
         return self.model._meta.verbose_name_plural
-
-    @property
-    def list_context_key(self):
-        return f"{self.slug}s"
 
     @property
     def current_context_key(self):

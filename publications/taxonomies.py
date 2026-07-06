@@ -7,6 +7,7 @@ COLLECTION = Taxonomy(
     "filter_by_collection",
     "publications/collections_list_page.html",
     "collections_list",
+    "collections",
 )
 THEME = Taxonomy(
     Theme,
@@ -14,4 +15,5 @@ THEME = Taxonomy(
     "filter_by_theme",
     "publications/themes_list_page.html",
     "themes_list",
+    "themes",
 )

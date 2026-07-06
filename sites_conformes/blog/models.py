@@ -340,7 +340,7 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
         context["extra_title"] = extra_title
 
         for taxonomy in taxonomies:
-            context[taxonomy.list_context_key] = get_taxonomy_values(self, taxonomy)
+            context[taxonomy.plural] = get_taxonomy_values(self, taxonomy)
             context[taxonomy.current_context_key] = current_taxonomies[taxonomy.current_context_key]
 
         context["authors"] = self.get_authors()
@@ -470,7 +470,7 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
         return self.render(
             request,
             context_overrides={
-                taxonomy.list_context_key: list_taxonomy_values(self, taxonomy),
+                taxonomy.plural: list_taxonomy_values(self, taxonomy),
                 "page": self,
                 "extra_title": taxonomy.list_label_plural,
                 "extra_breadcrumbs": extra_breadcrumbs,

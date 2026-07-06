@@ -7,4 +7,5 @@ CATEGORY = Taxonomy(
     "filter_by_category",
     "sites_conformes_blog/categories_list_page.html",
     "categories_list",
+    "categories",
 )
