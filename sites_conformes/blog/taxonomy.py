@@ -31,11 +31,18 @@ come from ``Taxonomy`` properties unless you pass ``slug=`` explicitly.
 
 **4. Register the taxonomy** (your app's ``taxonomies.py`` + ``apps.py``)
 
-Pass ``filter_field`` explicitly — it must match the index page boolean from
-step 3::
+Pass ``filter_field``, ``list_template``, and ``list_route_name`` explicitly —
+they must match the index page field (step 3), list template (step 6), and route
+name (step 5)::
 
     # publications/taxonomies.py
-    COLLECTION = Taxonomy(Collection, "collections", "filter_by_collection")
+    COLLECTION = Taxonomy(
+        Collection,
+        "collections",
+        "filter_by_collection",
+        "publications/collections_list_page.html",
+        "collections_list",
+    )
 
     # publications/apps.py → ready()
     register_taxonomies(PublicationPage, [COLLECTION, THEME])
@@ -57,10 +64,10 @@ The route ``name`` must match ``taxonomy.list_route_name`` (``collections_list``
   context keys ``collections``, ``current_collection``, and
   ``page.filter_by_collection``. ``BlogIndexPage.get_context`` fills those keys
   automatically.
-- **List page**: ``{app_label}/collections_list_page.html`` by default (override
-  with ``list_template=`` on ``Taxonomy``). Use dict keys ``collection_slug``,
-  ``collection_name``, ``collection_count`` in the loop (see
-  ``list_taxonomy_values``).
+- **List page**: create the template passed as ``list_template`` on
+  ``Taxonomy`` (e.g. ``publications/collections_list_page.html``). Use dict keys
+  ``collection_slug``, ``collection_name``, ``collection_count`` in the loop
+  (see ``list_taxonomy_values``).
 
 **7. Optional helpers**
 
@@ -86,7 +93,7 @@ The route ``name`` must match ``taxonomy.list_route_name`` (``collections_list``
 | Context (all values) | ``collections``               |
 | Context (active)     | ``current_collection``        |
 | List route name      | ``collections_list``          |
-| List template        | ``…/collections_list_page.html`` |
+| List template        | ``publications/collections_list_page.html`` |
 +----------------------+-------------------------------+
 """
 
@@ -106,12 +113,23 @@ class Taxonomy:
     alongside a ``Taxonomy`` instance.
     """
 
-    def __init__(self, model, m2m_field, filter_field, *, slug=None, list_template=None, filtered_title=None):
+    def __init__(
+        self,
+        model,
+        m2m_field,
+        filter_field,
+        list_template,
+        list_route_name,
+        *,
+        slug=None,
+        filtered_title=None,
+    ):
         self.model = model
         self.m2m_field = m2m_field
         self.filter_field = filter_field
+        self.list_template = list_template
+        self.list_route_name = list_route_name
         self.slug = slug or model._meta.model_name
-        self._list_template = list_template
         self._custom_filtered_title = filtered_title
 
     def format_filtered_title(self, name):
@@ -129,21 +147,6 @@ class Taxonomy:
     @property
     def list_label_plural(self):
         return self.model._meta.verbose_name_plural
-
-    @property
-    def list_route_name(self):
-        return f"{self.list_context_key}_list"
-
-    @property
-    def list_template(self):
-        if self._list_template:
-            return self._list_template
-        app_label = self.model._meta.app_label
-        return f"{app_label}/{self.list_context_key}_list_page.html"
-
-    @property
-    def list_prefix(self):
-        return self.slug
 
     @property
     def list_context_key(self):
@@ -223,9 +226,9 @@ def list_taxonomy_values(index_page, taxonomy):
     Used by ``BlogIndexPage.categories_list`` (via ``render_taxonomy_list``).
     """
     posts = index_page.posts.specific()
-    slug_key = f"{taxonomy.list_prefix}_slug"
-    name_key = f"{taxonomy.list_prefix}_name"
-    count_key = f"{taxonomy.list_prefix}_count"
+    slug_key = f"{taxonomy.slug}_slug"
+    name_key = f"{taxonomy.slug}_name"
+    count_key = f"{taxonomy.slug}_count"
     return (
         posts.values(
             **{
