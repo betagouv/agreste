@@ -27,7 +27,7 @@ Example: ``PublicationIndexPage`` model in ``https://github.com/betagouv/agreste
 
 - ``filter_by_{slug}`` boolean field — e.g. ``filter_by_collection``. This name
   is required: ``BlogIndexPage.show_filters`` reads it via
-  ``taxonomy.filter_field``.
+  ``taxonomy.index_page_filter_display_switch``.
 - Add ``FieldPanel("filter_by_collection")`` to the "Show filters" panel.
 - Run ``makemigrations``.
 - ``subpage_types`` must point at your entry page class.
@@ -36,7 +36,7 @@ Example: ``PublicationIndexPage`` model in ``https://github.com/betagouv/agreste
 
 Example: ``publications.taxonomies.py`` in ``https://github.com/betagouv/agreste/blob/main-agreste/publications/taxonomies.py``.
 
-Pass ``filter_field``, ``list_template``, ``list_route_name``, and ``plural``
+Pass ``index_page_filter_display_switch``, ``list_template``, ``list_route_name``, and ``plural``
 explicitly — they must match the index page field (step 3), list template
 (step 6), route name (step 5), and template context key (step 6)::
 
@@ -44,7 +44,7 @@ explicitly — they must match the index page field (step 3), list template
     COLLECTION = TaxonomyRegistration(
         Collection,
         m2m_field="collections",
-        filter_field="filter_by_collection",
+        index_page_filter_display_switch="filter_by_collection",
         list_template="publications/collections_list_page.html",
         list_route_name="collections_list",
         plural="collections",
@@ -122,7 +122,7 @@ class TaxonomyRegistration:
         model,
         *,
         m2m_field,
-        filter_field,
+        index_page_filter_display_switch,
         list_template,
         list_route_name,
         plural,
@@ -131,7 +131,7 @@ class TaxonomyRegistration:
     ):
         self.model = model
         self.m2m_field = m2m_field
-        self.filter_field = filter_field
+        self.index_page_filter_display_switch = index_page_filter_display_switch
         self.list_template = list_template
         self.list_route_name = list_route_name
         self.plural = plural

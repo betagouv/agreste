@@ -318,7 +318,7 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
     @property
     def show_filters(self) -> bool | BooleanField:
         taxonomies = get_taxonomy_types(self.get_entry_page_class())
-        taxonomy_filters = any(getattr(self, taxonomy.filter_field) for taxonomy in taxonomies)
+        taxonomy_filters = any(getattr(self, taxonomy.index_page_filter_display_switch) for taxonomy in taxonomies)
         return taxonomy_filters or self.filter_by_tag or self.filter_by_author or self.filter_by_source
 
     def feed_posts(self, feed, request):
