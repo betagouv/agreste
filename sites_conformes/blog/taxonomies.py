@@ -3,9 +3,9 @@ from sites_conformes.blog.taxonomy_registration import TaxonomyRegistration
 
 CATEGORY = TaxonomyRegistration(
     Category,
-    "blog_categories",
-    "filter_by_category",
-    "sites_conformes_blog/categories_list_page.html",
-    "categories_list",
-    "categories",
+    m2m_field="blog_categories",
+    filter_field="filter_by_category",
+    list_template="sites_conformes_blog/categories_list_page.html",
+    list_route_name="categories_list",
+    plural="categories",
 )

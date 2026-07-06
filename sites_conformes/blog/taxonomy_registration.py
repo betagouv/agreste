@@ -43,11 +43,11 @@ explicitly — they must match the index page field (step 3), list template
     # publications/taxonomies.py
     COLLECTION = TaxonomyRegistration(
         Collection,
-        "collections",
-        "filter_by_collection",
-        "publications/collections_list_page.html",
-        "collections_list",
-        "collections",
+        m2m_field="collections",
+        filter_field="filter_by_collection",
+        list_template="publications/collections_list_page.html",
+        list_route_name="collections_list",
+        plural="collections",
     )
 
     # publications/apps.py → ready()
@@ -120,12 +120,12 @@ class TaxonomyRegistration:
     def __init__(
         self,
         model,
+        *,
         m2m_field,
         filter_field,
         list_template,
         list_route_name,
         plural,
-        *,
         slug=None,
         filtered_title=None,
     ):

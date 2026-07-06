@@ -3,17 +3,17 @@ from sites_conformes.blog.taxonomy_registration import TaxonomyRegistration
 
 COLLECTION = TaxonomyRegistration(
     Collection,
-    "collections",
-    "filter_by_collection",
-    "publications/collections_list_page.html",
-    "collections_list",
-    "collections",
+    m2m_field="collections",
+    filter_field="filter_by_collection",
+    list_template="publications/collections_list_page.html",
+    list_route_name="collections_list",
+    plural="collections",
 )
 THEME = TaxonomyRegistration(
     Theme,
-    "themes",
-    "filter_by_theme",
-    "publications/themes_list_page.html",
-    "themes_list",
-    "themes",
+    m2m_field="themes",
+    filter_field="filter_by_theme",
+    list_template="publications/themes_list_page.html",
+    list_route_name="themes_list",
+    plural="themes",
 )
