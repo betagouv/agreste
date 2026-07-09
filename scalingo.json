@@ -5,14 +5,24 @@
   "repository": "https://github.com/numerique-gouv/sites-conformes",
   "ref": "production",
   "website": "https://sites.beta.gouv.fr",
+  "copy_parent_database_urls": false,
   "env": {
     "ALLOWED_HOSTS": {
-      "description": "List of allowed host names, separated by commas (domain names only)",
-      "value": "sc-example.osc-fr1.scalingo.io,example.sites.beta.gouv.fr"
+      "description": "Allowed host names (domains only, comma-separated). '.scalingo.io' matches any review-app / one-click subdomain.",
+      "value": ".scalingo.io"
+    },
+    "CSRF_TRUSTED_ORIGINS": {
+      "description": "Trusted origins for CSRF. Wildcard covers the dynamic review-app / one-click hostname.",
+      "value": "https://*.scalingo.io"
+    },
+    "IS_REVIEW_APP": {
+      "description": "Marker so the app (or scripts) can tell it is running as a review app / one-click deploy.",
+      "value": "true"
     },
     "HOST_URL": {
-      "description": "The main hostname (domain name only)",
-      "value": "example.sites.beta.gouv.fr"
+      "description": "Main hostname. On review apps / one-click deploys this is auto-filled with the app URL; settings strips the scheme.",
+      "generator": "url",
+      "template": "%URL%"
     },
     "DEFAULT_FROM_EMAIL": {
       "description": "The default email address for sending transactional emails. Leave empty to disable emails entirely.",
@@ -71,8 +81,8 @@
       "value": "medias"
     },
     "SF_USE_DB_STORAGE": {
-      "description": "Store the files in database instead of S3. Not recommanded for high trafic sites",
-      "value": false
+      "description": "Store files in the database instead of S3. Recommended for ephemeral review apps (the filesystem is not persisted).",
+      "value": true
     }
   },
   "formation": {

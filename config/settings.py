@@ -47,7 +47,10 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,.localhost").replace(" ", 
 USE_X_FORWARDED_HOST = getenv_bool("USE_X_FORWARDED_HOST", False)
 
 HOST_PROTO = os.getenv("HOST_PROTO", "https")
-HOST_URL = os.getenv("HOST_URL", "localhost")
+# Accept either a bare host ("example.com") or a full URL. Scalingo's review-app
+# / one-click "url" generator provides a full URL (https://...); strip it so
+# HOST_URL is always host-only.
+HOST_URL = os.getenv("HOST_URL", "localhost").removeprefix("https://").removeprefix("http://").rstrip("/")
 HOST_PORT = os.getenv("HOST_PORT", "")
 
 # Prefix of the application when served under a sub-path.
