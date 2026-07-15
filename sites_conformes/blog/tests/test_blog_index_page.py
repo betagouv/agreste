@@ -25,6 +25,14 @@ from sites_conformes.blog.tests.factories import (
 
 User = get_user_model()
 
+
+def get_post_titles_in_response(response) -> list[str]:
+    return [
+        link.get_text(strip=True)
+        for link in BeautifulSoup(response.content, "html.parser").select("#posts-list .fr-card__title a")
+    ]
+
+
 FILTER_SETTINGS_DEFAULTS = {
     "filter_by_category": True,
     "filter_by_tag": True,
@@ -197,21 +205,24 @@ class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
 
             with self.subTest(filter_name):
                 response = self.client.get(filtered_url)
-                self.assertContains(response, matching_post_title)
-                self.assertNotContains(response, other_post_title)
+                post_titles = get_post_titles_in_response(response)
+                self.assertIn(matching_post_title, post_titles)
+                self.assertNotIn(other_post_title, post_titles)
 
     def test_filters_posts_by_author(self):
         filter_url = f"{self.index.url}?author={self.author.id}"
         response = self.client.get(filter_url)
-        self.assertContains(response, self.post_with_author.title)
-        self.assertNotContains(response, self.post_with_other_author.title)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_author.title, post_titles)
+        self.assertNotIn(self.post_with_other_author.title, post_titles)
 
     def test_filters_posts_by_source(self):
         # Posts are filtered by the author's organization, not a direct source field.
         filter_url = f"{self.index.url}?source={self.organization.slug}"
         response = self.client.get(filter_url)
-        self.assertContains(response, self.post_with_author.title)
-        self.assertNotContains(response, self.post_with_other_author.title)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_author.title, post_titles)
+        self.assertNotIn(self.post_with_other_author.title, post_titles)
 
     def test_url_filter_applies_even_when_filter_disabled_in_settings(self):
         """
@@ -230,24 +241,27 @@ class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
                 self._set_filter_settings(**{setting_field: False})
                 response = self.client.get(filter_url)
                 self.assertNotContains(response, sidebar_heading)
-                self.assertContains(response, matching_post_title)
-                self.assertNotContains(response, other_post_title)
+                post_titles = get_post_titles_in_response(response)
+                self.assertIn(matching_post_title, post_titles)
+                self.assertNotIn(other_post_title, post_titles)
 
     def test_url_author_filter_applies_even_when_filter_disabled_in_settings(self):
         filter_url = f"{self.index.url}?author={self.author.id}"
         self._set_filter_settings(filter_by_author=False)
         response = self.client.get(filter_url)
         self.assertNotContains(response, gettext("Filter by author"))
-        self.assertContains(response, self.post_with_author.title)
-        self.assertNotContains(response, self.post_with_other_author.title)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_author.title, post_titles)
+        self.assertNotIn(self.post_with_other_author.title, post_titles)
 
     def test_url_source_filter_applies_even_when_filter_disabled_in_settings(self):
         filter_url = f"{self.index.url}?source={self.organization.slug}"
         self._set_filter_settings(filter_by_source=False)
         response = self.client.get(filter_url)
         self.assertNotContains(response, gettext("Filter by source"))
-        self.assertContains(response, self.post_with_author.title)
-        self.assertNotContains(response, self.post_with_other_author.title)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_author.title, post_titles)
+        self.assertNotIn(self.post_with_other_author.title, post_titles)
 
     def test_filters_posts_with_two_query_params(self):
         """Tests pairs of filters, to check that they interact correctly."""
@@ -267,11 +281,12 @@ class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
             with self.subTest(f"{filter_a}+{filter_b}"):
                 matching = self.entry_page_factory(parent=self.index, owner=self.admin, **post_kwargs)
                 response = self.client.get(query)
-                self.assertContains(response, matching.title)
+                post_titles = get_post_titles_in_response(response)
+                self.assertIn(matching.title, post_titles)
                 for case in (case_a, case_b):
                     case_name = case["name"]
-                    self.assertNotContains(response, getattr(self, f"post_with_{case_name}").title)
-                    self.assertNotContains(response, getattr(self, f"post_with_other_{case_name}").title)
+                    self.assertNotIn(getattr(self, f"post_with_{case_name}").title, post_titles)
+                    self.assertNotIn(getattr(self, f"post_with_other_{case_name}").title, post_titles)
 
 
 class BlogIndexPagePostsTest(BlogIndexPageFilterTestBase):

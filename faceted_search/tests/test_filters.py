@@ -28,6 +28,13 @@ def _all_filters_disabled() -> dict[str, bool]:
     return dict.fromkeys(ENABLED_FILTERS, False)
 
 
+def get_post_titles_in_response(response) -> list[str]:
+    return [
+        link.get_text(strip=True)
+        for link in BeautifulSoup(response.content, "html.parser").select("#search-results ol a")
+    ]
+
+
 class FacetedSearchFilterTestBase(PublicationIndexPageFilterTestBase):
     filter_cases = FILTER_CASES
     search_query = "Post"
@@ -132,9 +139,10 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
                 call_command("update_index")
                 response = self.client.get(filtered_url)
                 self.assertEqual(response.status_code, 200)
-                self.assertContains(response, matching_post_title)
-                self.assertNotContains(response, other_post_title)
-                self.assertNotContains(response, post_without_search_match.title)
+                post_titles = get_post_titles_in_response(response)
+                self.assertIn(matching_post_title, post_titles)
+                self.assertNotIn(other_post_title, post_titles)
+                self.assertNotIn(post_without_search_match.title, post_titles)
 
     def test_filters_search_results_by_author(self):
         post_without_search_match = self.entry_page_factory(
@@ -147,9 +155,10 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
         call_command("update_index")
         response = self.client.get(self.search_url(author=self.author.id))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.post_with_author.title)
-        self.assertNotContains(response, self.post_with_other_author.title)
-        self.assertNotContains(response, post_without_search_match.title)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_author.title, post_titles)
+        self.assertNotIn(self.post_with_other_author.title, post_titles)
+        self.assertNotIn(post_without_search_match.title, post_titles)
 
     def test_filters_search_results_by_source(self):
         post_without_search_match = self.entry_page_factory(
@@ -162,9 +171,10 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
         call_command("update_index")
         response = self.client.get(self.search_url(source=self.organization.slug))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.post_with_author.title)
-        self.assertNotContains(response, self.post_with_other_author.title)
-        self.assertNotContains(response, post_without_search_match.title)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_author.title, post_titles)
+        self.assertNotIn(self.post_with_other_author.title, post_titles)
+        self.assertNotIn(post_without_search_match.title, post_titles)
 
     def test_invalid_filter_value_returns_404(self):
         response = self.client.get(self.search_url(collection="nonexistent"))
@@ -198,17 +208,14 @@ class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
                 )
                 call_command("update_index")
                 response = self.client.get(self.search_url(**search_params))
-                result_titles = [
-                    link.get_text(strip=True)
-                    for link in BeautifulSoup(response.content, "html.parser").select("#search-results ol a")
-                ]
-                self.assertIn(matching.title, result_titles)
-                self.assertNotIn(post_without_search_match.title, result_titles)
+                post_titles = get_post_titles_in_response(response)
+                self.assertIn(matching.title, post_titles)
+                self.assertNotIn(post_without_search_match.title, post_titles)
                 for case in (case_a, case_b):
                     """Test that posts that match only one filter are not included in the results."""
                     case_name = case["name"]
-                    self.assertNotIn(getattr(self, f"post_with_{case_name}").title, result_titles)
-                    self.assertNotIn(getattr(self, f"post_with_other_{case_name}").title, result_titles)
+                    self.assertNotIn(getattr(self, f"post_with_{case_name}").title, post_titles)
+                    self.assertNotIn(getattr(self, f"post_with_other_{case_name}").title, post_titles)
 
 
 class FacetedSearchGetActiveFiltersTest(FacetedSearchFilterTestBase):
