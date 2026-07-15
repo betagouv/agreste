@@ -128,8 +128,8 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
             filter_name = case["name"]
             taxonomy = getattr(self, filter_name)
             filtered_url = self.search_url(**{filter_name: taxonomy.slug})
-            matching_post_title = getattr(self, case["matching_post"]).title
-            other_post_title = getattr(self, case["other_post"]).title
+            matching_post_title = getattr(self, f"post_with_{filter_name}").title
+            other_post_title = getattr(self, f"post_with_other_{filter_name}").title
 
             with self.subTest(filter_name):
                 response = self.client.get(filtered_url)
@@ -177,8 +177,9 @@ class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
                 response = self.client.get(self.search_url(**search_params))
                 self.assertContains(response, matching.title)
                 for case in (case_a, case_b):
-                    self.assertNotContains(response, getattr(self, case["matching_post"]).title)
-                    self.assertNotContains(response, getattr(self, case["other_post"]).title)
+                    case_name = case["name"]
+                    self.assertNotContains(response, getattr(self, f"post_with_{case_name}").title)
+                    self.assertNotContains(response, getattr(self, f"post_with_other_{case_name}").title)
 
 
 class FacetedSearchGetActiveFiltersTest(FacetedSearchFilterTestBase):

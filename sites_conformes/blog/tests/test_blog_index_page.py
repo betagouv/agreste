@@ -37,8 +37,6 @@ TAXONOMY_FILTER_CASES = [
     {
         "name": "category",
         "post_field": "blog_categories",
-        "matching_post": "post_with_category",
-        "other_post": "post_with_other_category",
     },
 ]
 
@@ -46,8 +44,6 @@ SHARED_FILTER_CASES = [
     {
         "name": "tag",
         "post_field": "tags",
-        "matching_post": "post_with_tag",
-        "other_post": "post_with_other_tag",
     },
 ]
 
@@ -200,8 +196,8 @@ class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
             filter_name = case["name"]
             taxonomy = getattr(self, filter_name)
             filtered_url = f"{self.index.url}?{filter_name}={taxonomy.slug}"
-            matching_post_title = getattr(self, case["matching_post"]).title
-            other_post_title = getattr(self, case["other_post"]).title
+            matching_post_title = getattr(self, f"post_with_{filter_name}").title
+            other_post_title = getattr(self, f"post_with_other_{filter_name}").title
 
             with self.subTest(filter_name):
                 response = self.client.get(filtered_url)
@@ -231,8 +227,8 @@ class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
             setting_field = f"filter_by_{filter_name}"
             sidebar_heading = gettext(f"Filter by {filter_name}")
             filter_url = f"{self.index.url}?{filter_name}={taxonomy.slug}"
-            matching_post_title = getattr(self, case["matching_post"]).title
-            other_post_title = getattr(self, case["other_post"]).title
+            matching_post_title = getattr(self, f"post_with_{filter_name}").title
+            other_post_title = getattr(self, f"post_with_other_{filter_name}").title
 
             with self.subTest(filter_name):
                 self._set_filter_settings(**{setting_field: False})
@@ -277,8 +273,9 @@ class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
                 response = self.client.get(query)
                 self.assertContains(response, matching.title)
                 for case in (case_a, case_b):
-                    self.assertNotContains(response, getattr(self, case["matching_post"]).title)
-                    self.assertNotContains(response, getattr(self, case["other_post"]).title)
+                    case_name = case["name"]
+                    self.assertNotContains(response, getattr(self, f"post_with_{case_name}").title)
+                    self.assertNotContains(response, getattr(self, f"post_with_other_{case_name}").title)
 
 
 class BlogIndexPagePostsTest(BlogIndexPageFilterTestBase):

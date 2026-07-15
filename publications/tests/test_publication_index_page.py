@@ -27,14 +27,10 @@ TAXONOMY_FILTER_CASES = [
     {
         "name": "collection",
         "post_field": "collections",
-        "matching_post": "post_with_collection",
-        "other_post": "post_with_other_collection",
     },
     {
         "name": "theme",
         "post_field": "themes",
-        "matching_post": "post_with_theme",
-        "other_post": "post_with_other_theme",
     },
 ]
 
