@@ -10,6 +10,7 @@ publications, not a standalone blog.
 from itertools import combinations
 from urllib.parse import urlencode
 
+from bs4 import BeautifulSoup
 from django.core.management import call_command
 from django.urls import reverse
 from wagtail.models import Site
@@ -17,60 +18,29 @@ from wagtail.models import Site
 from faceted_search.filters import ENABLED_FILTERS, get_active_filters_from_request_params, get_filter_context
 from faceted_search.views import FacetedSearchResultsView
 from publications.tests.test_publication_index_page import (
-    FILTER_CASES as PUBLICATION_FILTER_CASES,
+    FILTER_CASES,
     PublicationIndexPageFilterTestBase,
 )
 from sites_conformes.core.search_registry import get_search_results_view
-
-
-def _query_param_dict(query_string: str) -> dict[str, str]:
-    key, _, value = query_string.partition("=")
-    return {key: value}
-
-
-def _replace_filter_url_for_search(case):
-    # Publication index cases use ``filter_url`` like ``/publications/?collection=…``;
-    # replace it with ``/search/?q=Post&collection=…``.
-    return {
-        **case,
-        "filter_url": lambda self, case=case: self.search_url(**_query_param_dict(case["query_param"](self))),
-    }
-
-
-SEARCH_FILTER_CASES = [_replace_filter_url_for_search(case) for case in PUBLICATION_FILTER_CASES]
-
-FILTER_CONTEXT_KEYS = {
-    "filter_by_collection": "collections",
-    "filter_by_theme": "themes",
-    "filter_by_tag": "tags",
-    "filter_by_author": "authors",
-    "filter_by_source": "sources",
-}
-
-FILTER_FIXTURE_OBJECTS = {
-    "filter_by_collection": lambda self: self.collection,
-    "filter_by_theme": lambda self: self.theme,
-    "filter_by_tag": lambda self: self.tag,
-    "filter_by_author": lambda self: self.author,
-    "filter_by_source": lambda self: self.organization,
-}
 
 
 def _all_filters_disabled() -> dict[str, bool]:
     return dict.fromkeys(ENABLED_FILTERS, False)
 
 
+def get_post_titles_in_response(response) -> list[str]:
+    return [
+        link.get_text(strip=True)
+        for link in BeautifulSoup(response.content, "html.parser").select("#search-results ol a")
+    ]
+
+
 class FacetedSearchFilterTestBase(PublicationIndexPageFilterTestBase):
-    filter_cases = SEARCH_FILTER_CASES
+    filter_cases = FILTER_CASES
     search_query = "Post"
 
     def setUp(self):
         super().setUp()
-        # Indexed for search but title does not match ``search_query`` ("Post").
-        self.post_without_search_match = self._create_post(
-            "Annual Report",
-            collections=[self.collection],
-        )
         call_command("update_index")
 
     def search_url(self, query=None, **params):
@@ -90,56 +60,121 @@ class FacetedSearchRegistrationTest(FacetedSearchFilterTestBase):
 
 
 class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
-    """``get_filter_context`` builds sidebar lists according to ``enabled_filters``."""
-
-    def _request_and_site(self):
-        request = self.client.request().wsgi_request
-        site = Site.objects.get(is_default_site=True)
-        return request, site
+    """Test that``get_filter_context`` builds sidebar lists according to ``enabled_filters``."""
 
     def test_enabled_filter_flags_populate_context_lists(self):
+        request = self.client.request().wsgi_request
+        site = Site.objects.get(is_default_site=True)
+
         for case in self.filter_cases:
-            enabled_flags = {**_all_filters_disabled(), case["setting"]: True}
-            with self.subTest(case["name"]):
-                context = get_filter_context(*self._request_and_site(), enabled_filters=enabled_flags)
-                context_key = FILTER_CONTEXT_KEYS[case["setting"]]
-                fixture_object = FILTER_FIXTURE_OBJECTS[case["setting"]](self)
-                self.assertTrue(context[case["setting"]])
-                self.assertIn(fixture_object, list(context[context_key]))
+            filter_name = case["name"]
+            expected_item = getattr(self, filter_name)
+            enabled_flags = {**_all_filters_disabled(), f"filter_by_{filter_name}": True}
+
+            with self.subTest(filter_name):
+                context = get_filter_context(request, site, enabled_filters=enabled_flags)
+                self.assertTrue(context[f"filter_by_{filter_name}"])
+                self.assertIn(expected_item, list(context[f"{filter_name}s"]))
+
+        with self.subTest("author"):
+            enabled_flags = {**_all_filters_disabled(), "filter_by_author": True}
+            context = get_filter_context(request, site, enabled_filters=enabled_flags)
+            self.assertTrue(context["filter_by_author"])
+            self.assertIn(self.author, list(context["authors"]))
+
+        with self.subTest("source"):
+            enabled_flags = {**_all_filters_disabled(), "filter_by_source": True}
+            context = get_filter_context(request, site, enabled_filters=enabled_flags)
+            self.assertTrue(context["filter_by_source"])
+            self.assertIn(self.organization, list(context["sources"]))
 
     def test_disabled_filter_flags_omit_context_lists(self):
-        context = get_filter_context(*self._request_and_site(), enabled_filters=_all_filters_disabled())
+        request = self.client.request().wsgi_request
+        site = Site.objects.get(is_default_site=True)
+        context = get_filter_context(request, site, enabled_filters=_all_filters_disabled())
+
         for case in self.filter_cases:
-            with self.subTest(case["name"]):
-                context_key = FILTER_CONTEXT_KEYS[case["setting"]]
-                self.assertFalse(context[case["setting"]])
-                self.assertNotIn(context_key, context)
+            filter_name = case["name"]
+
+            with self.subTest(filter_name):
+                self.assertFalse(context[f"filter_by_{filter_name}"])
+                self.assertNotIn(f"{filter_name}s", context)
+
+        self.assertFalse(context["filter_by_author"])
+        self.assertNotIn("authors", context)
+        self.assertFalse(context["filter_by_source"])
+        self.assertNotIn("sources", context)
 
     def test_show_search_filters_follows_enabled_flags(self):
+        request = self.client.request().wsgi_request
+        site = Site.objects.get(is_default_site=True)
         enabled_flags = {**_all_filters_disabled(), "filter_by_collection": True}
-        context = get_filter_context(*self._request_and_site(), enabled_filters=enabled_flags)
+        context = get_filter_context(request, site, enabled_filters=enabled_flags)
         self.assertTrue(context["show_search_filters"])
 
-        context = get_filter_context(*self._request_and_site(), enabled_filters=_all_filters_disabled())
+        context = get_filter_context(request, site, enabled_filters=_all_filters_disabled())
         self.assertFalse(context["show_search_filters"])
 
 
 class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
-    """Full-text search combined with facet filters (``filter_before_search``)."""
+    """Full-text search combined with facet filters (``filter_before_search``).
+    Posts should match the search query and the given filter. Other combinations should not match."""
 
     def test_filters_search_results(self):
-        # Each case pairs a matching post with another that also matches ``q=Post``
-        # (e.g. "Post Agriculture" vs "Post Environment") but not the active filter.
-        # ``post_without_search_match`` may match the facet but not ``q=Post``.
-        # The filter must remove the other post from the search results, not just
-        # paginate an unfiltered list.
         for case in self.filter_cases:
-            with self.subTest(case["name"]):
-                response = self.client.get(case["filter_url"](self))
+            filter_name = case["name"]
+            taxonomy = getattr(self, filter_name)
+            filtered_url = self.search_url(**{filter_name: taxonomy.slug})
+            matching_post_title = getattr(self, f"post_with_{filter_name}").title
+            other_post_title = getattr(self, f"post_with_other_{filter_name}").title
+
+            with self.subTest(filter_name):
+                post_without_search_match = self.entry_page_factory(
+                    parent=self.index,
+                    owner=self.admin,
+                    title="Annual Report",
+                    slug=f"annual-report-no-search-match-{filter_name}",
+                    **{case["relation"]: [taxonomy]},
+                )
+                call_command("update_index")
+                response = self.client.get(filtered_url)
                 self.assertEqual(response.status_code, 200)
-                self.assertContains(response, case["matching_title"](self))
-                self.assertNotContains(response, case["other_title"](self))
-                self.assertNotContains(response, self.post_without_search_match.title)
+                post_titles = get_post_titles_in_response(response)
+                self.assertIn(matching_post_title, post_titles)
+                self.assertNotIn(other_post_title, post_titles)
+                self.assertNotIn(post_without_search_match.title, post_titles)
+
+    def test_filters_search_results_by_author(self):
+        post_without_search_match = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Annual Report",
+            slug="annual-report-no-search-match-author",
+            authors=[self.author],
+        )
+        call_command("update_index")
+        response = self.client.get(self.search_url(author=self.author.id))
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_author.title, post_titles)
+        self.assertNotIn(self.post_with_other_author.title, post_titles)
+        self.assertNotIn(post_without_search_match.title, post_titles)
+
+    def test_filters_search_results_by_source(self):
+        post_without_search_match = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Annual Report",
+            slug="annual-report-no-search-match-source",
+            authors=[self.author],
+        )
+        call_command("update_index")
+        response = self.client.get(self.search_url(source=self.organization.slug))
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_author.title, post_titles)
+        self.assertNotIn(self.post_with_other_author.title, post_titles)
+        self.assertNotIn(post_without_search_match.title, post_titles)
 
     def test_invalid_filter_value_returns_404(self):
         response = self.client.get(self.search_url(collection="nonexistent"))
@@ -147,34 +182,48 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
 
 
 class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
+    """Test that two filters can be combined in the search URL."""
+
     def test_filters_combine(self):
-        # Source interacts with author in fixtures; skip it for pairwise tests.
-        filter_cases = [case for case in self.filter_cases if case["name"] != "source"]
-        for case_a, case_b in combinations(filter_cases, 2):
-            with self.subTest(f"{case_a['name']}+{case_b['name']}"):
-                title = f"Post with {case_a['name']} and {case_b['name']}"
-                kwargs = {**case_a["post_kwargs"](self), **case_b["post_kwargs"](self)}
-                matching = self._create_post(title, **kwargs)
+        for case_a, case_b in combinations(self.filter_cases, 2):
+            filter_a = case_a["name"]
+            filter_b = case_b["name"]
+            search_params = {
+                filter_a: getattr(self, filter_a).slug,
+                filter_b: getattr(self, filter_b).slug,
+            }
+            post_kwargs = {
+                case_a["relation"]: [getattr(self, filter_a)],
+                case_b["relation"]: [getattr(self, filter_b)],
+            }
+
+            with self.subTest(f"{filter_a}+{filter_b}"):
+                matching = self.entry_page_factory(parent=self.index, owner=self.admin, **post_kwargs)
+                post_without_search_match = self.entry_page_factory(
+                    parent=self.index,
+                    owner=self.admin,
+                    title="Annual Report",
+                    slug=f"annual-report-no-search-match-{filter_a}-{filter_b}",
+                    **post_kwargs,
+                )
                 call_command("update_index")
-                params = {
-                    **_query_param_dict(case_a["query_param"](self)),
-                    **_query_param_dict(case_b["query_param"](self)),
-                }
-                response = self.client.get(self.search_url(**params))
-                # Post with both filters and matching title is returned.
-                self.assertContains(response, matching.title)
+                response = self.client.get(self.search_url(**search_params))
+                post_titles = get_post_titles_in_response(response)
+                self.assertIn(matching.title, post_titles)
+                self.assertNotIn(post_without_search_match.title, post_titles)
                 for case in (case_a, case_b):
-                    # Posts with only one of the two filters are not returned.
-                    self.assertNotContains(response, case["matching_title"](self))
-                    self.assertNotContains(response, case["other_title"](self))
+                    """Test that posts that match only one filter are not included in the results."""
+                    case_name = case["name"]
+                    self.assertNotIn(getattr(self, f"post_with_{case_name}").title, post_titles)
+                    self.assertNotIn(getattr(self, f"post_with_other_{case_name}").title, post_titles)
 
 
 class FacetedSearchGetActiveFiltersTest(FacetedSearchFilterTestBase):
     def test_get_active_filters_from_request_params(self):
         request = self.client.request().wsgi_request
         request.GET = request.GET.copy()
-        request.GET["collection"] = "agriculture"
-        request.GET["tag"] = "news"
+        request.GET["collection"] = self.collection.slug
+        request.GET["tag"] = self.tag.slug
         site = Site.objects.get(is_default_site=True)
         active = get_active_filters_from_request_params(request, site)
         self.assertEqual(active.collection, self.collection)
