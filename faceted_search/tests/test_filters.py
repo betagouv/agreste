@@ -10,6 +10,7 @@ publications, not a standalone blog.
 from itertools import combinations
 from urllib.parse import urlencode
 
+from bs4 import BeautifulSoup
 from django.core.management import call_command
 from django.urls import reverse
 from wagtail.models import Site
@@ -33,13 +34,6 @@ class FacetedSearchFilterTestBase(PublicationIndexPageFilterTestBase):
 
     def setUp(self):
         super().setUp()
-        # Indexed for search but title does not match ``search_query`` ("Post").
-        self.post_without_search_match = self.entry_page_factory(
-            parent=self.index,
-            owner=self.admin,
-            title="Annual Report",
-            collections=[self.collection],
-        )
         call_command("update_index")
 
     def search_url(self, query=None, **params):
@@ -116,7 +110,8 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
 
 
 class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
-    """Full-text search combined with facet filters (``filter_before_search``)."""
+    """Full-text search combined with facet filters (``filter_before_search``).
+    Posts should match the search query and the given filter. Other combinations should not match."""
 
     def test_filters_search_results(self):
         for case in self.filter_cases:
@@ -127,25 +122,49 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
             other_post_title = getattr(self, f"post_with_other_{filter_name}").title
 
             with self.subTest(filter_name):
+                post_without_search_match = self.entry_page_factory(
+                    parent=self.index,
+                    owner=self.admin,
+                    title="Annual Report",
+                    slug=f"annual-report-no-search-match-{filter_name}",
+                    **{case["relation"]: [taxonomy]},
+                )
+                call_command("update_index")
                 response = self.client.get(filtered_url)
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, matching_post_title)
                 self.assertNotContains(response, other_post_title)
-                self.assertNotContains(response, self.post_without_search_match.title)
+                self.assertNotContains(response, post_without_search_match.title)
 
     def test_filters_search_results_by_author(self):
+        post_without_search_match = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Annual Report",
+            slug="annual-report-no-search-match-author",
+            authors=[self.author],
+        )
+        call_command("update_index")
         response = self.client.get(self.search_url(author=self.author.id))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.post_with_author.title)
         self.assertNotContains(response, self.post_with_other_author.title)
-        self.assertNotContains(response, self.post_without_search_match.title)
+        self.assertNotContains(response, post_without_search_match.title)
 
     def test_filters_search_results_by_source(self):
+        post_without_search_match = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Annual Report",
+            slug="annual-report-no-search-match-source",
+            authors=[self.author],
+        )
+        call_command("update_index")
         response = self.client.get(self.search_url(source=self.organization.slug))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.post_with_author.title)
         self.assertNotContains(response, self.post_with_other_author.title)
-        self.assertNotContains(response, self.post_without_search_match.title)
+        self.assertNotContains(response, post_without_search_match.title)
 
     def test_invalid_filter_value_returns_404(self):
         response = self.client.get(self.search_url(collection="nonexistent"))
@@ -164,20 +183,32 @@ class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
                 filter_b: getattr(self, filter_b).slug,
             }
             post_kwargs = {
-                case_a["post_field"]: [getattr(self, filter_a)],
-                case_b["post_field"]: [getattr(self, filter_b)],
+                case_a["relation"]: [getattr(self, filter_a)],
+                case_b["relation"]: [getattr(self, filter_b)],
             }
 
             with self.subTest(f"{filter_a}+{filter_b}"):
                 matching = self.entry_page_factory(parent=self.index, owner=self.admin, **post_kwargs)
+                post_without_search_match = self.entry_page_factory(
+                    parent=self.index,
+                    owner=self.admin,
+                    title="Annual Report",
+                    slug=f"annual-report-no-search-match-{filter_a}-{filter_b}",
+                    **post_kwargs,
+                )
                 call_command("update_index")
                 response = self.client.get(self.search_url(**search_params))
-                self.assertContains(response, matching.title)
+                result_titles = [
+                    link.get_text(strip=True)
+                    for link in BeautifulSoup(response.content, "html.parser").select("#search-results ol a")
+                ]
+                self.assertIn(matching.title, result_titles)
+                self.assertNotIn(post_without_search_match.title, result_titles)
                 for case in (case_a, case_b):
                     """Test that posts that match only one filter are not included in the results."""
                     case_name = case["name"]
-                    self.assertNotContains(response, getattr(self, f"post_with_{case_name}").title)
-                    self.assertNotContains(response, getattr(self, f"post_with_other_{case_name}").title)
+                    self.assertNotIn(getattr(self, f"post_with_{case_name}").title, result_titles)
+                    self.assertNotIn(getattr(self, f"post_with_other_{case_name}").title, result_titles)
 
 
 class FacetedSearchGetActiveFiltersTest(FacetedSearchFilterTestBase):

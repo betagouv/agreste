@@ -25,15 +25,15 @@ FILTER_SETTINGS_DEFAULTS = {
 FILTER_CASES = [
     {
         "name": "collection",
-        "post_field": "collections",
+        "relation": "collections",
     },
     {
         "name": "theme",
-        "post_field": "themes",
+        "relation": "themes",
     },
     {
         "name": "tag",
-        "post_field": "tags",
+        "relation": "tags",
     },
 ]
 

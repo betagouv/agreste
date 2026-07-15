@@ -35,11 +35,11 @@ FILTER_SETTINGS_DEFAULTS = {
 FILTER_CASES = [
     {
         "name": "category",
-        "post_field": "blog_categories",
+        "relation": "blog_categories",
     },
     {
         "name": "tag",
-        "post_field": "tags",
+        "relation": "tags",
     },
     # Author and source are not in these cases because they behave a bit differently,
     # so we test them separately.
@@ -260,8 +260,8 @@ class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
                 f"{filter_b}={getattr(self, filter_b).slug}"
             )
             post_kwargs = {
-                case_a["post_field"]: [getattr(self, filter_a)],
-                case_b["post_field"]: [getattr(self, filter_b)],
+                case_a["relation"]: [getattr(self, filter_a)],
+                case_b["relation"]: [getattr(self, filter_b)],
             }
 
             with self.subTest(f"{filter_a}+{filter_b}"):
