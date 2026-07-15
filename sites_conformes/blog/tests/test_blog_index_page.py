@@ -55,6 +55,9 @@ FILTER_CASES = [
 
 
 class BlogIndexPageFilterTestBase(WagtailPageTestCase):
+    # Classes and factories exposed for overriding in subclasses,
+    # in particular for projects implementing multiple taxonomies.
+    # We can probably remove it when we have cleaner code for multiple taxonomies.
     index_page_class = BlogIndexPage
     index_page_factory = BlogIndexPageFactory
     entry_page_factory = BlogEntryPageFactory
