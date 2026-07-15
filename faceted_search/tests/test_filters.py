@@ -59,27 +59,21 @@ class FacetedSearchRegistrationTest(FacetedSearchFilterTestBase):
 
 
 class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
-    """``get_filter_context`` builds sidebar lists according to ``enabled_filters``."""
-
-    def _request_and_site(self):
-        request = self.client.request().wsgi_request
-        site = Site.objects.get(is_default_site=True)
-        return request, site
+    """Test that``get_filter_context`` builds sidebar lists according to ``enabled_filters``."""
 
     def test_enabled_filter_flags_populate_context_lists(self):
-        request, site = self._request_and_site()
+        request = self.client.request().wsgi_request
+        site = Site.objects.get(is_default_site=True)
 
         for case in self.filter_cases:
             filter_name = case["name"]
-            setting_field = f"filter_by_{filter_name}"
-            context_list_key = f"{filter_name}s"
             expected_item = getattr(self, filter_name)
-            enabled_flags = {**_all_filters_disabled(), setting_field: True}
+            enabled_flags = {**_all_filters_disabled(), f"filter_by_{filter_name}": True}
 
             with self.subTest(filter_name):
                 context = get_filter_context(request, site, enabled_filters=enabled_flags)
-                self.assertTrue(context[setting_field])
-                self.assertIn(expected_item, list(context[context_list_key]))
+                self.assertTrue(context[f"filter_by_{filter_name}"])
+                self.assertIn(expected_item, list(context[f"{filter_name}s"]))
 
         with self.subTest("author"):
             enabled_flags = {**_all_filters_disabled(), "filter_by_author": True}
@@ -94,17 +88,16 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
             self.assertIn(self.organization, list(context["sources"]))
 
     def test_disabled_filter_flags_omit_context_lists(self):
-        request, site = self._request_and_site()
+        request = self.client.request().wsgi_request
+        site = Site.objects.get(is_default_site=True)
         context = get_filter_context(request, site, enabled_filters=_all_filters_disabled())
 
         for case in self.filter_cases:
             filter_name = case["name"]
-            setting_field = f"filter_by_{filter_name}"
-            context_list_key = f"{filter_name}s"
 
             with self.subTest(filter_name):
-                self.assertFalse(context[setting_field])
-                self.assertNotIn(context_list_key, context)
+                self.assertFalse(context[f"filter_by_{filter_name}"])
+                self.assertNotIn(f"{filter_name}s", context)
 
         self.assertFalse(context["filter_by_author"])
         self.assertNotIn("authors", context)
@@ -112,11 +105,13 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
         self.assertNotIn("sources", context)
 
     def test_show_search_filters_follows_enabled_flags(self):
+        request = self.client.request().wsgi_request
+        site = Site.objects.get(is_default_site=True)
         enabled_flags = {**_all_filters_disabled(), "filter_by_collection": True}
-        context = get_filter_context(*self._request_and_site(), enabled_filters=enabled_flags)
+        context = get_filter_context(request, site, enabled_filters=enabled_flags)
         self.assertTrue(context["show_search_filters"])
 
-        context = get_filter_context(*self._request_and_site(), enabled_filters=_all_filters_disabled())
+        context = get_filter_context(request, site, enabled_filters=_all_filters_disabled())
         self.assertFalse(context["show_search_filters"])
 
 

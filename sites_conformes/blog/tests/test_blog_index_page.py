@@ -25,7 +25,6 @@ from sites_conformes.blog.tests.factories import (
 
 User = get_user_model()
 
-# BlogIndexPage filter toggles: category and tag default on; author and source default off.
 FILTER_SETTINGS_DEFAULTS = {
     "filter_by_category": True,
     "filter_by_tag": True,
