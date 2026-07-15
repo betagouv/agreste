@@ -153,6 +153,8 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
 
 
 class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
+    """Test that two filters can be combined in the search URL."""
+
     def test_filters_combine(self):
         for case_a, case_b in combinations(self.filter_cases, 2):
             filter_a = case_a["name"]
@@ -172,6 +174,7 @@ class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
                 response = self.client.get(self.search_url(**search_params))
                 self.assertContains(response, matching.title)
                 for case in (case_a, case_b):
+                    """Test that posts that match only one filter are not included in the results."""
                     case_name = case["name"]
                     self.assertNotContains(response, getattr(self, f"post_with_{case_name}").title)
                     self.assertNotContains(response, getattr(self, f"post_with_other_{case_name}").title)
