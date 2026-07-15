@@ -33,21 +33,18 @@ FILTER_SETTINGS_DEFAULTS = {
     "filter_by_source": False,
 }
 
-TAXONOMY_FILTER_CASES = [
+FILTER_CASES = [
     {
         "name": "category",
         "post_field": "blog_categories",
     },
-]
-
-SHARED_FILTER_CASES = [
     {
         "name": "tag",
         "post_field": "tags",
     },
+    # Author and source are not in these cases because they behave a bit differently,
+    # so we test them separately.
 ]
-
-FILTER_CASES = TAXONOMY_FILTER_CASES + SHARED_FILTER_CASES
 
 
 class BlogIndexPageFilterTestBase(WagtailPageTestCase):

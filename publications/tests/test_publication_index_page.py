@@ -8,7 +8,6 @@ from publications.tests.factories import (
     ThemeFactory,
 )
 from sites_conformes.blog.tests.test_blog_index_page import (
-    SHARED_FILTER_CASES,
     BlogIndexPageFilterQueryTest,
     BlogIndexPageFilterTestBase,
     BlogIndexPagePostsTest,
@@ -23,7 +22,7 @@ FILTER_SETTINGS_DEFAULTS = {
     "filter_by_source": False,
 }
 
-TAXONOMY_FILTER_CASES = [
+FILTER_CASES = [
     {
         "name": "collection",
         "post_field": "collections",
@@ -32,9 +31,11 @@ TAXONOMY_FILTER_CASES = [
         "name": "theme",
         "post_field": "themes",
     },
+    {
+        "name": "tag",
+        "post_field": "tags",
+    },
 ]
-
-FILTER_CASES = TAXONOMY_FILTER_CASES + SHARED_FILTER_CASES
 
 
 class PublicationIndexPageFilterTestBase(BlogIndexPageFilterTestBase):
