@@ -123,16 +123,18 @@ class BlogIndexPageSettingsTest(BlogIndexPageFilterTestBase):
                     names.extend(list_settings_in_panel(panel.children))
             return names
 
-        field_names = list_settings_in_panel(self.index_page_class.settings_panels)
-        for field_name in self.filter_settings_defaults:
-            self.assertIn(field_name, field_names)
+        filter_settings_found = list_settings_in_panel(self.index_page_class.settings_panels)
+        for filter_setting_expected in self.filter_settings_defaults:
+            self.assertIn(filter_setting_expected, filter_settings_found)
 
     def test_filter_settings_default_values(self):
-        page = self.index_page_factory(parent=self.home, title="Defaults", slug="defaults", publish=False)
-        for field_name, expected_default in self.filter_settings_defaults.items():
-            self.assertEqual(getattr(page, field_name), expected_default, field_name)
+        index_page = self.index_page_factory(parent=self.home, title="Defaults", slug="defaults", publish=False)
+        for filter_setting, expected_default in self.filter_settings_defaults.items():
+            self.assertEqual(getattr(index_page, filter_setting), expected_default, filter_setting)
 
     def test_filter_shown_when_enabled(self):
+        """Test that the filter is shown in the left sidebar in the rendered page
+        when it is enabled in the page settings."""
         for case in self.filter_cases:
             filter_name = case["name"]
             taxonomy = getattr(self, filter_name)
@@ -142,22 +144,33 @@ class BlogIndexPageSettingsTest(BlogIndexPageFilterTestBase):
             with self.subTest(filter_name):
                 self._set_filter_settings(**{setting_field: True})
                 response = self.client.get(self.index.url)
-                self.assertContains(response, sidebar_heading)
-                self.assertContains(response, taxonomy.name)
+                sidebar = BeautifulSoup(response.content, "html.parser").select_one("nav.fr-sidemenu")
+                self.assertIsNotNone(sidebar)
+                self.assertIsNotNone(sidebar.find("h3", string=sidebar_heading))
+                sidebar_labels = [tag.get_text(strip=True) for tag in sidebar.select("a.fr-tag")]
+                self.assertIn(taxonomy.name, sidebar_labels)
 
         with self.subTest("author"):
             self._set_filter_settings(filter_by_author=True)
             response = self.client.get(self.index.url)
-            self.assertContains(response, gettext("Filter by author"))
-            self.assertContains(response, self.author.name)
+            sidebar = BeautifulSoup(response.content, "html.parser").select_one("nav.fr-sidemenu")
+            self.assertIsNotNone(sidebar)
+            self.assertIsNotNone(sidebar.find("h3", string=gettext("Filter by author")))
+            sidebar_labels = [tag.get_text(strip=True) for tag in sidebar.select("a.fr-tag")]
+            self.assertIn(self.author.name, sidebar_labels)
 
         with self.subTest("source"):
             self._set_filter_settings(filter_by_source=True)
             response = self.client.get(self.index.url)
-            self.assertContains(response, gettext("Filter by source"))
-            self.assertContains(response, self.organization.name)
+            sidebar = BeautifulSoup(response.content, "html.parser").select_one("nav.fr-sidemenu")
+            self.assertIsNotNone(sidebar)
+            self.assertIsNotNone(sidebar.find("h3", string=gettext("Filter by source")))
+            sidebar_labels = [tag.get_text(strip=True) for tag in sidebar.select("a.fr-tag")]
+            self.assertIn(self.organization.name, sidebar_labels)
 
     def test_filter_hidden_when_disabled(self):
+        """Test that the filter is hidden in the left sidebar in the rendered page
+        when it is disabled in the page settings."""
         for case in self.filter_cases:
             filter_name = case["name"]
             setting_field = f"filter_by_{filter_name}"
@@ -186,12 +199,12 @@ class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
         for case in self.filter_cases:
             filter_name = case["name"]
             taxonomy = getattr(self, filter_name)
-            filter_url = f"{self.index.url}?{filter_name}={taxonomy.slug}"
+            filtered_url = f"{self.index.url}?{filter_name}={taxonomy.slug}"
             matching_post_title = getattr(self, case["matching_post"]).title
             other_post_title = getattr(self, case["other_post"]).title
 
             with self.subTest(filter_name):
-                response = self.client.get(filter_url)
+                response = self.client.get(filtered_url)
                 self.assertContains(response, matching_post_title)
                 self.assertNotContains(response, other_post_title)
 
