@@ -1,5 +1,4 @@
 from bs4 import BeautifulSoup
-from django.utils.translation import gettext
 
 from publications.models import PublicationIndexPage
 from publications.tests.factories import (
@@ -27,25 +26,17 @@ FILTER_SETTINGS_DEFAULTS = {
 TAXONOMY_FILTER_CASES = [
     {
         "name": "collection",
-        "setting": "filter_by_collection",
-        "heading": gettext("Filter by collection"),
-        "visible_label": lambda self: self.collection.name,
-        "query_param": lambda self: f"collection={self.collection.slug}",
-        "filter_url": lambda self: f"{self.index.url}?collection={self.collection.slug}",
-        "post_kwargs": lambda self: {"collections": [self.collection]},
-        "matching_title": lambda self: self.post_with_collection.title,
-        "other_title": lambda self: self.post_with_other_collection.title,
+        "value_field": "slug",
+        "matching_post_kwargs": {"collections": ["collection"]},
+        "matching_post": "post_with_collection",
+        "other_post": "post_with_other_collection",
     },
     {
         "name": "theme",
-        "setting": "filter_by_theme",
-        "heading": gettext("Filter by theme"),
-        "visible_label": lambda self: self.theme.name,
-        "query_param": lambda self: f"theme={self.theme.slug}",
-        "filter_url": lambda self: f"{self.index.url}?theme={self.theme.slug}",
-        "post_kwargs": lambda self: {"themes": [self.theme]},
-        "matching_title": lambda self: self.post_with_theme.title,
-        "other_title": lambda self: self.post_with_other_theme.title,
+        "value_field": "slug",
+        "matching_post_kwargs": {"themes": ["theme"]},
+        "matching_post": "post_with_theme",
+        "other_post": "post_with_other_theme",
     },
 ]
 

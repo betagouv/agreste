@@ -36,51 +36,36 @@ FILTER_SETTINGS_DEFAULTS = {
 TAXONOMY_FILTER_CASES = [
     {
         "name": "category",
-        "setting": "filter_by_category",
-        "heading": gettext("Filter by category"),
-        "visible_label": lambda self: self.category.name,
-        "query_param": lambda self: f"category={self.category.slug}",
-        "filter_url": lambda self: f"{self.index.url}?category={self.category.slug}",
-        "post_kwargs": lambda self: {"blog_categories": [self.category]},
-        "matching_title": lambda self: self.post_with_category.title,
-        "other_title": lambda self: self.post_with_other_category.title,
+        "value_field": "slug",
+        "matching_post_kwargs": {"blog_categories": ["category"]},
+        "matching_post": "post_with_category",
+        "other_post": "post_with_other_category",
     },
 ]
 
 SHARED_FILTER_CASES = [
     {
         "name": "tag",
-        "setting": "filter_by_tag",
-        "heading": gettext("Filter by tag"),
-        "visible_label": lambda self: self.tag.name,
-        "query_param": lambda self: f"tag={self.tag.slug}",
-        "filter_url": lambda self: f"{self.index.url}?tag={self.tag.slug}",
-        "post_kwargs": lambda self: {"tags": [self.tag]},
-        "matching_title": lambda self: self.post_with_tag.title,
-        "other_title": lambda self: self.post_with_other_tag.title,
+        "value_field": "slug",
+        "matching_post_kwargs": {"tags": ["tag"]},
+        "matching_post": "post_with_tag",
+        "other_post": "post_with_other_tag",
     },
     {
         "name": "author",
-        "setting": "filter_by_author",
-        "heading": gettext("Filter by author"),
-        "visible_label": lambda self: self.author.name,
-        "query_param": lambda self: f"author={self.author.id}",
-        "filter_url": lambda self: f"{self.index.url}?author={self.author.id}",
-        "post_kwargs": lambda self: {"authors": [self.author]},
-        "matching_title": lambda self: self.post_with_author.title,
-        "other_title": lambda self: self.post_with_other_author.title,
+        "value_field": "id",
+        "matching_post_kwargs": {"authors": ["author"]},
+        "matching_post": "post_with_author",
+        "other_post": "post_with_other_author",
     },
     {
         "name": "source",
-        "setting": "filter_by_source",
-        "heading": gettext("Filter by source"),
-        "visible_label": lambda self: self.organization.name,
-        "query_param": lambda self: f"source={self.organization.slug}",
-        "filter_url": lambda self: f"{self.index.url}?source={self.organization.slug}",
+        "fixture": "organization",
+        "value_field": "slug",
         # You can't assign a source to a post directly, so we assign an author associated to the source.
-        "post_kwargs": lambda self: {"authors": [self.author]},
-        "matching_title": lambda self: self.post_with_author.title,
-        "other_title": lambda self: self.post_with_other_author.title,
+        "matching_post_kwargs": {"authors": ["author"]},
+        "matching_post": "post_with_author",
+        "other_post": "post_with_other_author",
     },
 ]
 
@@ -167,18 +152,28 @@ class BlogIndexPageSettingsTest(BlogIndexPageFilterTestBase):
 
     def test_filter_shown_when_enabled(self):
         for case in self.filter_cases:
-            with self.subTest(case["name"]):
-                self._set_filter_settings(**{case["setting"]: True})
+            filter_name = case["name"]
+            setting_field = f"filter_by_{filter_name}"
+            sidebar_heading = gettext(f"Filter by {filter_name}")
+            fixture = getattr(self, case.get("fixture", filter_name))
+            visible_label = fixture.name
+
+            with self.subTest(filter_name):
+                self._set_filter_settings(**{setting_field: True})
                 response = self.client.get(self.index.url)
-                self.assertContains(response, case["heading"])
-                self.assertContains(response, case["visible_label"](self))
+                self.assertContains(response, sidebar_heading)
+                self.assertContains(response, visible_label)
 
     def test_filter_hidden_when_disabled(self):
         for case in self.filter_cases:
-            with self.subTest(case["name"]):
-                self._set_filter_settings(**{case["setting"]: False})
+            filter_name = case["name"]
+            setting_field = f"filter_by_{filter_name}"
+            sidebar_heading = gettext(f"Filter by {filter_name}")
+
+            with self.subTest(filter_name):
+                self._set_filter_settings(**{setting_field: False})
                 response = self.client.get(self.index.url)
-                self.assertNotContains(response, case["heading"])
+                self.assertNotContains(response, sidebar_heading)
 
 
 class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
@@ -186,39 +181,66 @@ class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
 
     def test_filters_posts(self):
         for case in self.filter_cases:
-            with self.subTest(case["name"]):
-                response = self.client.get(case["filter_url"](self))
-                self.assertContains(response, case["matching_title"](self))
-                self.assertNotContains(response, case["other_title"](self))
+            filter_name = case["name"]
+            fixture = getattr(self, case.get("fixture", filter_name))
+            param_value = getattr(fixture, case["value_field"])
+            filter_url = f"{self.index.url}?{filter_name}={param_value}"
+            matching_post_title = getattr(self, case["matching_post"]).title
+            other_post_title = getattr(self, case["other_post"]).title
+
+            with self.subTest(filter_name):
+                response = self.client.get(filter_url)
+                self.assertContains(response, matching_post_title)
+                self.assertNotContains(response, other_post_title)
 
     def test_url_filter_applies_even_when_filter_disabled_in_settings(self):
         """
         Disabling a filter hides its sidemenu block, but passing it in the URL still filters the posts.
         """
         for case in self.filter_cases:
-            with self.subTest(case["name"]):
-                self._set_filter_settings(**{case["setting"]: False})
-                response = self.client.get(case["filter_url"](self))
-                self.assertNotContains(response, case["heading"])
-                self.assertContains(response, case["matching_title"](self))
-                self.assertNotContains(response, case["other_title"](self))
+            filter_name = case["name"]
+            setting_field = f"filter_by_{filter_name}"
+            sidebar_heading = gettext(f"Filter by {filter_name}")
+            fixture = getattr(self, case.get("fixture", filter_name))
+            param_value = getattr(fixture, case["value_field"])
+            filter_url = f"{self.index.url}?{filter_name}={param_value}"
+            matching_post_title = getattr(self, case["matching_post"]).title
+            other_post_title = getattr(self, case["other_post"]).title
+
+            with self.subTest(filter_name):
+                self._set_filter_settings(**{setting_field: False})
+                response = self.client.get(filter_url)
+                self.assertNotContains(response, sidebar_heading)
+                self.assertContains(response, matching_post_title)
+                self.assertNotContains(response, other_post_title)
 
     def test_filters_posts_with_two_query_params(self):
         """Tests pairs of filters, to check that they interact correctly."""
-        # Remove the "source" case, because there's interactions with the "author" case that make testing complicated.
-        # We'll have less coverage but reliable tests.
+        # Source interacts with author in fixtures; skip it for pairwise tests.
         filter_cases = [case for case in self.filter_cases if case["name"] != "source"]
         for case_a, case_b in combinations(filter_cases, 2):
-            with self.subTest(f"{case_a['name']}+{case_b['name']}"):
-                kwargs = {**case_a["post_kwargs"](self), **case_b["post_kwargs"](self)}
-                matching = self.entry_page_factory(parent=self.index, owner=self.admin, **kwargs)
-                query = f"{self.index.url}?" f"{case_a['query_param'](self)}&{case_b['query_param'](self)}"
+            filter_a = case_a["name"]
+            filter_b = case_b["name"]
+
+            fixture_a = getattr(self, case_a.get("fixture", filter_a))
+            fixture_b = getattr(self, case_b.get("fixture", filter_b))
+            query_param_a = f"{filter_a}={getattr(fixture_a, case_a['value_field'])}"
+            query_param_b = f"{filter_b}={getattr(fixture_b, case_b['value_field'])}"
+            query = f"{self.index.url}?{query_param_a}&{query_param_b}"
+
+            post_kwargs = {}
+            for field, fixture_names in case_a["matching_post_kwargs"].items():
+                post_kwargs[field] = [getattr(self, fixture_name) for fixture_name in fixture_names]
+            for field, fixture_names in case_b["matching_post_kwargs"].items():
+                post_kwargs[field] = [getattr(self, fixture_name) for fixture_name in fixture_names]
+
+            with self.subTest(f"{filter_a}+{filter_b}"):
+                matching = self.entry_page_factory(parent=self.index, owner=self.admin, **post_kwargs)
                 response = self.client.get(query)
                 self.assertContains(response, matching.title)
-                # Check that posts with only one filter do not show.
                 for case in (case_a, case_b):
-                    self.assertNotContains(response, case["matching_title"](self))
-                    self.assertNotContains(response, case["other_title"](self))
+                    self.assertNotContains(response, getattr(self, case["matching_post"]).title)
+                    self.assertNotContains(response, getattr(self, case["other_post"]).title)
 
 
 class BlogIndexPagePostsTest(BlogIndexPageFilterTestBase):
