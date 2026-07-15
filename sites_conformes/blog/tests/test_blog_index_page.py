@@ -36,8 +36,7 @@ FILTER_SETTINGS_DEFAULTS = {
 TAXONOMY_FILTER_CASES = [
     {
         "name": "category",
-        "value_field": "slug",
-        "matching_post_kwargs": {"blog_categories": ["category"]},
+        "post_field": "blog_categories",
         "matching_post": "post_with_category",
         "other_post": "post_with_other_category",
     },
@@ -46,26 +45,9 @@ TAXONOMY_FILTER_CASES = [
 SHARED_FILTER_CASES = [
     {
         "name": "tag",
-        "value_field": "slug",
-        "matching_post_kwargs": {"tags": ["tag"]},
+        "post_field": "tags",
         "matching_post": "post_with_tag",
         "other_post": "post_with_other_tag",
-    },
-    {
-        "name": "author",
-        "value_field": "id",
-        "matching_post_kwargs": {"authors": ["author"]},
-        "matching_post": "post_with_author",
-        "other_post": "post_with_other_author",
-    },
-    {
-        "name": "source",
-        "fixture": "organization",
-        "value_field": "slug",
-        # You can't assign a source to a post directly, so we assign an author associated to the source.
-        "matching_post_kwargs": {"authors": ["author"]},
-        "matching_post": "post_with_author",
-        "other_post": "post_with_other_author",
     },
 ]
 
@@ -153,16 +135,27 @@ class BlogIndexPageSettingsTest(BlogIndexPageFilterTestBase):
     def test_filter_shown_when_enabled(self):
         for case in self.filter_cases:
             filter_name = case["name"]
+            taxonomy = getattr(self, filter_name)
             setting_field = f"filter_by_{filter_name}"
             sidebar_heading = gettext(f"Filter by {filter_name}")
-            fixture = getattr(self, case.get("fixture", filter_name))
-            visible_label = fixture.name
 
             with self.subTest(filter_name):
                 self._set_filter_settings(**{setting_field: True})
                 response = self.client.get(self.index.url)
                 self.assertContains(response, sidebar_heading)
-                self.assertContains(response, visible_label)
+                self.assertContains(response, taxonomy.name)
+
+        with self.subTest("author"):
+            self._set_filter_settings(filter_by_author=True)
+            response = self.client.get(self.index.url)
+            self.assertContains(response, gettext("Filter by author"))
+            self.assertContains(response, self.author.name)
+
+        with self.subTest("source"):
+            self._set_filter_settings(filter_by_source=True)
+            response = self.client.get(self.index.url)
+            self.assertContains(response, gettext("Filter by source"))
+            self.assertContains(response, self.organization.name)
 
     def test_filter_hidden_when_disabled(self):
         for case in self.filter_cases:
@@ -175,6 +168,16 @@ class BlogIndexPageSettingsTest(BlogIndexPageFilterTestBase):
                 response = self.client.get(self.index.url)
                 self.assertNotContains(response, sidebar_heading)
 
+        with self.subTest("author"):
+            self._set_filter_settings(filter_by_author=False)
+            response = self.client.get(self.index.url)
+            self.assertNotContains(response, gettext("Filter by author"))
+
+        with self.subTest("source"):
+            self._set_filter_settings(filter_by_source=False)
+            response = self.client.get(self.index.url)
+            self.assertNotContains(response, gettext("Filter by source"))
+
 
 class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
     """Test the filtering of the posts on the index page."""
@@ -182,9 +185,8 @@ class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
     def test_filters_posts(self):
         for case in self.filter_cases:
             filter_name = case["name"]
-            fixture = getattr(self, case.get("fixture", filter_name))
-            param_value = getattr(fixture, case["value_field"])
-            filter_url = f"{self.index.url}?{filter_name}={param_value}"
+            taxonomy = getattr(self, filter_name)
+            filter_url = f"{self.index.url}?{filter_name}={taxonomy.slug}"
             matching_post_title = getattr(self, case["matching_post"]).title
             other_post_title = getattr(self, case["other_post"]).title
 
@@ -193,17 +195,29 @@ class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
                 self.assertContains(response, matching_post_title)
                 self.assertNotContains(response, other_post_title)
 
+    def test_filters_posts_by_author(self):
+        filter_url = f"{self.index.url}?author={self.author.id}"
+        response = self.client.get(filter_url)
+        self.assertContains(response, self.post_with_author.title)
+        self.assertNotContains(response, self.post_with_other_author.title)
+
+    def test_filters_posts_by_source(self):
+        # Posts are filtered by the author's organization, not a direct source field.
+        filter_url = f"{self.index.url}?source={self.organization.slug}"
+        response = self.client.get(filter_url)
+        self.assertContains(response, self.post_with_author.title)
+        self.assertNotContains(response, self.post_with_other_author.title)
+
     def test_url_filter_applies_even_when_filter_disabled_in_settings(self):
         """
         Disabling a filter hides its sidemenu block, but passing it in the URL still filters the posts.
         """
         for case in self.filter_cases:
             filter_name = case["name"]
+            taxonomy = getattr(self, filter_name)
             setting_field = f"filter_by_{filter_name}"
             sidebar_heading = gettext(f"Filter by {filter_name}")
-            fixture = getattr(self, case.get("fixture", filter_name))
-            param_value = getattr(fixture, case["value_field"])
-            filter_url = f"{self.index.url}?{filter_name}={param_value}"
+            filter_url = f"{self.index.url}?{filter_name}={taxonomy.slug}"
             matching_post_title = getattr(self, case["matching_post"]).title
             other_post_title = getattr(self, case["other_post"]).title
 
@@ -214,25 +228,36 @@ class BlogIndexPageFilterQueryTest(BlogIndexPageFilterTestBase):
                 self.assertContains(response, matching_post_title)
                 self.assertNotContains(response, other_post_title)
 
+    def test_url_author_filter_applies_even_when_filter_disabled_in_settings(self):
+        filter_url = f"{self.index.url}?author={self.author.id}"
+        self._set_filter_settings(filter_by_author=False)
+        response = self.client.get(filter_url)
+        self.assertNotContains(response, gettext("Filter by author"))
+        self.assertContains(response, self.post_with_author.title)
+        self.assertNotContains(response, self.post_with_other_author.title)
+
+    def test_url_source_filter_applies_even_when_filter_disabled_in_settings(self):
+        filter_url = f"{self.index.url}?source={self.organization.slug}"
+        self._set_filter_settings(filter_by_source=False)
+        response = self.client.get(filter_url)
+        self.assertNotContains(response, gettext("Filter by source"))
+        self.assertContains(response, self.post_with_author.title)
+        self.assertNotContains(response, self.post_with_other_author.title)
+
     def test_filters_posts_with_two_query_params(self):
         """Tests pairs of filters, to check that they interact correctly."""
-        # Source interacts with author in fixtures; skip it for pairwise tests.
-        filter_cases = [case for case in self.filter_cases if case["name"] != "source"]
-        for case_a, case_b in combinations(filter_cases, 2):
+        for case_a, case_b in combinations(self.filter_cases, 2):
             filter_a = case_a["name"]
             filter_b = case_b["name"]
-
-            fixture_a = getattr(self, case_a.get("fixture", filter_a))
-            fixture_b = getattr(self, case_b.get("fixture", filter_b))
-            query_param_a = f"{filter_a}={getattr(fixture_a, case_a['value_field'])}"
-            query_param_b = f"{filter_b}={getattr(fixture_b, case_b['value_field'])}"
-            query = f"{self.index.url}?{query_param_a}&{query_param_b}"
-
-            post_kwargs = {}
-            for field, fixture_names in case_a["matching_post_kwargs"].items():
-                post_kwargs[field] = [getattr(self, fixture_name) for fixture_name in fixture_names]
-            for field, fixture_names in case_b["matching_post_kwargs"].items():
-                post_kwargs[field] = [getattr(self, fixture_name) for fixture_name in fixture_names]
+            query = (
+                f"{self.index.url}?"
+                f"{filter_a}={getattr(self, filter_a).slug}&"
+                f"{filter_b}={getattr(self, filter_b).slug}"
+            )
+            post_kwargs = {
+                case_a["post_field"]: [getattr(self, filter_a)],
+                case_b["post_field"]: [getattr(self, filter_b)],
+            }
 
             with self.subTest(f"{filter_a}+{filter_b}"):
                 matching = self.entry_page_factory(parent=self.index, owner=self.admin, **post_kwargs)

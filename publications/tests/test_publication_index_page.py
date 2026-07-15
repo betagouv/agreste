@@ -26,15 +26,13 @@ FILTER_SETTINGS_DEFAULTS = {
 TAXONOMY_FILTER_CASES = [
     {
         "name": "collection",
-        "value_field": "slug",
-        "matching_post_kwargs": {"collections": ["collection"]},
+        "post_field": "collections",
         "matching_post": "post_with_collection",
         "other_post": "post_with_other_collection",
     },
     {
         "name": "theme",
-        "value_field": "slug",
-        "matching_post_kwargs": {"themes": ["theme"]},
+        "post_field": "themes",
         "matching_post": "post_with_theme",
         "other_post": "post_with_other_theme",
     },

@@ -73,13 +73,25 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
             filter_name = case["name"]
             setting_field = f"filter_by_{filter_name}"
             context_list_key = f"{filter_name}s"
-            expected_item = getattr(self, case.get("fixture", filter_name))
+            expected_item = getattr(self, filter_name)
             enabled_flags = {**_all_filters_disabled(), setting_field: True}
 
             with self.subTest(filter_name):
                 context = get_filter_context(request, site, enabled_filters=enabled_flags)
                 self.assertTrue(context[setting_field])
                 self.assertIn(expected_item, list(context[context_list_key]))
+
+        with self.subTest("author"):
+            enabled_flags = {**_all_filters_disabled(), "filter_by_author": True}
+            context = get_filter_context(request, site, enabled_filters=enabled_flags)
+            self.assertTrue(context["filter_by_author"])
+            self.assertIn(self.author, list(context["authors"]))
+
+        with self.subTest("source"):
+            enabled_flags = {**_all_filters_disabled(), "filter_by_source": True}
+            context = get_filter_context(request, site, enabled_filters=enabled_flags)
+            self.assertTrue(context["filter_by_source"])
+            self.assertIn(self.organization, list(context["sources"]))
 
     def test_disabled_filter_flags_omit_context_lists(self):
         request, site = self._request_and_site()
@@ -93,6 +105,11 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
             with self.subTest(filter_name):
                 self.assertFalse(context[setting_field])
                 self.assertNotIn(context_list_key, context)
+
+        self.assertFalse(context["filter_by_author"])
+        self.assertNotIn("authors", context)
+        self.assertFalse(context["filter_by_source"])
+        self.assertNotIn("sources", context)
 
     def test_show_search_filters_follows_enabled_flags(self):
         enabled_flags = {**_all_filters_disabled(), "filter_by_collection": True}
@@ -109,8 +126,8 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
     def test_filters_search_results(self):
         for case in self.filter_cases:
             filter_name = case["name"]
-            fixture = getattr(self, case.get("fixture", filter_name))
-            filter_url = self.search_url(**{filter_name: getattr(fixture, case["value_field"])})
+            taxonomy = getattr(self, filter_name)
+            filter_url = self.search_url(**{filter_name: taxonomy.slug})
             matching_post_title = getattr(self, case["matching_post"]).title
             other_post_title = getattr(self, case["other_post"]).title
 
@@ -121,6 +138,20 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
                 self.assertNotContains(response, other_post_title)
                 self.assertNotContains(response, self.post_without_search_match.title)
 
+    def test_filters_search_results_by_author(self):
+        response = self.client.get(self.search_url(author=self.author.id))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.post_with_author.title)
+        self.assertNotContains(response, self.post_with_other_author.title)
+        self.assertNotContains(response, self.post_without_search_match.title)
+
+    def test_filters_search_results_by_source(self):
+        response = self.client.get(self.search_url(source=self.organization.slug))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.post_with_author.title)
+        self.assertNotContains(response, self.post_with_other_author.title)
+        self.assertNotContains(response, self.post_without_search_match.title)
+
     def test_invalid_filter_value_returns_404(self):
         response = self.client.get(self.search_url(collection="nonexistent"))
         self.assertEqual(response.status_code, 404)
@@ -128,23 +159,17 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
 
 class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
     def test_filters_combine(self):
-        filter_cases = [case for case in self.filter_cases if case["name"] != "source"]
-        for case_a, case_b in combinations(filter_cases, 2):
+        for case_a, case_b in combinations(self.filter_cases, 2):
             filter_a = case_a["name"]
             filter_b = case_b["name"]
-
-            fixture_a = getattr(self, case_a.get("fixture", filter_a))
-            fixture_b = getattr(self, case_b.get("fixture", filter_b))
             search_params = {
-                filter_a: getattr(fixture_a, case_a["value_field"]),
-                filter_b: getattr(fixture_b, case_b["value_field"]),
+                filter_a: getattr(self, filter_a).slug,
+                filter_b: getattr(self, filter_b).slug,
             }
-
-            post_kwargs = {}
-            for field, fixture_names in case_a["matching_post_kwargs"].items():
-                post_kwargs[field] = [getattr(self, fixture_name) for fixture_name in fixture_names]
-            for field, fixture_names in case_b["matching_post_kwargs"].items():
-                post_kwargs[field] = [getattr(self, fixture_name) for fixture_name in fixture_names]
+            post_kwargs = {
+                case_a["post_field"]: [getattr(self, filter_a)],
+                case_b["post_field"]: [getattr(self, filter_b)],
+            }
 
             with self.subTest(f"{filter_a}+{filter_b}"):
                 matching = self.entry_page_factory(parent=self.index, owner=self.admin, **post_kwargs)
