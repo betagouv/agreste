@@ -1,0 +1,5 @@
+/* Prevent long downloadable filenames from overflowing tile descriptions */
+.fr-tile__desc {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
