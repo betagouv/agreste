@@ -1,0 +1,46 @@
+{% load dsfr_tags wagtailcore_tags %}
+
+<li>
+  <h2 class="fr-h4">
+    <a href="{% pageurl result %}">{{ result }}</a>
+  </h2>
+  {% with post=result.specific %}
+    {% if post.date %}
+      <p>
+        <span class="fr-icon-calendar-line fr-icon--sm" aria-hidden="true"></span>
+        {{ post.date|date:'d/m/Y' }}
+      </p>
+    {% endif %}
+    {% with themes=post.themes.all %}
+      {% if themes %}
+        <ul class="fr-tags-group">
+          {% for theme in themes|slice:":4" %}
+            <li>{% dsfr_tag label=theme.name %}</li>
+          {% endfor %}
+          {% if themes|length > 4 %}
+            {% with extra=themes|length|add:"-4"|stringformat:"s" %}
+              <li>{% dsfr_tag label="+"|add:extra %}</li>
+            {% endwith %}
+          {% endif %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+  {% endwith %}
+  {% if result.search_description %}<p>{{ result.search_description|safe }}</p>{% endif %}
+  {% with post=result.specific %}
+    {% with collections=post.collections.all %}
+      {% if collections %}
+        <ul class="fr-tags-group">
+          {% for collection in collections|slice:":4" %}
+            <li>{% dsfr_tag label=collection.name %}</li>
+          {% endfor %}
+          {% if collections|length > 4 %}
+            {% with extra=collections|length|add:"-4"|stringformat:"s" %}
+              <li>{% dsfr_tag label="+"|add:extra %}</li>
+            {% endwith %}
+          {% endif %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+  {% endwith %}
+</li>

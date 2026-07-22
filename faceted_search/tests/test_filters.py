@@ -445,3 +445,65 @@ class FacetedSearchGetActiveFiltersTest(FacetedSearchFilterTestBase):
         site = Site.objects.get(is_default_site=True)
         active = get_active_filters_from_request_params(request, site)
         self.assertEqual(active.years, ["2024"])
+
+
+class FacetedSearchResultsDisplayTest(FacetedSearchFilterTestBase):
+    """Test that search result items display metadata (date, themes, collections)."""
+
+    def test_search_results_show_publication_date(self):
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        result_li = soup.find("a", string=self.post_with_collection.title).find_parent("li")
+        self.assertIn(self.post_with_collection.date.strftime("%d/%m/%Y"), result_li.get_text())
+
+    def test_search_results_show_collections_and_themes(self):
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        collection_li = soup.find("a", string=self.post_with_collection.title).find_parent("li")
+        collection_tags = [tag.get_text(strip=True) for tag in collection_li.select(".fr-tag")]
+        self.assertIn(self.collection.name, collection_tags)
+
+        theme_li = soup.find("a", string=self.post_with_theme.title).find_parent("li")
+        theme_tags = [tag.get_text(strip=True) for tag in theme_li.select(".fr-tag")]
+        self.assertIn(self.theme.name, theme_tags)
+
+    def test_search_results_truncate_collections_when_more_than_four(self):
+        extra_collections = [CollectionFactory(locale=self.index.locale) for _ in range(4)]
+        post = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post with many collections",
+            slug="post-with-many-collections",
+            collections=[self.collection, self.other_collection] + extra_collections,
+        )
+        call_command("update_index")
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        result_li = soup.find("a", string=post.title).find_parent("li")
+        tags = [tag.get_text(strip=True) for tag in result_li.select(".fr-tag")]
+        all_collection_names = {self.collection.name, self.other_collection.name} | {
+            collection.name for collection in extra_collections
+        }
+        displayed_collections = [tag for tag in tags if tag in all_collection_names]
+        self.assertEqual(len(displayed_collections), 4)
+        self.assertIn("+2", tags)
+
+    def test_search_results_truncate_themes_when_more_than_four(self):
+        extra_themes = [ThemeFactory(locale=self.index.locale) for _ in range(4)]
+        post = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post with many themes",
+            slug="post-with-many-themes",
+            themes=[self.theme, self.other_theme] + extra_themes,
+        )
+        call_command("update_index")
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        result_li = soup.find("a", string=post.title).find_parent("li")
+        tags = [tag.get_text(strip=True) for tag in result_li.select(".fr-tag")]
+        all_theme_names = {self.theme.name, self.other_theme.name} | {theme.name for theme in extra_themes}
+        displayed_themes = [tag for tag in tags if tag in all_theme_names]
+        self.assertEqual(len(displayed_themes), 4)
+        self.assertIn("+2", tags)
