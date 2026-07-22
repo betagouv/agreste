@@ -1,6 +1,7 @@
 """Search result filters (fork-specific; mirrors PublicationIndexPage and blog facets)."""
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from django.shortcuts import get_object_or_404
 
@@ -29,6 +30,32 @@ class ActiveFilters:
     sources: list[Organization] = field(default_factory=list)
     authors: list[Person] = field(default_factory=list)
     years: list[str] = field(default_factory=list)
+
+
+@dataclass
+class TaxonomyFilterNode:
+    taxonomy: Any
+    children: list["TaxonomyFilterNode"] = field(default_factory=list)
+
+
+def _build_taxonomy_filter_tree(taxonomies, taxonomy_model, locale) -> list[TaxonomyFilterNode]:
+    """Build a tree containing selected taxonomies and all of their ancestors."""
+    nodes = {taxonomy.pk: TaxonomyFilterNode(taxonomy=taxonomy) for taxonomy in taxonomies}
+
+    missing = {taxonomy.parent_id for taxonomy in taxonomies if taxonomy.parent_id} - nodes.keys()
+    while missing:
+        for parent in taxonomy_model.objects.filter(locale=locale, id__in=missing).order_by("name"):
+            nodes[parent.pk] = TaxonomyFilterNode(taxonomy=parent)
+        missing = {node.taxonomy.parent_id for node in nodes.values() if node.taxonomy.parent_id} - nodes.keys()
+
+    roots = []
+    for node in sorted(nodes.values(), key=lambda item: item.taxonomy.name):
+        parent_id = node.taxonomy.parent_id
+        if parent_id in nodes:
+            nodes[parent_id].children.append(node)
+        else:
+            roots.append(node)
+    return roots
 
 
 def get_active_filters_from_request_params(request, site) -> ActiveFilters:
@@ -183,11 +210,13 @@ def get_filter_context(request, site, *, enabled_filters: dict[str, bool] | None
 
     if context["filter_by_collection"]:
         collection_ids = publication_pages.values_list("collections", flat=True)
-        context["collections"] = Collection.objects.filter(id__in=collection_ids, locale=locale).order_by("name")
+        collection_qs = Collection.objects.filter(id__in=collection_ids, locale=locale).order_by("name")
+        context["collection_tree"] = _build_taxonomy_filter_tree(collection_qs, Collection, locale)
 
     if context["filter_by_theme"]:
         theme_ids = publication_pages.values_list("themes", flat=True)
-        context["themes"] = Theme.objects.filter(id__in=theme_ids, locale=locale).order_by("name")
+        theme_qs = Theme.objects.filter(id__in=theme_ids, locale=locale).order_by("name")
+        context["theme_tree"] = _build_taxonomy_filter_tree(theme_qs, Theme, locale)
 
     context["show_search_filters"] = _show_search_filters(context)
     return context
@@ -196,9 +225,9 @@ def get_filter_context(request, site, *, enabled_filters: dict[str, bool] | None
 def _show_search_filters(context: dict) -> bool:
     if context.get("filter_by_category") and context.get("categories"):
         return True
-    if context.get("filter_by_collection") and context.get("collections"):
+    if context.get("filter_by_collection") and context.get("collection_tree"):
         return True
-    if context.get("filter_by_theme") and context.get("themes"):
+    if context.get("filter_by_theme") and context.get("theme_tree"):
         return True
     if context.get("filter_by_tag") and context.get("tags"):
         return True
