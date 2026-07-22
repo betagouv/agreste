@@ -16,7 +16,7 @@
       <div class="fr-filter-group__selected">
         {% for theme in current_themes %}
           {% toggle_url_filter theme=theme as theme_query %}
-          {% dsfr_tag label=theme.name is_selectable=True is_selected=True extra_classes="fr-tag--checked" link=search_url|add:theme_query|add:"#search-results" %}
+          {% dsfr_tag label=theme.name is_selectable=True is_selected=True link=search_url|add:theme_query|add:"#search-results" %}
         {% endfor %}
       </div>
     {% endif %}
@@ -31,7 +31,7 @@
       <div class="fr-filter-group__selected">
         {% for collection in current_collections %}
           {% toggle_url_filter collection=collection as collection_query %}
-          {% dsfr_tag label=collection.name is_selectable=True is_selected=True extra_classes="fr-tag--checked" link=search_url|add:collection_query|add:"#search-results" %}
+          {% dsfr_tag label=collection.name is_selectable=True is_selected=True link=search_url|add:collection_query|add:"#search-results" %}
         {% endfor %}
       </div>
     {% endif %}
@@ -46,7 +46,7 @@
       <div class="fr-filter-group__selected">
         {% for category in current_categories %}
           {% toggle_url_filter category=category as category_query %}
-          {% dsfr_tag label=category.name is_selectable=True is_selected=True extra_classes="fr-tag--checked" link=search_url|add:category_query|add:"#search-results" %}
+          {% dsfr_tag label=category.name is_selectable=True is_selected=True link=search_url|add:category_query|add:"#search-results" %}
         {% endfor %}
       </div>
     {% endif %}
@@ -61,7 +61,7 @@
       <div class="fr-filter-group__selected">
         {% for tag in current_tags %}
           {% toggle_url_filter tag=tag as tag_query %}
-          {% dsfr_tag label=tag is_selectable=True is_selected=True extra_classes="fr-tag--checked" link=search_url|add:tag_query|add:"#search-results" %}
+          {% dsfr_tag label=tag is_selectable=True is_selected=True link=search_url|add:tag_query|add:"#search-results" %}
         {% endfor %}
       </div>
     {% endif %}
@@ -76,7 +76,7 @@
       <div class="fr-filter-group__selected">
         {% for author in current_authors %}
           {% toggle_url_filter author=author as author_query %}
-          {% dsfr_tag label=author.name is_selectable=True is_selected=True extra_classes="fr-tag--checked" link=search_url|add:author_query|add:"#search-results" %}
+          {% dsfr_tag label=author.name is_selectable=True is_selected=True link=search_url|add:author_query|add:"#search-results" %}
         {% endfor %}
       </div>
     {% endif %}
@@ -91,7 +91,7 @@
       <div class="fr-filter-group__selected">
         {% for source in current_sources %}
           {% toggle_url_filter source=source as source_query %}
-          {% dsfr_tag label=source.name is_selectable=True is_selected=True extra_classes="fr-tag--checked" link=search_url|add:source_query|add:"#search-results" %}
+          {% dsfr_tag label=source.name is_selectable=True is_selected=True link=search_url|add:source_query|add:"#search-results" %}
         {% endfor %}
       </div>
     {% endif %}
