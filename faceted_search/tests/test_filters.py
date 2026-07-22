@@ -7,11 +7,14 @@ Blog-specific filters (e.g. category) are not covered here: this project uses
 publications, not a standalone blog.
 """
 
+import zoneinfo
+from datetime import datetime
 from itertools import combinations
 from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
 from django.core.management import call_command
+from django.http import Http404
 from django.urls import reverse
 from wagtail.models import Site
 
@@ -267,6 +270,33 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
         response = self.client.get(self.search_url(collection=[self.collection.slug, "nonexistent"]))
         self.assertEqual(response.status_code, 404)
 
+    def test_invalid_author_id_returns_404(self):
+        response = self.client.get(self.search_url(author="not-an-id"))
+        self.assertEqual(response.status_code, 404)
+
+    def test_invalid_year_is_ignored(self):
+        response = self.client.get(self.search_url(year="not-a-year"))
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_collection.title, post_titles)
+        self.assertIn(self.post_with_theme.title, post_titles)
+
+    def test_year_filter_filters_by_year(self):
+        post_from_other_year = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post from 2023",
+            slug="post-from-2023",
+            date=datetime(2023, 1, 1, 12, 0, 0, tzinfo=zoneinfo.ZoneInfo("Europe/Paris")),
+        )
+        call_command("update_index")
+        response = self.client.get(self.search_url(year=2024))
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_collection.title, post_titles)
+        self.assertIn(self.post_with_theme.title, post_titles)
+        self.assertNotIn(post_from_other_year.title, post_titles)
+
     def test_uses_OR_within_filter(self):
         """Test that multiple values within a single filter use OR semantics."""
         response = self.client.get(self.search_url(collection=[self.collection.slug, self.other_collection.slug]))
@@ -399,3 +429,19 @@ class FacetedSearchGetActiveFiltersTest(FacetedSearchFilterTestBase):
         site = Site.objects.get(is_default_site=True)
         active = get_active_filters_from_request_params(request, site)
         self.assertEqual(active.collections, [self.collection, self.other_collection])
+
+    def test_get_active_filters_from_request_params__invalid_author_id_raises_404(self):
+        request = self.client.request().wsgi_request
+        request.GET = request.GET.copy()
+        request.GET["author"] = "not-an-id"
+        site = Site.objects.get(is_default_site=True)
+        with self.assertRaises(Http404):
+            get_active_filters_from_request_params(request, site)
+
+    def test_get_active_filters_from_request_params__invalid_year_is_ignored(self):
+        request = self.client.request().wsgi_request
+        request.GET = request.GET.copy()
+        request.GET.setlist("year", ["2024", "not-a-year", "23"])
+        site = Site.objects.get(is_default_site=True)
+        active = get_active_filters_from_request_params(request, site)
+        self.assertEqual(active.years, ["2024"])

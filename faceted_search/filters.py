@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 
 from publications.models import Collection, PublicationPage, Theme
@@ -58,6 +59,19 @@ def _build_taxonomy_filter_tree(taxonomies, taxonomy_model, locale) -> list[Taxo
     return roots
 
 
+def _validate_int(value: str) -> int:
+    """Return an integer from a query parameter, or raise Http404 for invalid input."""
+    try:
+        return int(value)
+    except (ValueError, TypeError) as exc:
+        raise Http404(f"Invalid integer filter value: {value}") from exc
+
+
+def _is_valid_year(value: str) -> bool:
+    """Return True if the value is a four-digit year string."""
+    return isinstance(value, str) and value.isdigit() and len(value) == 4
+
+
 def get_active_filters_from_request_params(request, site) -> ActiveFilters:
     """Resolve active filter objects from GET parameters."""
     locale = site.root_page.localized.locale
@@ -85,9 +99,9 @@ def get_active_filters_from_request_params(request, site) -> ActiveFilters:
 
     author_ids = request.GET.getlist("author")
     if author_ids:
-        active.authors = [get_object_or_404(Person, id=author_id) for author_id in author_ids]
+        active.authors = [get_object_or_404(Person, id=_validate_int(author_id)) for author_id in author_ids]
 
-    active.years = request.GET.getlist("year")
+    active.years = [year for year in request.GET.getlist("year") if _is_valid_year(year)]
     return active
 
 
