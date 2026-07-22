@@ -10,7 +10,7 @@
         {% toggle_url_filter theme=node.taxonomy as item_query %}
       {% endif %}
       {% if node.taxonomy in current_filters %}
-        {% dsfr_tag label=node.taxonomy.name is_selectable=True is_selected=True link=search_url|add:item_query|add:"#search-results" %}
+        {% dsfr_tag label=node.taxonomy.name is_selectable=True is_selected=True extra_classes="fr-tag--checked" link=search_url|add:item_query|add:"#search-results" %}
       {% else %}
         {% dsfr_tag label=node.taxonomy.name is_selectable=True is_selected=False link=search_url|add:item_query|add:"#search-results" %}
       {% endif %}

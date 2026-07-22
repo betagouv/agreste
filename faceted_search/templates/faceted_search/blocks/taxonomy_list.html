@@ -6,28 +6,28 @@
       {% if filter_name == "category" %}
         {% toggle_url_filter category=item as item_query %}
         {% if item in current_filters %}
-          {% dsfr_tag label=item.name is_selectable=True is_selected=True link=search_url|add:item_query|add:"#search-results" %}
+          {% dsfr_tag label=item.name is_selectable=True is_selected=True extra_classes="fr-tag--checked" link=search_url|add:item_query|add:"#search-results" %}
         {% else %}
           {% dsfr_tag label=item.name is_selectable=True is_selected=False link=search_url|add:item_query|add:"#search-results" %}
         {% endif %}
       {% elif filter_name == "tag" %}
         {% toggle_url_filter tag=item as item_query %}
         {% if item in current_filters %}
-          {% dsfr_tag label=item is_selectable=True is_selected=True link=search_url|add:item_query|add:"#search-results" %}
+          {% dsfr_tag label=item is_selectable=True is_selected=True extra_classes="fr-tag--checked" link=search_url|add:item_query|add:"#search-results" %}
         {% else %}
           {% dsfr_tag label=item is_selectable=True is_selected=False link=search_url|add:item_query|add:"#search-results" %}
         {% endif %}
       {% elif filter_name == "author" %}
         {% toggle_url_filter author=item as item_query %}
         {% if item in current_filters %}
-          {% dsfr_tag label=item.name is_selectable=True is_selected=True link=search_url|add:item_query|add:"#search-results" %}
+          {% dsfr_tag label=item.name is_selectable=True is_selected=True extra_classes="fr-tag--checked" link=search_url|add:item_query|add:"#search-results" %}
         {% else %}
           {% dsfr_tag label=item.name is_selectable=True is_selected=False link=search_url|add:item_query|add:"#search-results" %}
         {% endif %}
       {% elif filter_name == "source" %}
         {% toggle_url_filter source=item as item_query %}
         {% if item in current_filters %}
-          {% dsfr_tag label=item.name is_selectable=True is_selected=True link=search_url|add:item_query|add:"#search-results" %}
+          {% dsfr_tag label=item.name is_selectable=True is_selected=True extra_classes="fr-tag--checked" link=search_url|add:item_query|add:"#search-results" %}
         {% else %}
           {% dsfr_tag label=item.name is_selectable=True is_selected=False link=search_url|add:item_query|add:"#search-results" %}
         {% endif %}
