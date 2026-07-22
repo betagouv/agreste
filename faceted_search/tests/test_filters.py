@@ -17,11 +17,23 @@ from wagtail.models import Site
 
 from faceted_search.filters import ENABLED_FILTERS, get_active_filters_from_request_params, get_filter_context
 from faceted_search.views import FacetedSearchResultsView
-from publications.tests.test_publication_index_page import (
-    FILTER_CASES,
-    PublicationIndexPageFilterTestBase,
-)
+from publications.tests.test_publication_index_page import PublicationIndexPageFilterTestBase
 from sites_conformes.core.search_registry import get_search_results_view
+
+FILTER_CASES = [
+    {
+        "name": "collection",
+        "relation": "collections",
+    },
+    {
+        "name": "theme",
+        "relation": "themes",
+    },
+    {
+        "name": "tag",
+        "relation": "tags",
+    },
+]
 
 
 def _all_filters_disabled() -> dict[str, bool]:
@@ -46,7 +58,7 @@ class FacetedSearchFilterTestBase(PublicationIndexPageFilterTestBase):
     def search_url(self, query=None, **params):
         query = self.search_query if query is None else query
         url = reverse("cms_search")
-        return f"{url}?{urlencode({'q': query, **params})}"
+        return f"{url}?{urlencode({'q': query, **params}, doseq=True)}"
 
 
 class FacetedSearchRegistrationTest(FacetedSearchFilterTestBase):
@@ -120,7 +132,7 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
     """Full-text search combined with facet filters (``filter_before_search``).
     Posts should match the search query and the given filter. Other combinations should not match."""
 
-    def test_filters_search_results(self):
+    def test_single_filter_single_value(self):
         for case in self.filter_cases:
             filter_name = case["name"]
             taxonomy = getattr(self, filter_name)
@@ -144,7 +156,29 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
                 self.assertNotIn(other_post_title, post_titles)
                 self.assertNotIn(post_without_search_match.title, post_titles)
 
-    def test_filters_search_results_by_author(self):
+    def test_single_filter_multiple_values(self):
+        for case in self.filter_cases:
+            filter_name = case["name"]
+            taxonomy = getattr(self, filter_name)
+            other_taxonomy = getattr(self, f"other_{filter_name}")
+
+            with self.subTest(filter_name):
+                post_without_search_match = self.entry_page_factory(
+                    parent=self.index,
+                    owner=self.admin,
+                    title="Annual Report",
+                    slug=f"annual-report-no-search-match-{filter_name}-multiple",
+                    **{case["relation"]: [taxonomy, other_taxonomy]},
+                )
+                call_command("update_index")
+                response = self.client.get(self.search_url(**{filter_name: [taxonomy.slug, other_taxonomy.slug]}))
+                self.assertEqual(response.status_code, 200)
+                post_titles = get_post_titles_in_response(response)
+                self.assertIn(getattr(self, f"post_with_{filter_name}").title, post_titles)
+                self.assertIn(getattr(self, f"post_with_other_{filter_name}").title, post_titles)
+                self.assertNotIn(post_without_search_match.title, post_titles)
+
+    def test_author_filter_single_value(self):
         post_without_search_match = self.entry_page_factory(
             parent=self.index,
             owner=self.admin,
@@ -160,7 +194,14 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
         self.assertNotIn(self.post_with_other_author.title, post_titles)
         self.assertNotIn(post_without_search_match.title, post_titles)
 
-    def test_filters_search_results_by_source(self):
+    def test_author_filter_multiple_values(self):
+        response = self.client.get(self.search_url(author=[self.author.id, self.other_author.id]))
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_author.title, post_titles)
+        self.assertIn(self.post_with_other_author.title, post_titles)
+
+    def test_source_filter_single_value(self):
         post_without_search_match = self.entry_page_factory(
             parent=self.index,
             owner=self.admin,
@@ -176,15 +217,57 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
         self.assertNotIn(self.post_with_other_author.title, post_titles)
         self.assertNotIn(post_without_search_match.title, post_titles)
 
+    def test_source_filter_multiple_values(self):
+        response = self.client.get(self.search_url(source=[self.organization.slug, self.other_organization.slug]))
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_author.title, post_titles)
+        self.assertIn(self.post_with_other_author.title, post_titles)
+
     def test_invalid_filter_value_returns_404(self):
         response = self.client.get(self.search_url(collection="nonexistent"))
         self.assertEqual(response.status_code, 404)
+
+    def test_invalid_filter_multiple_values_returns_404(self):
+        response = self.client.get(self.search_url(collection=[self.collection.slug, "nonexistent"]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_uses_OR_within_filter(self):
+        """Test that multiple values within a single filter use OR semantics."""
+        response = self.client.get(self.search_url(collection=[self.collection.slug, self.other_collection.slug]))
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        """Test that posts that match any of the values are included in the results."""
+        self.assertIn(self.post_with_collection.title, post_titles)
+        self.assertIn(self.post_with_other_collection.title, post_titles)
+
+    def test_uses_AND_across_filters(self):
+        """Test that multiple values across filters use AND semantics."""
+        matching = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            collections=[self.collection],
+            themes=[self.theme],
+        )
+        call_command("update_index")
+        response = self.client.get(
+            self.search_url(
+                collection=[self.collection.slug, self.other_collection.slug],
+                theme=[self.theme.slug, self.other_theme.slug],
+            )
+        )
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(matching.title, post_titles)
+        """Test that posts that match only one filter are not included in the results."""
+        self.assertNotIn(self.post_with_collection.title, post_titles)
+        self.assertNotIn(self.post_with_theme.title, post_titles)
 
 
 class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
     """Test that two filters can be combined in the search URL."""
 
-    def test_filters_combine(self):
+    def test_two_filters_single_value(self):
         for case_a, case_b in combinations(self.filter_cases, 2):
             filter_a = case_a["name"]
             filter_b = case_b["name"]
@@ -217,14 +300,67 @@ class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
                     self.assertNotIn(getattr(self, f"post_with_{case_name}").title, post_titles)
                     self.assertNotIn(getattr(self, f"post_with_other_{case_name}").title, post_titles)
 
+    def test_two_filters_multiple_values(self):
+        # Example: filter_a="collection", values_a=[self.collection, self.other_collection],
+        # filter_b="theme", values_b=[self.theme, self.other_theme].
+        for case_a, case_b in combinations(self.filter_cases, 2):
+            filter_a = case_a["name"]
+            filter_b = case_b["name"]
+            values_a = [getattr(self, filter_a), getattr(self, f"other_{filter_a}")]
+            values_b = [getattr(self, filter_b), getattr(self, f"other_{filter_b}")]
+            matching = self.entry_page_factory(
+                parent=self.index,
+                owner=self.admin,
+                **{
+                    case_a["relation"]: values_a,
+                    case_b["relation"]: values_b,
+                },
+            )
+            post_without_search_match = self.entry_page_factory(
+                parent=self.index,
+                owner=self.admin,
+                title="Annual Report",
+                slug=f"annual-report-no-search-match-{filter_a}-{filter_b}-multiple",
+                **{
+                    case_a["relation"]: values_a,
+                    case_b["relation"]: values_b,
+                },
+            )
+            call_command("update_index")
+            response = self.client.get(
+                self.search_url(
+                    **{
+                        filter_a: [taxonomy.slug for taxonomy in values_a],
+                        filter_b: [taxonomy.slug for taxonomy in values_b],
+                    }
+                )
+            )
+            self.assertEqual(response.status_code, 200)
+            post_titles = get_post_titles_in_response(response)
+            self.assertIn(matching.title, post_titles)
+            self.assertNotIn(post_without_search_match.title, post_titles)
+            """ Test that posts that match only one filter are not included in the results."""
+            self.assertNotIn(getattr(self, f"post_with_{filter_a}").title, post_titles)
+            self.assertNotIn(getattr(self, f"post_with_other_{filter_a}").title, post_titles)
+            self.assertNotIn(getattr(self, f"post_with_{filter_b}").title, post_titles)
+            self.assertNotIn(getattr(self, f"post_with_other_{filter_b}").title, post_titles)
+
 
 class FacetedSearchGetActiveFiltersTest(FacetedSearchFilterTestBase):
-    def test_get_active_filters_from_request_params(self):
+    def test_get_active_filters_from_request_params__single_value(self):
         request = self.client.request().wsgi_request
         request.GET = request.GET.copy()
         request.GET["collection"] = self.collection.slug
         request.GET["tag"] = self.tag.slug
         site = Site.objects.get(is_default_site=True)
         active = get_active_filters_from_request_params(request, site)
-        self.assertEqual(active.collection, self.collection)
-        self.assertEqual(active.tag, self.tag)
+        self.assertEqual(active.collections, [self.collection])
+        self.assertEqual(active.tags, [self.tag])
+
+    def test_get_active_filters_from_request_params__multiple_values(self):
+        request = self.client.request().wsgi_request
+        request.GET = request.GET.copy()
+        request.GET.setlist("collection", [self.collection.slug, self.other_collection.slug])
+        site = Site.objects.get(is_default_site=True)
+        active = get_active_filters_from_request_params(request, site)
+        self.assertEqual(active.collections, [self.collection, self.other_collection])

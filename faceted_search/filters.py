@@ -1,6 +1,6 @@
 """Search result filters (fork-specific; mirrors PublicationIndexPage and blog facets)."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from django.shortcuts import get_object_or_404
 
@@ -22,13 +22,13 @@ ENABLED_FILTERS: dict[str, bool] = {
 
 @dataclass
 class ActiveFilters:
-    category: Category | None = None
-    collection: Collection | None = None
-    theme: Theme | None = None
-    tag: Tag | None = None
-    source: Organization | None = None
-    author: Person | None = None
-    year: str | None = None
+    categories: list[Category] = field(default_factory=list)
+    collections: list[Collection] = field(default_factory=list)
+    themes: list[Theme] = field(default_factory=list)
+    tags: list[Tag] = field(default_factory=list)
+    sources: list[Organization] = field(default_factory=list)
+    authors: list[Person] = field(default_factory=list)
+    years: list[str] = field(default_factory=list)
 
 
 def get_active_filters_from_request_params(request, site) -> ActiveFilters:
@@ -36,31 +36,31 @@ def get_active_filters_from_request_params(request, site) -> ActiveFilters:
     locale = site.root_page.localized.locale
     active = ActiveFilters()
 
-    category_slug = request.GET.get("category")
-    if category_slug:
-        active.category = get_object_or_404(Category, slug=category_slug, locale=locale)
+    category_slugs = request.GET.getlist("category")
+    if category_slugs:
+        active.categories = [get_object_or_404(Category, slug=slug, locale=locale) for slug in category_slugs]
 
-    collection_slug = request.GET.get("collection")
-    if collection_slug:
-        active.collection = get_object_or_404(Collection, slug=collection_slug, locale=locale)
+    collection_slugs = request.GET.getlist("collection")
+    if collection_slugs:
+        active.collections = [get_object_or_404(Collection, slug=slug, locale=locale) for slug in collection_slugs]
 
-    theme_slug = request.GET.get("theme")
-    if theme_slug:
-        active.theme = get_object_or_404(Theme, slug=theme_slug, locale=locale)
+    theme_slugs = request.GET.getlist("theme")
+    if theme_slugs:
+        active.themes = [get_object_or_404(Theme, slug=slug, locale=locale) for slug in theme_slugs]
 
-    tag_slug = request.GET.get("tag")
-    if tag_slug:
-        active.tag = get_object_or_404(Tag, slug=tag_slug)
+    tag_slugs = request.GET.getlist("tag")
+    if tag_slugs:
+        active.tags = [get_object_or_404(Tag, slug=slug) for slug in tag_slugs]
 
-    source_slug = request.GET.get("source")
-    if source_slug:
-        active.source = get_object_or_404(Organization, slug=source_slug)
+    source_slugs = request.GET.getlist("source")
+    if source_slugs:
+        active.sources = [get_object_or_404(Organization, slug=slug) for slug in source_slugs]
 
-    author_id = request.GET.get("author")
-    if author_id:
-        active.author = get_object_or_404(Person, id=author_id)
+    author_ids = request.GET.getlist("author")
+    if author_ids:
+        active.authors = [get_object_or_404(Person, id=author_id) for author_id in author_ids]
 
-    active.year = request.GET.get("year") or None
+    active.years = request.GET.getlist("year")
     return active
 
 
@@ -68,73 +68,73 @@ def filter_queryset(request, queryset, site):
     """Apply GET filter params before full-text search (see ``filter_before_search``)."""
     root = site.root_page.localized
     active = get_active_filters_from_request_params(request, site)
-    page_ids: set[int] | None = None
 
-    def intersect_page_ids(ids):
-        nonlocal page_ids
-        ids = set(ids)
-        page_ids = ids if page_ids is None else page_ids & ids
-
-    # BlogEntryPage.objects also matches PublicationPage (subclass): shared fields
-    # (tags, authors, date, blog_categories) apply to both.
-
-    if active.category:
-        intersect_page_ids(
+    if active.categories:
+        facet_page_ids = (
             BlogEntryPage.objects.descendant_of(root)
             .live()
-            .filter(blog_categories=active.category)
+            .filter(blog_categories__in=active.categories)
             .values_list("pk", flat=True)
         )
+        queryset = queryset.filter(pk__in=facet_page_ids)
 
-    if active.collection:
-        intersect_page_ids(
+    if active.collections:
+        facet_page_ids = (
             PublicationPage.objects.descendant_of(root)
             .live()
-            .filter(collections=active.collection)
+            .filter(collections__in=active.collections)
             .values_list("pk", flat=True)
         )
+        queryset = queryset.filter(pk__in=facet_page_ids)
 
-    if active.theme:
-        intersect_page_ids(
-            PublicationPage.objects.descendant_of(root).live().filter(themes=active.theme).values_list("pk", flat=True)
+    if active.themes:
+        facet_page_ids = (
+            PublicationPage.objects.descendant_of(root)
+            .live()
+            .filter(themes__in=active.themes)
+            .values_list("pk", flat=True)
         )
+        queryset = queryset.filter(pk__in=facet_page_ids)
 
-    if active.tag:
-        tag_page_ids = set(
-            ContentPage.objects.descendant_of(root).live().filter(tags=active.tag).values_list("pk", flat=True)
+    if active.tags:
+        content_page_ids = (
+            ContentPage.objects.descendant_of(root).live().filter(tags__in=active.tags).values_list("pk", flat=True)
         )
-        tag_page_ids |= set(
+        blog_page_ids = (
             # PublicationPage entries are included (subclass of BlogEntryPage).
             BlogEntryPage.objects.descendant_of(root)
             .live()
-            .filter(tags=active.tag)
+            .filter(tags__in=active.tags)
             .values_list("pk", flat=True)
         )
-        intersect_page_ids(tag_page_ids)
+        queryset = queryset.filter(pk__in=content_page_ids.union(blog_page_ids))
 
-    if active.source:
-        intersect_page_ids(
+    if active.sources:
+        facet_page_ids = (
             BlogEntryPage.objects.descendant_of(root)
             .live()
-            .filter(authors__organization=active.source)
+            .filter(authors__organization__in=active.sources)
             .values_list("pk", flat=True)
         )
+        queryset = queryset.filter(pk__in=facet_page_ids)
 
-    if active.author:
-        intersect_page_ids(
-            BlogEntryPage.objects.descendant_of(root).live().filter(authors=active.author).values_list("pk", flat=True)
-        )
-
-    if active.year:
-        intersect_page_ids(
+    if active.authors:
+        facet_page_ids = (
             BlogEntryPage.objects.descendant_of(root)
             .live()
-            .filter(date__year=active.year)
+            .filter(authors__in=active.authors)
             .values_list("pk", flat=True)
         )
+        queryset = queryset.filter(pk__in=facet_page_ids)
 
-    if page_ids is not None:
-        queryset = queryset.filter(pk__in=page_ids)
+    if active.years:
+        facet_page_ids = (
+            BlogEntryPage.objects.descendant_of(root)
+            .live()
+            .filter(date__year__in=active.years)
+            .values_list("pk", flat=True)
+        )
+        queryset = queryset.filter(pk__in=facet_page_ids)
 
     return queryset
 
@@ -154,13 +154,13 @@ def get_filter_context(request, site, *, enabled_filters: dict[str, bool] | None
 
     context = {
         **enabled_filters,
-        "current_category": active.category,
-        "current_collection": active.collection,
-        "current_theme": active.theme,
-        "current_tag": active.tag,
-        "current_source": active.source,
-        "current_author": active.author,
-        "year": active.year,
+        "current_categories": active.categories,
+        "current_collections": active.collections,
+        "current_themes": active.themes,
+        "current_tags": active.tags,
+        "current_sources": active.sources,
+        "current_authors": active.authors,
+        "years": active.years,
     }
 
     if context["filter_by_category"]:
