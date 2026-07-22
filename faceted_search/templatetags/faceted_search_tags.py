@@ -1,5 +1,6 @@
 from django import template
 from django.http import QueryDict
+from django.template.loader import render_to_string as _render_to_string
 
 from sites_conformes.core.templatetags.wagtail_dsfr_tags import FilterSpec
 
@@ -80,3 +81,11 @@ def toggle_url_filter(context, *_, **kwargs):
 
     query_string = url_params.urlencode()
     return f"?{query_string}" if query_string else ""
+
+
+@register.simple_tag(takes_context=True)
+def render_to_string(context, template_name, **kwargs):
+    """Render a template to a string so it can be passed to inclusion tags."""
+    new_context = context.flatten()
+    new_context.update(kwargs)
+    return _render_to_string(template_name, new_context, request=context.get("request"))
