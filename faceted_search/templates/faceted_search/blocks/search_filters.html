@@ -1,141 +1,99 @@
-{% load i18n faceted_search_tags %}
+{% load i18n faceted_search_tags dsfr_tags %}
+
+{% url 'cms_search' as search_url %}
+{% translate "Filter by theme" as theme_title %}
+{% translate "Filter by collection" as collection_title %}
+{% translate "Filter by category" as category_title %}
+{% translate "Filter by tag" as tag_title %}
+{% translate "Filter by author" as author_title %}
+{% translate "Filter by organization" as source_title %}
 
 {% if theme_tree and filter_by_theme %}
-  <div class="fr-my-3w">
-    <details class="fr-filter-group" open>
-      <summary class="fr-filter-group__summary">
-        <h3 class="fr-h6">{% translate "Filter by theme" %}</h3>
-        <span class="fr-filter-group__selected">
-          {% for theme in current_themes %}{{ theme }}{% if not forloop.last %}, {% endif %}{% endfor %}
-        </span>
-      </summary>
-      <div class="fr-filter-group__content">
-        {% include "faceted_search/blocks/taxonomy_filter_tree.html" with nodes=theme_tree filter_name="theme" current_filters=current_themes %}
+  <section class="fr-filter-group">
+    {% render_to_string "faceted_search/blocks/taxonomy_tree.html" nodes=theme_tree filter_name="theme" current_filters=current_themes as theme_content %}
+    {% dsfr_accordion id="filter-theme" title=theme_title content=theme_content %}
+    {% if current_themes %}
+      <div class="fr-filter-group__selected">
+        {% for theme in current_themes %}
+          {% toggle_url_filter theme=theme as theme_query %}
+          {% dsfr_tag label=theme.name is_selectable=True is_selected=True link=search_url|add:theme_query|add:"#search-results" %}
+        {% endfor %}
       </div>
-    </details>
-  </div>
+    {% endif %}
+  </section>
 {% endif %}
 
 {% if collection_tree and filter_by_collection %}
-  <div class="fr-my-3w">
-    <details class="fr-filter-group" open>
-      <summary class="fr-filter-group__summary">
-        <h3 class="fr-h6">{% translate "Filter by collection" %}</h3>
-        <span class="fr-filter-group__selected">
-          {% for collection in current_collections %}{{ collection }}{% if not forloop.last %}, {% endif %}{% endfor %}
-        </span>
-      </summary>
-      <div class="fr-filter-group__content">
-        {% include "faceted_search/blocks/taxonomy_filter_tree.html" with nodes=collection_tree filter_name="collection" current_filters=current_collections %}
+  <section class="fr-filter-group">
+    {% render_to_string "faceted_search/blocks/taxonomy_tree.html" nodes=collection_tree filter_name="collection" current_filters=current_collections as collection_content %}
+    {% dsfr_accordion id="filter-collection" title=collection_title content=collection_content %}
+    {% if current_collections %}
+      <div class="fr-filter-group__selected">
+        {% for collection in current_collections %}
+          {% toggle_url_filter collection=collection as collection_query %}
+          {% dsfr_tag label=collection.name is_selectable=True is_selected=True link=search_url|add:collection_query|add:"#search-results" %}
+        {% endfor %}
       </div>
-    </details>
-  </div>
+    {% endif %}
+  </section>
 {% endif %}
 
 {% if categories and filter_by_category %}
-  <div class="fr-my-3w">
-    <details class="fr-filter-group" open>
-      <summary class="fr-filter-group__summary">
-        <h3 class="fr-h6">{% translate "Filter by category" %}</h3>
-        <span class="fr-filter-group__selected">
-          {% for category in current_categories %}{{ category }}{% if not forloop.last %}, {% endif %}{% endfor %}
-        </span>
-      </summary>
-      <div class="fr-filter-group__content">
-        <ul class="fr-tags-group">
-          {% for category in categories %}
-            <li>
-              <a type="button"
-                 class="fr-tag"
-                 href="{% url 'cms_search' %}{% toggle_url_filter category=category %}#search-results"
-                 title="{% if category in current_categories %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
-                 {% if category in current_categories %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
-                {{ category.name }}
-              </a>
-            </li>
-          {% endfor %}
-        </ul>
+  <section class="fr-filter-group">
+    {% render_to_string "faceted_search/blocks/taxonomy_list.html" filter_name="category" items=categories current_filters=current_categories as category_content %}
+    {% dsfr_accordion id="filter-category" title=category_title content=category_content %}
+    {% if current_categories %}
+      <div class="fr-filter-group__selected">
+        {% for category in current_categories %}
+          {% toggle_url_filter category=category as category_query %}
+          {% dsfr_tag label=category.name is_selectable=True is_selected=True link=search_url|add:category_query|add:"#search-results" %}
+        {% endfor %}
       </div>
-    </details>
-  </div>
+    {% endif %}
+  </section>
 {% endif %}
 
 {% if tags and filter_by_tag %}
-  <div class="fr-my-3w">
-    <details class="fr-filter-group" open>
-      <summary class="fr-filter-group__summary">
-        <h3 class="fr-h6">{% translate "Filter by tag" %}</h3>
-        <span class="fr-filter-group__selected">
-          {% for tag in current_tags %}{{ tag }}{% if not forloop.last %}, {% endif %}{% endfor %}
-        </span>
-      </summary>
-      <div class="fr-filter-group__content">
-        <ul class="fr-tags-group">
-          {% for tag in tags %}
-            <li>
-              <a class="fr-tag"
-                 type="button"
-                 href="{% url 'cms_search' %}{% toggle_url_filter tag=tag %}#search-results"
-                 title="{% if tag in current_tags %}{% translate 'selected' %}{% else %}{% translate 'unselected' %}{% endif %}"
-                 {% if tag in current_tags %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
-                {{ tag }}
-              </a>
-            </li>
-          {% endfor %}
-        </ul>
+  <section class="fr-filter-group">
+    {% render_to_string "faceted_search/blocks/taxonomy_list.html" filter_name="tag" items=tags current_filters=current_tags as tag_content %}
+    {% dsfr_accordion id="filter-tag" title=tag_title content=tag_content %}
+    {% if current_tags %}
+      <div class="fr-filter-group__selected">
+        {% for tag in current_tags %}
+          {% toggle_url_filter tag=tag as tag_query %}
+          {% dsfr_tag label=tag is_selectable=True is_selected=True link=search_url|add:tag_query|add:"#search-results" %}
+        {% endfor %}
       </div>
-    </details>
-  </div>
+    {% endif %}
+  </section>
 {% endif %}
 
 {% if authors and filter_by_author %}
-  <div class="fr-my-3w">
-    <details class="fr-filter-group" open>
-      <summary class="fr-filter-group__summary">
-        <h3 class="fr-h6">{% translate "Filter by author" %}</h3>
-        <span class="fr-filter-group__selected">
-          {% for author in current_authors %}{{ author }}{% if not forloop.last %}, {% endif %}{% endfor %}
-        </span>
-      </summary>
-      <div class="fr-filter-group__content">
-        <ul class="fr-tags-group">
-          {% for author in authors %}
-            <li>
-              <a class="fr-tag"
-                 type="button"
-                 href="{% url 'cms_search' %}{% toggle_url_filter author=author %}#search-results"
-                 title="{% if author in current_authors %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
-                 {% if author in current_authors %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>{{ author.name }}</a>
-            </li>
-          {% endfor %}
-        </ul>
+  <section class="fr-filter-group">
+    {% render_to_string "faceted_search/blocks/taxonomy_list.html" filter_name="author" items=authors current_filters=current_authors as author_content %}
+    {% dsfr_accordion id="filter-author" title=author_title content=author_content %}
+    {% if current_authors %}
+      <div class="fr-filter-group__selected">
+        {% for author in current_authors %}
+          {% toggle_url_filter author=author as author_query %}
+          {% dsfr_tag label=author.name is_selectable=True is_selected=True link=search_url|add:author_query|add:"#search-results" %}
+        {% endfor %}
       </div>
-    </details>
-  </div>
+    {% endif %}
+  </section>
 {% endif %}
 
 {% if sources and filter_by_source %}
-  <div class="fr-my-3w">
-    <details class="fr-filter-group" open>
-      <summary class="fr-filter-group__summary">
-        <h3 class="fr-h6">{% translate "Filter by organization" %}</h3>
-        <span class="fr-filter-group__selected">
-          {% for source in current_sources %}{{ source }}{% if not forloop.last %}, {% endif %}{% endfor %}
-        </span>
-      </summary>
-      <div class="fr-filter-group__content">
-        <ul class="fr-tags-group">
-          {% for source in sources %}
-            <li>
-              <a class="fr-tag"
-                 type="button"
-                 href="{% url 'cms_search' %}{% toggle_url_filter source=source %}#search-results"
-                 title="{% if source in current_sources %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
-                 {% if source in current_sources %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>{{ source.name }}</a>
-            </li>
-          {% endfor %}
-        </ul>
+  <section class="fr-filter-group">
+    {% render_to_string "faceted_search/blocks/taxonomy_list.html" filter_name="source" items=sources current_filters=current_sources as source_content %}
+    {% dsfr_accordion id="filter-source" title=source_title content=source_content %}
+    {% if current_sources %}
+      <div class="fr-filter-group__selected">
+        {% for source in current_sources %}
+          {% toggle_url_filter source=source as source_query %}
+          {% dsfr_tag label=source.name is_selectable=True is_selected=True link=search_url|add:source_query|add:"#search-results" %}
+        {% endfor %}
       </div>
-    </details>
-  </div>
+    {% endif %}
+  </section>
 {% endif %}
