@@ -1,6 +1,13 @@
 {# Forked from sites_conformes_core/search_results.html: adds a sidebar for search filters. #}
 {% extends "sites_conformes_core/search_results.html" %}
-{% load i18n %}
+{% load i18n static %}
+
+{% block extra_css %}
+  <link href="{% static 'faceted_search/css/faceted_search.css' %}"
+        rel="stylesheet"
+        type="text/css" />
+  {{ block.super }}
+{% endblock extra_css %}
 
 {% block search_sidebar %}
   {% if show_search_filters %}
