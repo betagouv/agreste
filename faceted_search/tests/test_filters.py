@@ -17,6 +17,7 @@ from wagtail.models import Site
 
 from faceted_search.filters import ENABLED_FILTERS, get_active_filters_from_request_params, get_filter_context
 from faceted_search.views import FacetedSearchResultsView
+from publications.tests.factories import CollectionFactory, ThemeFactory
 from publications.tests.test_publication_index_page import PublicationIndexPageFilterTestBase
 from sites_conformes.core.search_registry import get_search_results_view
 
@@ -75,8 +76,15 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
     """Test that``get_filter_context`` builds sidebar lists according to ``enabled_filters``."""
 
     def test_enabled_filter_flags_populate_context_lists(self):
+        """Test that when a given filter is enabled, the context also has the filter activated,
+        and it includes the taxonomy item for that filter."""
         request = self.client.request().wsgi_request
         site = Site.objects.get(is_default_site=True)
+
+        def tree_nodes(tree):
+            for node in tree:
+                yield node.taxonomy
+                yield from tree_nodes(node.children)
 
         for case in self.filter_cases:
             filter_name = case["name"]
@@ -86,7 +94,10 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
             with self.subTest(filter_name):
                 context = get_filter_context(request, site, enabled_filters=enabled_flags)
                 self.assertTrue(context[f"filter_by_{filter_name}"])
-                self.assertIn(expected_item, list(context[f"{filter_name}s"]))
+                if filter_name in ("collection", "theme"):
+                    self.assertIn(expected_item, list(tree_nodes(context[f"{filter_name}_tree"])))
+                else:
+                    self.assertIn(expected_item, list(context[f"{filter_name}s"]))
 
         with self.subTest("author"):
             enabled_flags = {**_all_filters_disabled(), "filter_by_author": True}
@@ -99,6 +110,30 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
             context = get_filter_context(request, site, enabled_filters=enabled_flags)
             self.assertTrue(context["filter_by_source"])
             self.assertIn(self.organization, list(context["sources"]))
+
+    def test_collection_and_theme_filter_context_is_hierarchical(self):
+        parent_collection = CollectionFactory(locale=self.index.locale, name="Parent collection")
+        child_collection = CollectionFactory(
+            locale=self.index.locale,
+            name="Child collection",
+            parent=parent_collection,
+        )
+        parent_theme = ThemeFactory(locale=self.index.locale, name="Parent theme")
+        child_theme = ThemeFactory(locale=self.index.locale, name="Child theme", parent=parent_theme)
+        self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            collections=[child_collection],
+            themes=[child_theme],
+        )
+        request = self.client.request().wsgi_request
+        site = Site.objects.get(is_default_site=True)
+        context = get_filter_context(request, site)
+
+        collection_parent = next(node for node in context["collection_tree"] if node.taxonomy == parent_collection)
+        theme_parent = next(node for node in context["theme_tree"] if node.taxonomy == parent_theme)
+        self.assertEqual([node.taxonomy for node in collection_parent.children], [child_collection])
+        self.assertEqual([node.taxonomy for node in theme_parent.children], [child_theme])
 
     def test_disabled_filter_flags_omit_context_lists(self):
         request = self.client.request().wsgi_request

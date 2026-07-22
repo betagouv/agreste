@@ -1,40 +1,16 @@
 {% load i18n faceted_search_tags %}
 
-{% if themes and filter_by_theme %}
+{% if theme_tree and filter_by_theme %}
   <div class="fr-my-3w">
     <h3 class="fr-h6">{% translate "Filter by theme" %}</h3>
-    <ul class="fr-tags-group">
-      {% for theme in themes %}
-        <li>
-          <a class="fr-tag"
-             type="button"
-             href="{% url 'cms_search' %}{% toggle_url_filter theme=theme %}#search-results"
-             title="{% if theme in current_themes %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
-             {% if theme in current_themes %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
-            {{ theme.name }}
-          </a>
-        </li>
-      {% endfor %}
-    </ul>
+    {% include "faceted_search/blocks/taxonomy_filter_tree.html" with nodes=theme_tree filter_name="theme" current_filters=current_themes %}
   </div>
 {% endif %}
 
-{% if collections and filter_by_collection %}
+{% if collection_tree and filter_by_collection %}
   <div class="fr-my-3w">
     <h3 class="fr-h6">{% translate "Filter by collection" %}</h3>
-    <ul class="fr-tags-group">
-      {% for collection in collections %}
-        <li>
-          <a type="button"
-             class="fr-tag"
-             href="{% url 'cms_search' %}{% toggle_url_filter collection=collection %}#search-results"
-             title="{% if collection in current_collections %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
-             {% if collection in current_collections %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
-            {{ collection.name }}
-          </a>
-        </li>
-      {% endfor %}
-    </ul>
+    {% include "faceted_search/blocks/taxonomy_filter_tree.html" with nodes=collection_tree filter_name="collection" current_filters=current_collections %}
   </div>
 {% endif %}
 

@@ -1,0 +1,28 @@
+{% load i18n faceted_search_tags %}
+
+<ul class="fr-tags-group{% if depth %} fr-ml-6w{% endif %}">
+  {% for node in nodes %}
+    <li>
+      {% if filter_name == "collection" %}
+        <a type="button"
+           class="fr-tag"
+           href="{% url 'cms_search' %}{% toggle_url_filter collection=node.taxonomy %}#search-results"
+           title="{% if node.taxonomy in current_filters %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
+           {% if node.taxonomy in current_filters %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
+          {{ node.taxonomy.name }}
+        </a>
+      {% else %}
+        <a type="button"
+           class="fr-tag"
+           href="{% url 'cms_search' %}{% toggle_url_filter theme=node.taxonomy %}#search-results"
+           title="{% if node.taxonomy in current_filters %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
+           {% if node.taxonomy in current_filters %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
+          {{ node.taxonomy.name }}
+        </a>
+      {% endif %}
+      {% if node.children %}
+        {% include "faceted_search/blocks/taxonomy_filter_tree.html" with nodes=node.children filter_name=filter_name current_filters=current_filters depth=True %}
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
