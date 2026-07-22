@@ -7,16 +7,20 @@ Blog-specific filters (e.g. category) are not covered here: this project uses
 publications, not a standalone blog.
 """
 
+import zoneinfo
+from datetime import datetime
 from itertools import combinations
 from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
 from django.core.management import call_command
+from django.http import Http404
 from django.urls import reverse
 from wagtail.models import Site
 
 from faceted_search.filters import ENABLED_FILTERS, get_active_filters_from_request_params, get_filter_context
 from faceted_search.views import FacetedSearchResultsView
+from publications.tests.factories import CollectionFactory, ThemeFactory
 from publications.tests.test_publication_index_page import PublicationIndexPageFilterTestBase
 from sites_conformes.core.search_registry import get_search_results_view
 
@@ -75,8 +79,15 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
     """Test that``get_filter_context`` builds sidebar lists according to ``enabled_filters``."""
 
     def test_enabled_filter_flags_populate_context_lists(self):
+        """Test that when a given filter is enabled, the context also has the filter activated,
+        and it includes the taxonomy item for that filter."""
         request = self.client.request().wsgi_request
         site = Site.objects.get(is_default_site=True)
+
+        def tree_nodes(tree):
+            for node in tree:
+                yield node.taxonomy
+                yield from tree_nodes(node.children)
 
         for case in self.filter_cases:
             filter_name = case["name"]
@@ -86,7 +97,10 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
             with self.subTest(filter_name):
                 context = get_filter_context(request, site, enabled_filters=enabled_flags)
                 self.assertTrue(context[f"filter_by_{filter_name}"])
-                self.assertIn(expected_item, list(context[f"{filter_name}s"]))
+                if filter_name in ("collection", "theme"):
+                    self.assertIn(expected_item, list(tree_nodes(context[f"{filter_name}_tree"])))
+                else:
+                    self.assertIn(expected_item, list(context[f"{filter_name}s"]))
 
         with self.subTest("author"):
             enabled_flags = {**_all_filters_disabled(), "filter_by_author": True}
@@ -99,6 +113,30 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
             context = get_filter_context(request, site, enabled_filters=enabled_flags)
             self.assertTrue(context["filter_by_source"])
             self.assertIn(self.organization, list(context["sources"]))
+
+    def test_collection_and_theme_filter_context_is_hierarchical(self):
+        parent_collection = CollectionFactory(locale=self.index.locale, name="Parent collection")
+        child_collection = CollectionFactory(
+            locale=self.index.locale,
+            name="Child collection",
+            parent=parent_collection,
+        )
+        parent_theme = ThemeFactory(locale=self.index.locale, name="Parent theme")
+        child_theme = ThemeFactory(locale=self.index.locale, name="Child theme", parent=parent_theme)
+        self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            collections=[child_collection],
+            themes=[child_theme],
+        )
+        request = self.client.request().wsgi_request
+        site = Site.objects.get(is_default_site=True)
+        context = get_filter_context(request, site)
+
+        collection_parent = next(node for node in context["collection_tree"] if node.taxonomy == parent_collection)
+        theme_parent = next(node for node in context["theme_tree"] if node.taxonomy == parent_theme)
+        self.assertEqual([node.taxonomy for node in collection_parent.children], [child_collection])
+        self.assertEqual([node.taxonomy for node in theme_parent.children], [child_theme])
 
     def test_disabled_filter_flags_omit_context_lists(self):
         request = self.client.request().wsgi_request
@@ -232,6 +270,33 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
         response = self.client.get(self.search_url(collection=[self.collection.slug, "nonexistent"]))
         self.assertEqual(response.status_code, 404)
 
+    def test_invalid_author_id_returns_404(self):
+        response = self.client.get(self.search_url(author="not-an-id"))
+        self.assertEqual(response.status_code, 404)
+
+    def test_invalid_year_is_ignored(self):
+        response = self.client.get(self.search_url(year="not-a-year"))
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_collection.title, post_titles)
+        self.assertIn(self.post_with_theme.title, post_titles)
+
+    def test_year_filter_filters_by_year(self):
+        post_from_other_year = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post from 2023",
+            slug="post-from-2023",
+            date=datetime(2023, 1, 1, 12, 0, 0, tzinfo=zoneinfo.ZoneInfo("Europe/Paris")),
+        )
+        call_command("update_index")
+        response = self.client.get(self.search_url(year=2024))
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_collection.title, post_titles)
+        self.assertIn(self.post_with_theme.title, post_titles)
+        self.assertNotIn(post_from_other_year.title, post_titles)
+
     def test_uses_OR_within_filter(self):
         """Test that multiple values within a single filter use OR semantics."""
         response = self.client.get(self.search_url(collection=[self.collection.slug, self.other_collection.slug]))
@@ -364,3 +429,81 @@ class FacetedSearchGetActiveFiltersTest(FacetedSearchFilterTestBase):
         site = Site.objects.get(is_default_site=True)
         active = get_active_filters_from_request_params(request, site)
         self.assertEqual(active.collections, [self.collection, self.other_collection])
+
+    def test_get_active_filters_from_request_params__invalid_author_id_raises_404(self):
+        request = self.client.request().wsgi_request
+        request.GET = request.GET.copy()
+        request.GET["author"] = "not-an-id"
+        site = Site.objects.get(is_default_site=True)
+        with self.assertRaises(Http404):
+            get_active_filters_from_request_params(request, site)
+
+    def test_get_active_filters_from_request_params__invalid_year_is_ignored(self):
+        request = self.client.request().wsgi_request
+        request.GET = request.GET.copy()
+        request.GET.setlist("year", ["2024", "not-a-year", "23"])
+        site = Site.objects.get(is_default_site=True)
+        active = get_active_filters_from_request_params(request, site)
+        self.assertEqual(active.years, ["2024"])
+
+
+class FacetedSearchResultsDisplayTest(FacetedSearchFilterTestBase):
+    """Test that search result items display metadata (date, themes, collections)."""
+
+    def test_search_results_show_publication_date(self):
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        result_li = soup.find("a", string=self.post_with_collection.title).find_parent("li")
+        self.assertIn(self.post_with_collection.date.strftime("%d/%m/%Y"), result_li.get_text())
+
+    def test_search_results_show_collections_and_themes(self):
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        collection_li = soup.find("a", string=self.post_with_collection.title).find_parent("li")
+        collection_tags = [tag.get_text(strip=True) for tag in collection_li.select(".fr-tag")]
+        self.assertIn(self.collection.name, collection_tags)
+
+        theme_li = soup.find("a", string=self.post_with_theme.title).find_parent("li")
+        theme_tags = [tag.get_text(strip=True) for tag in theme_li.select(".fr-tag")]
+        self.assertIn(self.theme.name, theme_tags)
+
+    def test_search_results_truncate_collections_when_more_than_four(self):
+        extra_collections = [CollectionFactory(locale=self.index.locale) for _ in range(4)]
+        post = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post with many collections",
+            slug="post-with-many-collections",
+            collections=[self.collection, self.other_collection] + extra_collections,
+        )
+        call_command("update_index")
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        result_li = soup.find("a", string=post.title).find_parent("li")
+        tags = [tag.get_text(strip=True) for tag in result_li.select(".fr-tag")]
+        all_collection_names = {self.collection.name, self.other_collection.name} | {
+            collection.name for collection in extra_collections
+        }
+        displayed_collections = [tag for tag in tags if tag in all_collection_names]
+        self.assertEqual(len(displayed_collections), 4)
+        self.assertIn("+2", tags)
+
+    def test_search_results_truncate_themes_when_more_than_four(self):
+        extra_themes = [ThemeFactory(locale=self.index.locale) for _ in range(4)]
+        post = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post with many themes",
+            slug="post-with-many-themes",
+            themes=[self.theme, self.other_theme] + extra_themes,
+        )
+        call_command("update_index")
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        result_li = soup.find("a", string=post.title).find_parent("li")
+        tags = [tag.get_text(strip=True) for tag in result_li.select(".fr-tag")]
+        all_theme_names = {self.theme.name, self.other_theme.name} | {theme.name for theme in extra_themes}
+        displayed_themes = [tag for tag in tags if tag in all_theme_names]
+        self.assertEqual(len(displayed_themes), 4)
+        self.assertIn("+2", tags)
