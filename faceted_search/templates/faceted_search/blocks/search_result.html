@@ -1,6 +1,6 @@
 {% load dsfr_tags wagtailcore_tags %}
 
-<li>
+<li class="fr-mb-2w">
   <h2 class="fr-h4">
     <a href="{% pageurl result %}">{{ result }}</a>
   </h2>
@@ -26,7 +26,7 @@
       {% endif %}
     {% endwith %}
   {% endwith %}
-  {% if result.search_description %}<p>{{ result.search_description|safe }}</p>{% endif %}
+  {% if result.search_description %}<div class="fr-mb-2w">{{ result.search_description|safe }}</div>{% endif %}
   {% with post=result.specific %}
     {% with collections=post.collections.all %}
       {% if collections %}
