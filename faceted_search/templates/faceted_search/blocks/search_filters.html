@@ -2,86 +2,140 @@
 
 {% if theme_tree and filter_by_theme %}
   <div class="fr-my-3w">
-    <h3 class="fr-h6">{% translate "Filter by theme" %}</h3>
-    {% include "faceted_search/blocks/taxonomy_filter_tree.html" with nodes=theme_tree filter_name="theme" current_filters=current_themes %}
+    <details class="fr-filter-group" open>
+      <summary class="fr-filter-group__summary">
+        <h3 class="fr-h6">{% translate "Filter by theme" %}</h3>
+        <span class="fr-filter-group__selected">
+          {% for theme in current_themes %}{{ theme }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </span>
+      </summary>
+      <div class="fr-filter-group__content">
+        {% include "faceted_search/blocks/taxonomy_filter_tree.html" with nodes=theme_tree filter_name="theme" current_filters=current_themes %}
+      </div>
+    </details>
   </div>
 {% endif %}
 
 {% if collection_tree and filter_by_collection %}
   <div class="fr-my-3w">
-    <h3 class="fr-h6">{% translate "Filter by collection" %}</h3>
-    {% include "faceted_search/blocks/taxonomy_filter_tree.html" with nodes=collection_tree filter_name="collection" current_filters=current_collections %}
+    <details class="fr-filter-group" open>
+      <summary class="fr-filter-group__summary">
+        <h3 class="fr-h6">{% translate "Filter by collection" %}</h3>
+        <span class="fr-filter-group__selected">
+          {% for collection in current_collections %}{{ collection }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </span>
+      </summary>
+      <div class="fr-filter-group__content">
+        {% include "faceted_search/blocks/taxonomy_filter_tree.html" with nodes=collection_tree filter_name="collection" current_filters=current_collections %}
+      </div>
+    </details>
   </div>
 {% endif %}
 
 {% if categories and filter_by_category %}
   <div class="fr-my-3w">
-    <h3 class="fr-h6">{% translate "Filter by category" %}</h3>
-    <ul class="fr-tags-group">
-      {% for category in categories %}
-        <li>
-          <a type="button"
-             class="fr-tag"
-             href="{% url 'cms_search' %}{% toggle_url_filter category=category %}#search-results"
-             title="{% if category in current_categories %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
-             {% if category in current_categories %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
-            {{ category.name }}
-          </a>
-        </li>
-      {% endfor %}
-    </ul>
+    <details class="fr-filter-group" open>
+      <summary class="fr-filter-group__summary">
+        <h3 class="fr-h6">{% translate "Filter by category" %}</h3>
+        <span class="fr-filter-group__selected">
+          {% for category in current_categories %}{{ category }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </span>
+      </summary>
+      <div class="fr-filter-group__content">
+        <ul class="fr-tags-group">
+          {% for category in categories %}
+            <li>
+              <a type="button"
+                 class="fr-tag"
+                 href="{% url 'cms_search' %}{% toggle_url_filter category=category %}#search-results"
+                 title="{% if category in current_categories %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
+                 {% if category in current_categories %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
+                {{ category.name }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </details>
   </div>
 {% endif %}
 
 {% if tags and filter_by_tag %}
   <div class="fr-my-3w">
-    <h3 class="fr-h6">{% translate "Filter by tag" %}</h3>
-    <ul class="fr-tags-group">
-      {% for tag in tags %}
-        <li>
-          <a class="fr-tag"
-             type="button"
-             href="{% url 'cms_search' %}{% toggle_url_filter tag=tag %}#search-results"
-             title="{% if tag in current_tags %}{% translate 'selected' %}{% else %}{% translate 'unselected' %}{% endif %}"
-             {% if tag in current_tags %} aria-pressed="true" {% else %} aria-pressed="false" {% endif %}>
-            {{ tag }}
-          </a>
-        </li>
-      {% endfor %}
-    </ul>
+    <details class="fr-filter-group" open>
+      <summary class="fr-filter-group__summary">
+        <h3 class="fr-h6">{% translate "Filter by tag" %}</h3>
+        <span class="fr-filter-group__selected">
+          {% for tag in current_tags %}{{ tag }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </span>
+      </summary>
+      <div class="fr-filter-group__content">
+        <ul class="fr-tags-group">
+          {% for tag in tags %}
+            <li>
+              <a class="fr-tag"
+                 type="button"
+                 href="{% url 'cms_search' %}{% toggle_url_filter tag=tag %}#search-results"
+                 title="{% if tag in current_tags %}{% translate 'selected' %}{% else %}{% translate 'unselected' %}{% endif %}"
+                 {% if tag in current_tags %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
+                {{ tag }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </details>
   </div>
 {% endif %}
 
 {% if authors and filter_by_author %}
   <div class="fr-my-3w">
-    <h3 class="fr-h6">{% translate "Filter by author" %}</h3>
-    <ul class="fr-tags-group">
-      {% for author in authors %}
-        <li>
-          <a class="fr-tag"
-             type="button"
-             href="{% url 'cms_search' %}{% toggle_url_filter author=author %}#search-results"
-             title="{% if author in current_authors %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
-             {% if author in current_authors %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>{{ author.name }}</a>
-        </li>
-      {% endfor %}
-    </ul>
+    <details class="fr-filter-group" open>
+      <summary class="fr-filter-group__summary">
+        <h3 class="fr-h6">{% translate "Filter by author" %}</h3>
+        <span class="fr-filter-group__selected">
+          {% for author in current_authors %}{{ author }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </span>
+      </summary>
+      <div class="fr-filter-group__content">
+        <ul class="fr-tags-group">
+          {% for author in authors %}
+            <li>
+              <a class="fr-tag"
+                 type="button"
+                 href="{% url 'cms_search' %}{% toggle_url_filter author=author %}#search-results"
+                 title="{% if author in current_authors %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
+                 {% if author in current_authors %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>{{ author.name }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </details>
   </div>
 {% endif %}
 
 {% if sources and filter_by_source %}
   <div class="fr-my-3w">
-    <h3 class="fr-h6">{% translate "Filter by organization" %}</h3>
-    <ul class="fr-tags-group">
-      {% for source in sources %}
-        <li>
-          <a class="fr-tag"
-             type="button"
-             href="{% url 'cms_search' %}{% toggle_url_filter source=source %}#search-results"
-             title="{% if source in current_sources %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
-             {% if source in current_sources %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>{{ source.name }}</a>
-        </li>
-      {% endfor %}
-    </ul>
+    <details class="fr-filter-group" open>
+      <summary class="fr-filter-group__summary">
+        <h3 class="fr-h6">{% translate "Filter by organization" %}</h3>
+        <span class="fr-filter-group__selected">
+          {% for source in current_sources %}{{ source }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </span>
+      </summary>
+      <div class="fr-filter-group__content">
+        <ul class="fr-tags-group">
+          {% for source in sources %}
+            <li>
+              <a class="fr-tag"
+                 type="button"
+                 href="{% url 'cms_search' %}{% toggle_url_filter source=source %}#search-results"
+                 title="{% if source in current_sources %}{% translate 'selected' %}{% else %}{% translate 'unselected' %} {% endif %}"
+                 {% if source in current_sources %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>{{ source.name }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </details>
   </div>
 {% endif %}
