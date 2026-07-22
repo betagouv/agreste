@@ -2,6 +2,14 @@
 {% extends "sites_conformes_core/search_results.html" %}
 {% load i18n static dsfr_tags wagtailcore_tags wagtail_dsfr_tags %}
 
+{% block title %}
+  <title>{% translate "Search results" %} — {{ settings.sites_conformes_core.CmsDsfrConfig.site_title }}</title>
+{% endblock title %}
+
+{% block search_heading %}
+  <h1>{% translate "Search results" %}</h1>
+{% endblock search_heading %}
+
 {% block extra_css %}
   <link href="{% static 'faceted_search/css/faceted_search.css' %}"
         rel="stylesheet"
