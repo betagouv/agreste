@@ -1,64 +1,66 @@
 """Registry for fork apps to plug a custom search results view into ``/search/``.
 
-How to add a custom search app
-==============================
+How to add a custom search view
+===============================
 
 Fork projects can replace the default search page with their own view and
 template without editing ``sites_conformes``.
 
-1. Create a Django app outside ``sites_conformes/`` (see ``faceted_search/``
-   in https://github.com/betagouv/agreste for a full example).
+1. Create a Django app outside ``sites_conformes/``, or add the view to an
+   existing app (see ``faceted_search/`` in https://github.com/betagouv/agreste
+   for a full example).
 
-2. Subclass :class:`~sites_conformes.core.views.SearchResultsView` and override
-   the extension points as needed:
+2. Implement a search results view. It should be a Django ``View`` subclass
+   with an ``as_view()`` class method. It completely replaces
+   :class:`~sites_conformes.core.views.SearchResultsView`, so it must implement
+   the full search behaviour itself (queryset, template context, etc.).
 
-   - ``filter_before_search(queryset, site)`` — narrow candidates before
-     ``.search()`` (e.g. facet filters)
-   - ``filter_after_search(queryset, site)`` — refine results after
-     ``.search()`` (e.g. custom ranking, deduplication)
-   - ``get_search_filter_context(site)`` — extra template context (e.g. a
-     filter sidebar)
-   - ``template_name`` — your app's search results template
+3. Set the ``SEARCH_VIEW`` Django setting to the dotted path of your view
+   class::
 
-3. Register the view when the app starts::
-
-       # my_search/apps.py
-       def ready(self):
-           from my_search.views import MySearchResultsView
-           from sites_conformes.core.search_registry import register_search_view
-
-           register_search_view(MySearchResultsView)
+       SEARCH_VIEW = "my_search.views.MySearchResultsView"
 
 4. Add the app to ``INSTALLED_APPS``. The ``/search/`` URL is already wired in
    ``sites_conformes.core.urls``; no URL changes are required.
 
-Only one view can be registered. If several apps call ``register_search_view``,
-the last registration wins (determined by ``INSTALLED_APPS`` order).
-
-Templates can extend ``sites_conformes_core/search_results.html`` and override
-the ``search_sidebar``, ``search_results_column_class``, ``search_results``, and
-``search_no_results`` blocks.
+Only one view can be configured. If ``SEARCH_VIEW`` is not set, the default
+``sites_conformes.core.views.SearchResultsView`` is used.
 """
+
+import logging
+from functools import lru_cache
+
+from django.conf import settings
+from django.utils.module_loading import import_string
 
 from sites_conformes.core.views import SearchResultsView
 
-
-class SearchRegistry:
-    def __init__(self):
-        self._view_class = None
-
-    def register(self, view_class):
-        self._view_class = view_class
-
-    def clear(self):
-        self._view_class = None
-
-    def get_search_results_view(self):
-        view_class = self._view_class or SearchResultsView
-        return view_class.as_view()
+logger = logging.getLogger(__name__)
 
 
-search_registry = SearchRegistry()
+# Cache by view_path so we do not re-import the module on every search request.
+# Tests still work because the cache key is the path string; changing SEARCH_VIEW
+# via override_settings produces a different key and resolves a different class.
+@lru_cache(maxsize=None)
+def _resolve_search_view(view_path):
+    """Return the configured search view class, falling back to the default."""
+    if not view_path:
+        return SearchResultsView
 
-register_search_view = search_registry.register
-get_search_results_view = search_registry.get_search_results_view
+    try:
+        view_class = import_string(view_path)
+    except Exception:
+        logger.error("Invalid SEARCH_VIEW setting: %r", view_path)
+        raise
+
+    if not isinstance(view_class, type) or not callable(getattr(view_class, "as_view", None)):
+        raise TypeError(f"SEARCH_VIEW {view_path!r} must be a Django view class with as_view()")
+
+    return view_class
+
+
+def get_search_results_view():
+    """Return the configured search view as a view callable."""
+    view_path = getattr(settings, "SEARCH_VIEW", None)
+    view_class = _resolve_search_view(view_path)
+    return view_class.as_view()

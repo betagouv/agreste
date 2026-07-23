@@ -26,13 +26,9 @@ class SearchResultsView(ListView):
     Custom search apps:
     ------------------
 
-    Fork projects can implement a different search by replacing this view via
-    :mod:`sites_conformes.core.search_registry` — see that module's
-    documentation for how to register a custom search app.
-    Extension points for subclasses:
-    - :meth:`filter_before_search` — narrow candidates before full-text search
-    - :meth:`filter_after_search` — refine results after full-text search
-    - :meth:`get_search_filter_context` — extra template context.
+    Fork projects can implement a different search by setting the
+    ``SEARCH_VIEW`` Django setting to a dotted path of their own view class.
+    See :mod:`sites_conformes.core.search_registry` for documentation.
     """
 
     model = Page
@@ -45,27 +41,6 @@ class SearchResultsView(ListView):
             queryset = queryset.public()
         return queryset
 
-    def filter_before_search(self, queryset, site):
-        """Return a queryset narrowed before ``.search()`` is called.
-
-        Typical uses: facet filters, scoping by page type, or any constraint
-        that should reduce the set of pages passed to the search backend
-        (e.g. ``pk__in`` filters compatible with Wagtail search).
-        """
-        return queryset
-
-    def filter_after_search(self, queryset, site):
-        """Return the queryset refined after ``.search()`` has been called.
-
-        Typical uses: custom ranking or re-ordering, relevance thresholds,
-        deduplication, promoted results, or per-group caps on the result list.
-        """
-        return queryset
-
-    def get_search_filter_context(self, site):
-        """Return extra template context (e.g. filter sidebar options)."""
-        return {}
-
     def get_queryset(self):
         site = Site.find_for_request(self.request)
         query = self.request.GET.get("q", None)
@@ -73,15 +48,11 @@ class SearchResultsView(ListView):
             return Page.objects.none()
 
         object_list = self.get_searchable_queryset(site)
-        object_list = self.filter_before_search(object_list, site)
-        object_list = object_list.search(query)
-        return self.filter_after_search(object_list, site)
+        return object_list.search(query)
 
     def get_context_data(self, **kwargs):
         context = super(SearchResultsView, self).get_context_data(**kwargs)
         context["query"] = self.request.GET.get("q")
-        site = Site.find_for_request(self.request)
-        context.update(self.get_search_filter_context(site))
         return context
 
 
