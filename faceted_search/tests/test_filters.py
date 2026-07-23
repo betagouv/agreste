@@ -22,7 +22,7 @@ from faceted_search.filters import ENABLED_FILTERS, get_active_filters_from_requ
 from faceted_search.views import FacetedSearchResultsView
 from publications.tests.factories import CollectionFactory, ThemeFactory
 from publications.tests.test_publication_index_page import PublicationIndexPageFilterTestBase
-from sites_conformes.core.search_registry import get_search_results_view
+from sites_conformes.core.search_view_loader import get_search_results_view
 
 FILTER_CASES = [
     {
