@@ -22,33 +22,26 @@ class SearchResultsView(ListView):
     If user is anonymous, only public pages are returned.
 
     If there is no result, an empty page list is returned.
-
-    Custom search apps:
-    ------------------
-
-    Fork projects can implement a different search by setting the
-    ``SEARCH_VIEW`` Django setting to a dotted path of their own view class.
-    See :mod:`sites_conformes.core.search_registry` for documentation.
     """
 
     model = Page
     template_name = "sites_conformes_core/search_results.html"
 
-    def get_searchable_queryset(self, site):
-        root_page = site.root_page.localized
-        queryset = Page.objects.descendant_of(root_page, inclusive=True).live()
-        if not self.request.user.is_authenticated:
-            queryset = queryset.public()
-        return queryset
-
     def get_queryset(self):
         site = Site.find_for_request(self.request)
-        query = self.request.GET.get("q", None)
-        if not query:
-            return Page.objects.none()
+        root_page = site.root_page.localized
 
-        object_list = self.get_searchable_queryset(site)
-        return object_list.search(query)
+        query = self.request.GET.get("q", None)
+        if query:
+            object_list = Page.objects.descendant_of(root_page, inclusive=True).live()
+
+            if not self.request.user.is_authenticated:
+                object_list = object_list.public()
+
+            object_list = object_list.search(query)
+        else:
+            object_list = Page.objects.none()
+        return object_list
 
     def get_context_data(self, **kwargs):
         context = super(SearchResultsView, self).get_context_data(**kwargs)
