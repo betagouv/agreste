@@ -82,7 +82,6 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
         """Test that when a given filter is enabled, the context also has the filter activated,
         and it includes the taxonomy item for that filter."""
         request = self.client.request().wsgi_request
-        site = Site.objects.get(is_default_site=True)
 
         def tree_nodes(tree):
             for node in tree:
@@ -95,7 +94,7 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
             enabled_flags = {**_all_filters_disabled(), f"filter_by_{filter_name}": True}
 
             with self.subTest(filter_name):
-                context = get_filter_context(request, site, enabled_filters=enabled_flags)
+                context = get_filter_context(request, enabled_filters=enabled_flags)
                 self.assertTrue(context[f"filter_by_{filter_name}"])
                 if filter_name in ("collection", "theme"):
                     self.assertIn(expected_item, list(tree_nodes(context[f"{filter_name}_tree"])))
@@ -104,13 +103,13 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
 
         with self.subTest("author"):
             enabled_flags = {**_all_filters_disabled(), "filter_by_author": True}
-            context = get_filter_context(request, site, enabled_filters=enabled_flags)
+            context = get_filter_context(request, enabled_filters=enabled_flags)
             self.assertTrue(context["filter_by_author"])
             self.assertIn(self.author, list(context["authors"]))
 
         with self.subTest("source"):
             enabled_flags = {**_all_filters_disabled(), "filter_by_source": True}
-            context = get_filter_context(request, site, enabled_filters=enabled_flags)
+            context = get_filter_context(request, enabled_filters=enabled_flags)
             self.assertTrue(context["filter_by_source"])
             self.assertIn(self.organization, list(context["sources"]))
 
@@ -130,8 +129,7 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
             themes=[child_theme],
         )
         request = self.client.request().wsgi_request
-        site = Site.objects.get(is_default_site=True)
-        context = get_filter_context(request, site)
+        context = get_filter_context(request)
 
         collection_parent = next(node for node in context["collection_tree"] if node.taxonomy == parent_collection)
         theme_parent = next(node for node in context["theme_tree"] if node.taxonomy == parent_theme)
@@ -140,8 +138,7 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
 
     def test_disabled_filter_flags_omit_context_lists(self):
         request = self.client.request().wsgi_request
-        site = Site.objects.get(is_default_site=True)
-        context = get_filter_context(request, site, enabled_filters=_all_filters_disabled())
+        context = get_filter_context(request, enabled_filters=_all_filters_disabled())
 
         for case in self.filter_cases:
             filter_name = case["name"]
@@ -157,12 +154,11 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
 
     def test_show_search_filters_follows_enabled_flags(self):
         request = self.client.request().wsgi_request
-        site = Site.objects.get(is_default_site=True)
         enabled_flags = {**_all_filters_disabled(), "filter_by_collection": True}
-        context = get_filter_context(request, site, enabled_filters=enabled_flags)
+        context = get_filter_context(request, enabled_filters=enabled_flags)
         self.assertTrue(context["show_search_filters"])
 
-        context = get_filter_context(request, site, enabled_filters=_all_filters_disabled())
+        context = get_filter_context(request, enabled_filters=_all_filters_disabled())
         self.assertFalse(context["show_search_filters"])
 
 

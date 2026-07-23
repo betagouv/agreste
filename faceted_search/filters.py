@@ -5,6 +5,7 @@ from typing import Any
 
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from wagtail.models import Site
 
 from publications.models import Collection, PublicationPage, Theme
 from sites_conformes.blog.models import BlogEntryPage, Category, Organization, Person
@@ -180,11 +181,12 @@ def filter_queryset(request, queryset, site):
     return queryset
 
 
-def get_filter_context(request, site, *, enabled_filters: dict[str, bool] | None = None) -> dict:
+def get_filter_context(request, *, enabled_filters: dict[str, bool] | None = None) -> dict:
     """Build context for the filter sidebar: enabled filters, filter values lists, active filter values."""
     if enabled_filters is None:
         enabled_filters = ENABLED_FILTERS
 
+    site = Site.find_for_request(request)
     root = site.root_page.localized
     locale = root.locale
     # Includes PublicationPage entries (subclass of BlogEntryPage).
