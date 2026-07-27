@@ -57,6 +57,11 @@
         {% include "faceted_search/blocks/search_result.html" with result=result %}
       {% endfor %}
     </ol>
+    {% if page_obj.paginator.num_pages > 1 %}
+      <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">
+        {% dsfr_pagination page_obj %}
+      </div>
+    {% endif %}
   {% else %}
     {% block search_no_results %}
       <div class="fr-my-7w fr-mt-md-12w fr-mb-md-10w fr-grid-row fr-grid-row--gutters fr-grid-row--middle fr-grid-row--center">
