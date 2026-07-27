@@ -67,7 +67,7 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        for _ in range(30):
+        for _ in range(15):
             PublicationPageFactory(parent=cls.index, owner=cls.admin)
         call_command("update_index")
 
@@ -75,21 +75,21 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
         response = self.client.get(self.search_url())
         self.assertEqual(response.status_code, 200)
         page_obj = response.context["page_obj"]
-        self.assertEqual(page_obj.paginator.per_page, 25)
-        self.assertEqual(page_obj.paginator.count, 30)
-        self.assertEqual(len(page_obj), 25)
+        self.assertEqual(page_obj.paginator.per_page, 10)
+        self.assertEqual(page_obj.paginator.count, 15)
+        self.assertEqual(len(page_obj), 10)
         self.assertTrue(page_obj.has_next())
 
         soup = BeautifulSoup(response.content, "html.parser")
         result_items = soup.select("#search-results ol > li")
-        self.assertEqual(len(result_items), 25)
+        self.assertEqual(len(result_items), 10)
 
     def test_pagination_second_page_shows_remaining_results(self):
         response = self.client.get(self.search_url(page=2))
         self.assertEqual(response.status_code, 200)
         page_obj = response.context["page_obj"]
         self.assertEqual(page_obj.number, 2)
-        self.assertEqual(page_obj.paginator.count, 30)
+        self.assertEqual(page_obj.paginator.count, 15)
         self.assertEqual(len(page_obj), 5)
         self.assertFalse(page_obj.has_next())
 
@@ -109,8 +109,8 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
         paragraph = soup.select_one("#search-results > p.fr-text--sm")
         self.assertIsNotNone(paragraph)
         text = paragraph.get_text()
-        self.assertIn("30", text)
-        self.assertIn("25", text)
+        self.assertIn("15", text)
+        self.assertIn("10", text)
         self.assertIn("résultats", text)
         self.assertIn("par page", text)
 
@@ -119,6 +119,6 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
         soup = BeautifulSoup(response.content, "html.parser")
         ol = soup.select_one("#search-results ol")
         self.assertIsNotNone(ol)
-        self.assertEqual(int(ol["start"]), 26)
+        self.assertEqual(int(ol["start"]), 11)
         # DSFR fix : "start" is broken, so we reimplement counters.
-        self.assertIn("--list-start: 26", ol["style"])
+        self.assertIn("--list-start: 11", ol["style"])
