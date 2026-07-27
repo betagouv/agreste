@@ -21,6 +21,12 @@
     padding-top: 0.5rem;
 }
 
+/* DSFR resets ordered-list counters, so the HTML start attribute is ignored.
+   Use a CSS variable so the counter starts from the page's first result number. */
+#search-results ol {
+    counter-reset: li-counter calc(var(--list-start, 1) - 1);
+}
+
 /* DSFR fix : we use <a> instead of <button>, which doesn't seem to be implemented in django-dsfr. */
 a.fr-tag[aria-pressed="true"] {
     background-color: transparent;

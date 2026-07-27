@@ -9,6 +9,7 @@ class FacetedSearchResultsView(ListView):
 
     model = Page
     template_name = "faceted_search/search_results.html"
+    paginate_by = 25
 
     def get_queryset(self):
         site = Site.find_for_request(self.request)

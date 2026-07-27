@@ -55,8 +55,9 @@ class FacetedSearchFilterTestBase(PublicationIndexPageFilterTestBase):
     filter_cases = FILTER_CASES
     search_query = "Post"
 
-    def setUp(self):
-        super().setUp()
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
         call_command("update_index")
 
     def search_url(self, query=None, **params):
