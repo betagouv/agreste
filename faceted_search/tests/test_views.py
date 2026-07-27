@@ -1,13 +1,19 @@
 """Tests for the faceted search results view."""
 
+from urllib.parse import urlencode
+
 from bs4 import BeautifulSoup
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.core.management import call_command
 from django.test import RequestFactory
-from wagtail.models import Site
+from django.urls import reverse
+from wagtail.models import Page, Site
+from wagtail.test.utils import WagtailPageTestCase
 
 from faceted_search.tests.test_filters import FacetedSearchFilterTestBase
 from faceted_search.views import FacetedSearchResultsView
+from publications.tests.factories import PublicationIndexPageFactory, PublicationPageFactory
 from sites_conformes.core.tests.test_search import SearchResultsTestCase
 
 
@@ -41,12 +47,28 @@ class FacetedSearchResultsViewTest(FacetedSearchFilterTestBase):
         self.assertIn("collection_tree", context)
 
 
-class FacetedSearchPaginationTest(FacetedSearchFilterTestBase):
+class FacetedSearchPaginationTestBase(WagtailPageTestCase):
+    """Minimal base for pagination tests: no taxonomy fixtures, just an index and posts."""
+
+    search_query = "Post"
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.home = Page.objects.get(slug="home")
+        cls.admin = get_user_model().objects.create_superuser("test", "test@test.test", "pass")
+        cls.index = PublicationIndexPageFactory(parent=cls.home, owner=cls.admin)
+
+    def search_url(self, query=None, **params):
+        query = self.search_query if query is None else query
+        return f"{reverse('cms_search')}?{urlencode({'q': query, **params}, doseq=True)}"
+
+
+class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
         for _ in range(30):
-            cls.entry_page_factory(parent=cls.index, owner=cls.admin)
+            PublicationPageFactory(parent=cls.index, owner=cls.admin)
         call_command("update_index")
 
     def test_pagination_first_page_is_limited_to_page_size(self):
@@ -54,7 +76,7 @@ class FacetedSearchPaginationTest(FacetedSearchFilterTestBase):
         self.assertEqual(response.status_code, 200)
         page_obj = response.context["page_obj"]
         self.assertEqual(page_obj.paginator.per_page, 25)
-        self.assertGreater(page_obj.paginator.count, 25)
+        self.assertEqual(page_obj.paginator.count, 30)
         self.assertEqual(len(page_obj), 25)
         self.assertTrue(page_obj.has_next())
 
@@ -67,12 +89,13 @@ class FacetedSearchPaginationTest(FacetedSearchFilterTestBase):
         self.assertEqual(response.status_code, 200)
         page_obj = response.context["page_obj"]
         self.assertEqual(page_obj.number, 2)
-        self.assertEqual(len(page_obj), page_obj.paginator.count - 25)
+        self.assertEqual(page_obj.paginator.count, 30)
+        self.assertEqual(len(page_obj), 5)
         self.assertFalse(page_obj.has_next())
 
         soup = BeautifulSoup(response.content, "html.parser")
         result_items = soup.select("#search-results ol > li")
-        self.assertEqual(len(result_items), page_obj.paginator.count - 25)
+        self.assertEqual(len(result_items), 5)
 
     def test_pagination_widget_appears_when_multiple_pages(self):
         response = self.client.get(self.search_url())
@@ -82,12 +105,11 @@ class FacetedSearchPaginationTest(FacetedSearchFilterTestBase):
 
     def test_pagination_result_count_and_page_size_are_displayed(self):
         response = self.client.get(self.search_url())
-        page_obj = response.context["page_obj"]
         soup = BeautifulSoup(response.content, "html.parser")
         paragraph = soup.select_one("#search-results > p.fr-text--sm")
         self.assertIsNotNone(paragraph)
         text = paragraph.get_text()
-        self.assertIn(str(page_obj.paginator.count), text)
+        self.assertIn("30", text)
         self.assertIn("25", text)
         self.assertIn("résultats", text)
         self.assertIn("par page", text)
@@ -98,4 +120,5 @@ class FacetedSearchPaginationTest(FacetedSearchFilterTestBase):
         ol = soup.select_one("#search-results ol")
         self.assertIsNotNone(ol)
         self.assertEqual(int(ol["start"]), 26)
+        # DSFR fix : "start" is broken, so we reimplement counters.
         self.assertIn("--list-start: 26", ol["style"])
