@@ -31,27 +31,10 @@ def toggle_url_filter(context, *_, **kwargs):
     Other request parameters, including ``q`` and repeated filter values, are
     preserved.
 
-    ``filters_dict`` is only needed when a caller wants to toggle a filter
-    against a prepared URL state instead of the current request, such as when
-    building a link from saved or inherited filters. It replaces
-    ``request.GET`` as the starting URL state. Its values may be scalars or
-    lists, for example
-    ``{"collection": ["agriculture", "water"], "q": "climate"}``.
-
     The return value is a URL query string such as
     ``"?q=climate&collection=water"`` or an empty string if no parameters
     remain.
     """
-
-    def get_filters_before_toggle(context, filters_dict=None) -> QueryDict:
-        """Build the query parameters that exist before toggling a filter."""
-        if filters_dict:
-            # Expected format: {"collection": ["agriculture", "climate"], "q": "search text"}.
-            query_params = QueryDict("", mutable=True)
-            for key, values in filters_dict.items():
-                query_params.setlist(key, values if isinstance(values, list) else [values])
-            return query_params
-        return context["request"].GET.copy()
 
     def toggle_filter_value(query_params: QueryDict, filter_name: str, value: str) -> QueryDict:
         """Add a filter value to the query or remove it if already selected."""
@@ -63,8 +46,7 @@ def toggle_url_filter(context, *_, **kwargs):
         query_params.setlist(filter_name, current_values)
         return query_params
 
-    filters_dict = kwargs.pop("filters_dict", None)
-    url_params = get_filters_before_toggle(context, filters_dict)
+    url_params = context["request"].GET.copy()
 
     for filter_name, attribute_name in SEARCH_FILTERS:
         # Template calls pass one facet object/value, e.g. collection=collection or year=2024.
