@@ -171,6 +171,8 @@ if not TESTING and DEBUG and "localhost" in HOST_URL:
 
 ROOT_URLCONF = "config.urls"
 
+SEARCH_VIEW = "faceted_search.views.FacetedSearchResultsView"
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
