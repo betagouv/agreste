@@ -79,6 +79,9 @@ def toggle_url_filter(context, *_, **kwargs):
 
         url_params = toggle_filter_value(url_params, filter_name, string_value_to_toggle)
 
+    # When the user changes a filter, we reset the page number to 1.
+    url_params.pop("page", None)
+
     query_string = url_params.urlencode()
     return f"?{query_string}" if query_string else ""
 
