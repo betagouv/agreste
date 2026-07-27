@@ -61,3 +61,29 @@ class FacetedSearchToggleUrlTest(FacetedSearchFilterTestBase):
             collection=self.collection,
             expected={"q": ["Post"]},
         )
+
+    def test_toggle_resets_page_from_request_params(self):
+        self._assert_toggle_url_filter(
+            request_params={"page": 2, "collection": self.collection.slug},
+            collection=self.other_collection,
+            expected={
+                "q": ["Post"],
+                "collection": [self.collection.slug, self.other_collection.slug],
+            },
+        )
+
+    def test_toggle_resets_page_from_filters_dict(self):
+        self._assert_toggle_url_filter(
+            filters_dict={
+                "q": "Post",
+                "page": "2",
+                "collection": [self.collection.slug],
+                # no page parameter
+            },
+            collection=self.other_collection,
+            expected={
+                "q": ["Post"],
+                "collection": [self.collection.slug, self.other_collection.slug],
+                # no page parameter
+            },
+        )

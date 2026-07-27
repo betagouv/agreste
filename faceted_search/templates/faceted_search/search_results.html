@@ -41,12 +41,27 @@
 {% endblock search_results_column_class %}
 
 {% block search_results %}
-  {% if object_list.count %}
-    <ol>
+  {% if page_obj.paginator.count %}
+    <h2>
+      {% blocktranslate with per_page=page_obj.paginator.per_page count count=page_obj.paginator.count %}{{ count }} result ({{ per_page }} per page){% plural %}{{ count }} results ({{ per_page }} per page){% endblocktranslate %}
+    </h2>
+    {% if page_obj.paginator.num_pages > 1 %}
+      <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">
+        {% dsfr_pagination page_obj %}
+      </div>
+    {% endif %}
+    <ol class="fr-mb-2w"
+        start="{{ page_obj.start_index }}"
+        style="--list-start: {{ page_obj.start_index }}">
       {% for result in object_list %}
         {% include "faceted_search/blocks/search_result.html" with result=result %}
       {% endfor %}
     </ol>
+    {% if page_obj.paginator.num_pages > 1 %}
+      <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">
+        {% dsfr_pagination page_obj %}
+      </div>
+    {% endif %}
   {% else %}
     {% block search_no_results %}
       <div class="fr-my-7w fr-mt-md-12w fr-mb-md-10w fr-grid-row fr-grid-row--gutters fr-grid-row--middle fr-grid-row--center">
