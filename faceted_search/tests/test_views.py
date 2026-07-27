@@ -106,13 +106,11 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
     def test_pagination_result_count_and_page_size_are_displayed(self):
         response = self.client.get(self.search_url())
         soup = BeautifulSoup(response.content, "html.parser")
-        paragraph = soup.select_one("#search-results > p.fr-text--sm")
+        paragraph = soup.select_one("#search-results h2")
         self.assertIsNotNone(paragraph)
         text = paragraph.get_text()
-        self.assertIn("15", text)
-        self.assertIn("10", text)
-        self.assertIn("résultats", text)
-        self.assertIn("par page", text)
+        self.assertIn("15 résultats", text)
+        self.assertIn("10 par page", text)
 
     def test_pagination_result_numbering_continues_across_pages(self):
         response = self.client.get(self.search_url(page=2))
