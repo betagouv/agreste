@@ -7,14 +7,6 @@ from sites_conformes.core.constants import (
     HEADING_CHOICES_2_5,
 )
 
-SEE_ALL_LINK_UNFILTERED = "unfiltered"
-SEE_ALL_LINK_FILTERED = "filtered"
-
-SEE_ALL_LINK_CHOICES = [
-    (SEE_ALL_LINK_UNFILTERED, _("No filters")),
-    (SEE_ALL_LINK_FILTERED, _("The selected filters")),
-]
-
 
 class RecentEntriesStructValue(blocks.StructValue):
     """
@@ -91,7 +83,7 @@ class RecentEntriesStructValue(blocks.StructValue):
 
 class BlogRecentEntriesStructValue(RecentEntriesStructValue):
     def see_all_link_filters(self) -> dict:
-        if self.get("see_all_link", SEE_ALL_LINK_UNFILTERED) == SEE_ALL_LINK_FILTERED:
+        if self.get("is_see_all_link_filtered", False):
             return self.current_filters()
         return {}
 
@@ -132,10 +124,9 @@ class BlogRecentEntriesBlock(blocks.StructBlock):
         required=False,
         default=_("See all posts"),
     )
-    see_all_link = blocks.ChoiceBlock(
-        label=_("Button navigates to the index page with :"),
-        choices=SEE_ALL_LINK_CHOICES,
-        default=SEE_ALL_LINK_UNFILTERED,
+    is_see_all_link_filtered = BooleanBlock(
+        label=_('Apply filters in the "See all posts" page'),
+        default=False,
         required=False,
     )
 
@@ -155,7 +146,7 @@ class BlogRecentEntriesBlock(blocks.StructBlock):
                 "source_filter",
                 "show_filters",
                 BlockGroup(
-                    children=["see_all_button_text", "see_all_link"],
+                    children=["see_all_button_text", "is_see_all_link_filtered"],
                     heading=_("“See all posts” button"),
                 ),
             ],

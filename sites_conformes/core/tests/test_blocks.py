@@ -8,7 +8,6 @@ from wagtail.rich_text import RichText
 from wagtail.test.utils import WagtailPageTestCase
 
 from sites_conformes.blog.models import BlogEntryPage, BlogIndexPage, Category
-from sites_conformes.core.blocks.related_entries import SEE_ALL_LINK_FILTERED
 from sites_conformes.core.models import ContentPage
 from sites_conformes.core.utils import import_image
 from sites_conformes.events.models import EventEntryPage, EventsIndexPage
@@ -590,7 +589,7 @@ class BlogRecentEntriesBlockTestCase(WagtailPageTestCase):
         content_page = self._content_page_with_block(
             slug="blog-recent-block-filtered-link",
             show_filters=True,
-            see_all_link=SEE_ALL_LINK_FILTERED,
+            is_see_all_link_filtered=True,
         )
         response = self.client.get(content_page.url)
         block = self._block_soup(response)
