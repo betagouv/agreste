@@ -893,6 +893,12 @@ msgstr "Bouton « Voir tous les articles »"
 msgid "Event calendar"
 msgstr "Agenda"
 
+msgid "Apply filters in the \"See all events\" page"
+msgstr "Appliquer les filtres dans la page \"Voir tous les événements\""
+
+msgid "“See all events” button"
+msgstr "Bouton « Voir tous les événements »"
+
 msgid "Section title"
 msgstr "Titre de la section"
 
