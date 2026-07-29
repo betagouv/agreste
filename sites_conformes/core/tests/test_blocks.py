@@ -495,21 +495,20 @@ class TileBlockTestCase(WagtailPageTestCase):
         self.assertContains(response, "fr-tile__pictogram")
 
 
-class RecentEntriesBlockTestCase(WagtailPageTestCase):
+class RecentEntriesBlockTestMixin:
     """Shared helpers and tests for blog / events recent-entries blocks.
 
-    Subclasses set:
+    Concrete test cases set:
     - app_name: "blog" or "events"
     - entry_type: "post" or "event"
     - self.index_page (and a categorized entry under it) in setUp
     """
 
-    __test__ = False  # concrete subclasses only
-
     app_name = ""
     entry_type = ""
 
     def setUp(self):
+        super().setUp()
         self.home_page = Page.objects.get(slug="home")
         self.category = Category.objects.create(name="Category", slug="category")
 
@@ -662,9 +661,7 @@ class RecentEntriesBlockTestCase(WagtailPageTestCase):
         self.assertEqual(button.get_text(strip=True), see_all_button_custom_label)
 
 
-class BlogRecentEntriesBlockTestCase(RecentEntriesBlockTestCase):
-    __test__ = True
-
+class BlogRecentEntriesBlockTestCase(RecentEntriesBlockTestMixin, WagtailPageTestCase):
     app_name = "blog"
     entry_type = "post"
 
@@ -684,9 +681,7 @@ class BlogRecentEntriesBlockTestCase(RecentEntriesBlockTestCase):
         )
 
 
-class EventsRecentEntriesBlockTestCase(RecentEntriesBlockTestCase):
-    __test__ = True
-
+class EventsRecentEntriesBlockTestCase(RecentEntriesBlockTestMixin, WagtailPageTestCase):
     app_name = "events"
     entry_type = "event"
 
