@@ -96,12 +96,10 @@ class BlogRecentEntriesStructValue(RecentEntriesStructValue):
         return {}
 
     def see_all_button_label(self):
-        from django.utils.translation import gettext
-
         text = self.get("see_all_button_text")
         if text:
             return text
-        return gettext("See all posts")
+        return _("See all posts")
 
 
 class BlogRecentEntriesBlock(blocks.StructBlock):
