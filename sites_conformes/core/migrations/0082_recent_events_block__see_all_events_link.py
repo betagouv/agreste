@@ -10,7 +10,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('sites_conformes_core', '0080_recent_blogs_block__see_all_posts_link'),
+        ('sites_conformes_core', '0081_recent_blogs_block__see_all_posts_link'),
     ]
 
     operations = [

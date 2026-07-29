@@ -10,7 +10,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('sites_conformes_core', '0079_alter_catalogindexpage_body_alter_contentpage_body'),
+        ('sites_conformes_core', '0080_cmsdsfrconfig_iframe_allow_origins'),
     ]
 
     operations = [
