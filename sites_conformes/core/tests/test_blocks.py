@@ -495,276 +495,215 @@ class TileBlockTestCase(WagtailPageTestCase):
         self.assertContains(response, "fr-tile__pictogram")
 
 
-class BlogRecentEntriesBlockTestCase(WagtailPageTestCase):
+class RecentEntriesBlockTestCase(WagtailPageTestCase):
+    """Shared helpers and tests for blog / events recent-entries blocks.
+
+    Subclasses set:
+    - app_name: "blog" or "events"
+    - entry_type: "post" or "event"
+    - self.index_page (and a categorized entry under it) in setUp
+    """
+
+    __test__ = False  # concrete subclasses only
+
+    app_name = ""
+    entry_type = ""
+
     def setUp(self):
         self.home_page = Page.objects.get(slug="home")
-        self.admin = User.objects.create_superuser("test", "test@test.test", "pass")
+        self.category = Category.objects.create(name="Category", slug="category")
 
-        lorem_raw = "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>"
-        lorem_body = [("paragraph", RichText(lorem_raw))]
+    def create_page_with_recent_entries_block(self, app_name, show_filters, slug_suffix="", **block_overrides):
+        stream_block_name = f"{app_name}_recent_entries"
+        content_page_slug_prefix = f"{app_name}-recent-block"
+        slug = f"{content_page_slug_prefix}-{slug_suffix}" if slug_suffix else content_page_slug_prefix
 
-        self.blog_index = self.home_page.add_child(
-            instance=BlogIndexPage(title="Actualités", body=lorem_body, slug="actualites", show_in_menus=True),
+        index_page_field = "blog" if app_name == "blog" else "index_page"
+        block_value = {
+            "title": "Actus",
+            "heading_tag": "h2",
+            "entries_count": 4,
+            "category_filter": self.category,
+            "show_filters": show_filters,
+            index_page_field: self.index_page,
+        }
+        block_value.update(block_overrides)
+
+        return self.home_page.add_child(
+            instance=ContentPage(
+                title="Sample page",
+                slug=slug,
+                body=[(stream_block_name, block_value)],
+            ),
         )
-        self.category = Category.objects.create(name="Agriculture", slug="agriculture")
 
-        self.blog_entry = self.blog_index.add_child(
+    def get_recent_entries_block(self, response, app_name):
+        rendered_block_css_class = f"cmsfr-block-{app_name}-recent-entries"
+        block = BeautifulSoup(response.content, "html.parser").select_one(
+            f".{rendered_block_css_class}",
+        )
+        self.assertIsNotNone(block)
+        return block
+
+    def get_see_all_button(self, block):
+        button = block.select_one("a.fr-btn")
+        self.assertIsNotNone(button)
+        return button
+
+    def assert_see_all_button_targets_index(self, button):
+        self.assertTrue(
+            button["href"].startswith(self.index_page.url),
+            f"Expected link to target {self.index_page.url!r}, got {button['href']!r}",
+        )
+
+    def test_recent_entries_block_is_renderable(self):
+        content_page = self.create_page_with_recent_entries_block(
+            app_name=self.app_name,
+            show_filters=True,
+        )
+        self.assertPageIsRenderable(content_page)
+
+    def test_filters_visible_when_enabled(self):
+        content_page = self.create_page_with_recent_entries_block(
+            app_name=self.app_name,
+            show_filters=True,
+        )
+        response = self.client.get(content_page.url)
+        block = self.get_recent_entries_block(response, self.app_name)
+
+        self.assertIn(gettext("Filter by category"), block.get_text())
+        pressed_filter = block.select_one('a.fr-tag[aria-pressed="true"]')
+        self.assertIsNotNone(pressed_filter)
+        self.assertEqual(pressed_filter.get_text(strip=True), self.category.name)
+
+    def test_filters_hidden_when_disabled(self):
+        content_page = self.create_page_with_recent_entries_block(
+            app_name=self.app_name,
+            show_filters=False,
+            slug_suffix="no-filters",
+        )
+        response = self.client.get(content_page.url)
+        block = self.get_recent_entries_block(response, self.app_name)
+
+        self.assertNotIn(gettext("Filter by category"), block.get_text())
+        self.assertIsNone(block.select_one("a.fr-tag[aria-pressed]"))
+
+    def test_see_all_link_defaults_to_unfiltered_index(self):
+        content_page = self.create_page_with_recent_entries_block(
+            app_name=self.app_name,
+            show_filters=True,
+        )
+        response = self.client.get(content_page.url)
+        button = self.get_see_all_button(
+            self.get_recent_entries_block(response, self.app_name),
+        )
+
+        self.assert_see_all_button_targets_index(button)
+        self.assertNotIn("?", button["href"])
+
+    def test_see_all_link_includes_block_filters_when_configured(self):
+        content_page = self.create_page_with_recent_entries_block(
+            app_name=self.app_name,
+            show_filters=True,
+            slug_suffix="filtered-link",
+            is_see_all_link_filtered=True,
+        )
+        response = self.client.get(content_page.url)
+        button = self.get_see_all_button(
+            self.get_recent_entries_block(response, self.app_name),
+        )
+
+        self.assert_see_all_button_targets_index(button)
+        self.assertIn(f"category={self.category.slug}", button["href"])
+
+    def test_see_all_link_omits_query_when_unfiltered(self):
+        content_page = self.create_page_with_recent_entries_block(
+            app_name=self.app_name,
+            show_filters=False,
+            slug_suffix="unfiltered",
+            category_filter=None,
+        )
+        response = self.client.get(content_page.url)
+        button = self.get_see_all_button(
+            self.get_recent_entries_block(response, self.app_name),
+        )
+
+        self.assert_see_all_button_targets_index(button)
+        self.assertNotIn("?", button["href"])
+
+    def test_see_all_button_uses_default_text(self):
+        see_all_button_default_label = f"See all {self.entry_type}s"
+
+        content_page = self.create_page_with_recent_entries_block(
+            app_name=self.app_name,
+            show_filters=True,
+        )
+        response = self.client.get(content_page.url)
+        button = self.get_see_all_button(
+            self.get_recent_entries_block(response, self.app_name),
+        )
+
+        self.assertEqual(button.get_text(strip=True), gettext(see_all_button_default_label))
+
+    def test_see_all_button_uses_custom_text(self):
+        see_all_button_custom_label = f"Browse all {self.entry_type}s"
+
+        content_page = self.create_page_with_recent_entries_block(
+            app_name=self.app_name,
+            show_filters=False,
+            slug_suffix="custom-button",
+            see_all_button_text=see_all_button_custom_label,
+        )
+        response = self.client.get(content_page.url)
+        button = self.get_see_all_button(
+            self.get_recent_entries_block(response, self.app_name),
+        )
+
+        self.assertEqual(button.get_text(strip=True), see_all_button_custom_label)
+
+
+class BlogRecentEntriesBlockTestCase(RecentEntriesBlockTestCase):
+    __test__ = True
+
+    app_name = "blog"
+    entry_type = "post"
+
+    def setUp(self):
+        super().setUp()
+
+        self.index_page = self.home_page.add_child(
+            instance=BlogIndexPage(title="Actualités", slug="actualites"),
+        )
+        # Needed so the index exposes categories for the filter UI
+        self.index_page.add_child(
             instance=BlogEntryPage(
                 title="Article",
                 slug="article",
-                body=lorem_body,
                 blog_categories=[self.category],
             ),
         )
 
-        self.content_page = self._content_page_with_block(
-            slug="blog-recent-block",
-            show_filters=True,
-        )
 
-    def _content_page_with_block(self, slug, show_filters, **block_overrides):
-        block_data = {
-            "title": "Actus",
-            "heading_tag": "h2",
-            "blog": self.blog_index,
-            "entries_count": 4,
-            "category_filter": self.category,
-            "show_filters": show_filters,
-        }
-        block_data.update(block_overrides)
-        body = [
-            (
-                "blog_recent_entries",
-                block_data,
-            ),
-        ]
-        return self.home_page.add_child(
-            instance=ContentPage(title="Sample page", slug=slug, owner=self.admin, body=body),
-        )
+class EventsRecentEntriesBlockTestCase(RecentEntriesBlockTestCase):
+    __test__ = True
 
-    def _block_soup(self, response):
-        block = BeautifulSoup(response.content, "html.parser").select_one(
-            ".cmsfr-block-blog-recent-entries",
-        )
-        self.assertIsNotNone(block)
-        return block
+    app_name = "events"
+    entry_type = "event"
 
-    def _assert_see_all_link_targets_blog_index(self, link, blog_index=None):
-        blog_index = blog_index or self.blog_index
-        self.assertTrue(
-            link["href"].startswith(blog_index.url),
-            f"Expected link to target {blog_index.url!r}, got {link['href']!r}",
-        )
-
-    def test_blog_recent_entries_is_renderable(self):
-        self.assertPageIsRenderable(self.content_page)
-
-    def test_filters_visible_when_enabled(self):
-        response = self.client.get(self.content_page.url)
-        block = self._block_soup(response)
-        self.assertIn(gettext("Filter by category"), block.get_text())
-        pressed_filter = block.select_one('a.fr-tag[aria-pressed="true"]')
-        self.assertIsNotNone(pressed_filter)
-        self.assertEqual(pressed_filter.get_text(strip=True), self.category.name)
-
-    def test_filters_hidden_when_disabled(self):
-        content_page = self._content_page_with_block(
-            slug="blog-recent-block-no-filters",
-            show_filters=False,
-        )
-        response = self.client.get(content_page.url)
-        block = self._block_soup(response)
-        self.assertNotIn(gettext("Filter by category"), block.get_text())
-        self.assertIsNone(block.select_one("a.fr-tag[aria-pressed]"))
-
-    def test_see_all_posts_link_defaults_to_unfiltered_index(self):
-        response = self.client.get(self.content_page.url)
-        block = self._block_soup(response)
-        link = block.select_one("a.fr-btn")
-        self.assertIsNotNone(link)
-        self._assert_see_all_link_targets_blog_index(link)
-        self.assertNotIn("?", link["href"])
-
-    def test_see_all_posts_link_includes_block_filters_when_configured(self):
-        content_page = self._content_page_with_block(
-            slug="blog-recent-block-filtered-link",
-            show_filters=True,
-            is_see_all_link_filtered=True,
-        )
-        response = self.client.get(content_page.url)
-        block = self._block_soup(response)
-        link = block.select_one("a.fr-btn")
-        self.assertIsNotNone(link)
-        self._assert_see_all_link_targets_blog_index(link)
-        self.assertIn("category=agriculture", link["href"])
-
-    def test_see_all_posts_link_omits_query_when_unfiltered(self):
-        content_page = self._content_page_with_block(
-            slug="blog-recent-block-unfiltered",
-            show_filters=False,
-            category_filter=None,
-        )
-        response = self.client.get(content_page.url)
-        block = self._block_soup(response)
-        link = block.select_one("a.fr-btn")
-        self.assertIsNotNone(link)
-        self._assert_see_all_link_targets_blog_index(link)
-        self.assertNotIn("?", link["href"])
-
-    def test_see_all_posts_button_uses_default_text(self):
-        response = self.client.get(self.content_page.url)
-        block = self._block_soup(response)
-        link = block.select_one("a.fr-btn")
-        self.assertIsNotNone(link)
-        self.assertEqual(link.get_text(strip=True), gettext("See all posts"))
-
-    def test_see_all_posts_button_uses_custom_text(self):
-        content_page = self._content_page_with_block(
-            slug="blog-recent-block-custom-button",
-            show_filters=False,
-            see_all_button_text="Browse all articles",
-        )
-        response = self.client.get(content_page.url)
-        block = self._block_soup(response)
-        link = block.select_one("a.fr-btn")
-        self.assertIsNotNone(link)
-        self.assertEqual(link.get_text(strip=True), "Browse all articles")
-
-
-class EventsRecentEntriesBlockTestCase(WagtailPageTestCase):
     def setUp(self):
-        self.home_page = Page.objects.get(slug="home")
-        self.admin = User.objects.create_superuser("test", "test@test.test", "pass")
+        super().setUp()
 
-        lorem_raw = "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>"
-        lorem_body = [("paragraph", RichText(lorem_raw))]
-
-        self.events_index = self.home_page.add_child(
-            instance=EventsIndexPage(title="Agenda", body=lorem_body, slug="agenda", show_in_menus=True)
+        self.index_page = self.home_page.add_child(
+            instance=EventsIndexPage(title="Agenda", slug="agenda"),
         )
-        self.category = Category.objects.create(name="Formation", slug="formation")
-
-        self.event_entry = self.events_index.add_child(
+        # Needed so the index exposes categories for the filter UI
+        self.index_page.add_child(
             instance=EventEntryPage(
                 title="Formation",
-                body=lorem_body,
                 slug="formation",
                 event_categories=[self.category],
-            )
-        )
-
-        self.content_page = self._content_page_with_block(
-            slug="events-recent-block",
-            show_filters=True,
-        )
-
-    def _content_page_with_block(self, slug, show_filters, **block_overrides):
-        block_data = {
-            "title": "Actus",
-            "heading_tag": "h2",
-            "index_page": self.events_index,
-            "entries_count": 4,
-            "category_filter": self.category,
-            "show_filters": show_filters,
-        }
-        block_data.update(block_overrides)
-        body = [
-            (
-                "events_recent_entries",
-                block_data,
             ),
-        ]
-        return self.home_page.add_child(
-            instance=ContentPage(title="Sample page", slug=slug, owner=self.admin, body=body),
         )
-
-    def _block_soup(self, response):
-        block = BeautifulSoup(response.content, "html.parser").select_one(
-            ".cmsfr-block-events-recent-entries",
-        )
-        self.assertIsNotNone(block)
-        return block
-
-    def _assert_see_all_link_targets_events_index(self, link, events_index=None):
-        events_index = events_index or self.events_index
-        self.assertTrue(
-            link["href"].startswith(events_index.url),
-            f"Expected link to target {events_index.url!r}, got {link['href']!r}",
-        )
-
-    def test_events_recent_entries_is_renderable(self):
-        self.assertPageIsRenderable(self.content_page)
-
-    def test_filters_visible_when_enabled(self):
-        response = self.client.get(self.content_page.url)
-        block = self._block_soup(response)
-        self.assertIn(gettext("Filter by category"), block.get_text())
-        pressed_filter = block.select_one('a.fr-tag[aria-pressed="true"]')
-        self.assertIsNotNone(pressed_filter)
-        self.assertEqual(pressed_filter.get_text(strip=True), self.category.name)
-
-    def test_filters_hidden_when_disabled(self):
-        content_page = self._content_page_with_block(
-            slug="events-recent-block-no-filters",
-            show_filters=False,
-        )
-        response = self.client.get(content_page.url)
-        block = self._block_soup(response)
-        self.assertNotIn(gettext("Filter by category"), block.get_text())
-        self.assertIsNone(block.select_one("a.fr-tag[aria-pressed]"))
-
-    def test_see_all_events_link_defaults_to_unfiltered_index(self):
-        response = self.client.get(self.content_page.url)
-        block = self._block_soup(response)
-        link = block.select_one("a.fr-btn")
-        self.assertIsNotNone(link)
-        self._assert_see_all_link_targets_events_index(link)
-        self.assertNotIn("?", link["href"])
-
-    def test_see_all_events_link_includes_block_filters_when_configured(self):
-        content_page = self._content_page_with_block(
-            slug="events-recent-block-filtered-link",
-            show_filters=True,
-            is_see_all_link_filtered=True,
-        )
-        response = self.client.get(content_page.url)
-        block = self._block_soup(response)
-        link = block.select_one("a.fr-btn")
-        self.assertIsNotNone(link)
-        self._assert_see_all_link_targets_events_index(link)
-        self.assertIn("category=formation", link["href"])
-
-    def test_see_all_events_link_omits_query_when_unfiltered(self):
-        content_page = self._content_page_with_block(
-            slug="events-recent-block-unfiltered",
-            show_filters=False,
-            category_filter=None,
-        )
-        response = self.client.get(content_page.url)
-        block = self._block_soup(response)
-        link = block.select_one("a.fr-btn")
-        self.assertIsNotNone(link)
-        self._assert_see_all_link_targets_events_index(link)
-        self.assertNotIn("?", link["href"])
-
-    def test_see_all_events_button_uses_default_text(self):
-        response = self.client.get(self.content_page.url)
-        block = self._block_soup(response)
-        link = block.select_one("a.fr-btn")
-        self.assertIsNotNone(link)
-        self.assertEqual(link.get_text(strip=True), gettext("See all events"))
-
-    def test_see_all_events_button_uses_custom_text(self):
-        content_page = self._content_page_with_block(
-            slug="events-recent-block-custom-button",
-            show_filters=False,
-            see_all_button_text="Browse all events",
-        )
-        response = self.client.get(content_page.url)
-        block = self._block_soup(response)
-        link = block.select_one("a.fr-btn")
-        self.assertIsNotNone(link)
-        self.assertEqual(link.get_text(strip=True), "Browse all events")
 
 
 class HeroBackgroundImageBlockTestCase(WagtailPageTestCase):
