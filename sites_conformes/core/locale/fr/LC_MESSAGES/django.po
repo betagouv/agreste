@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-16 10:22+0200\n"
+"POT-Creation-Date: 2026-07-29 16:35+0200\n"
 "PO-Revision-Date: 2026-07-16 10:26+0200\n"
 "Last-Translator: Sylvain Boissel <sylvain@boissel.dev>\n"
 "Language-Team: \n"
@@ -890,6 +890,9 @@ msgstr "Appliquer les filtres dans la page \"Voir tous les articles\""
 msgid "“See all posts” button"
 msgstr "Bouton « Voir tous les articles »"
 
+msgid "See all events"
+msgstr "Voir tous les événements"
+
 msgid "Event calendar"
 msgstr "Agenda"
 
@@ -1438,9 +1441,6 @@ msgstr "Format de fichier inconnu"
 
 msgid "Unknown file size"
 msgstr "Taille de fichier inconnue"
-
-msgid "See all events"
-msgstr "Voir tous les événements"
 
 msgid "In this section"
 msgstr "Dans cette rubrique"
