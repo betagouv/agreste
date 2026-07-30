@@ -139,6 +139,7 @@ MIDDLEWARE = [
     "django.middleware.locale.LocaleMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "sites_conformes.core.middleware.IframeMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "wagtail.contrib.redirects.middleware.RedirectMiddleware",
 ]
@@ -191,6 +192,7 @@ TEMPLATES = [
                 "wagtailmenus.context_processors.wagtailmenus",
                 "sites_conformes.core.context_processors.skiplinks",
                 "sites_conformes.core.context_processors.mega_menus",
+                "sites_conformes.core.context_processors.iframe",
             ],
         },
     },
@@ -409,6 +411,20 @@ WAGTAIL_RICHTEXT_FIELD_FEATURES = [
 WAGTAILEMBEDS_RESPONSIVE_HTML = True
 WAGTAIL_MODERATION_ENABLED = False
 
+# Settings for the notifications panel of the dashboard admin
+NOTIFICATIONS_FILE_URL = os.getenv(
+    "NOTIFICATIONS_FILE_URL",
+    "https://raw.githubusercontent.com/numerique-gouv/sites-conformes/refs/heads/main/notifications.json",
+)
+# GitHub API endpoint used to detect the latest published version (overridable for forks)
+LATEST_RELEASE_URL = os.getenv(
+    "LATEST_RELEASE_URL", "https://api.github.com/repos/numerique-gouv/sites-conformes/releases/latest"
+)
+# Human-facing releases page linked from the "new version available" notification (overridable for forks)
+RELEASES_URL = os.getenv("RELEASES_URL", "https://github.com/numerique-gouv/sites-conformes/releases")
+ADVERTISE_LATEST_VERSION = getenv_bool("ADVERTISE_LATEST_VERSION", True)
+
+
 # Wagtailmenus: Obsolete, to be removed in a future version (replaced by "sites_conformes.menus")
 WAGTAILMENUS_FLAT_MENUS_HANDLE_CHOICES = (
     ("header_tools", "Menu en haut à droite"),
@@ -517,6 +533,12 @@ DSFR_USE_INTEGRITY_CHECKSUMS = True if os.getenv("DSFR_USE_INTEGRITY_CHECKSUMS")
 
 SF_DISABLE_TUTORIALS = True if os.getenv("SF_DISABLE_TUTORIALS") in ["1", "True"] else False
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+
+# Legacy clickjacking fallback for browsers without CSP frame-ancestors
+# support. Browsers that support frame-ancestors ignore X-Frame-Options,
+# so this does not conflict with the per-site policy emitted by
+# sites_conformes.core.middleware.IframeMiddleware.
+X_FRAME_OPTIONS = "SAMEORIGIN"
 
 
 if sentry_dsn := os.getenv("SENTRY_DSN"):
