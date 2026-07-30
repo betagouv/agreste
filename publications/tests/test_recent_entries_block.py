@@ -9,10 +9,7 @@ from wagtail.models import Page
 from wagtail.rich_text import RichText
 from wagtail.test.utils import WagtailPageTestCase
 
-from publications.blocks.recent_entries import (
-    PUBLICATION_RECENT_ENTRIES_BLOCK,
-    SEE_ALL_LINK_FILTERED,
-)
+from publications.blocks.recent_entries import PUBLICATION_RECENT_ENTRIES_BLOCK
 from publications.models import Collection, PublicationIndexPage, PublicationPage, Theme
 from sites_conformes.blog.models import Organization, Person
 from sites_conformes.core.models import ContentPage, Tag
@@ -169,7 +166,7 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
         content_page = self._content_page_with_block(
             slug="publication-recent-block-filtered-link",
             show_filters=True,
-            see_all_link=SEE_ALL_LINK_FILTERED,
+            is_see_all_link_filtered=True,
         )
         response = self.client.get(content_page.url)
         block = self._block_soup(response)
