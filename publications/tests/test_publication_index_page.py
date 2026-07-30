@@ -98,17 +98,25 @@ class PublicationIndexPagePostsTest(
             themes=[self.theme],
         )
         response = self.client.get(self.index.url)  # no filters
-        collection_tag = f'<p class="fr-tag">{self.collection.name}</p>'
-        theme_tag = f'<p class="fr-tag">{self.theme.name}</p>'
         soup = BeautifulSoup(response.content, "html.parser")
-        matching_card = None
-        for card in soup.select("div.fr-card"):
-            tag_html = "".join(str(tag) for tag in card.select("p.fr-tag"))
-            if post.title in card.get_text() and collection_tag in tag_html:
-                matching_card = card
-                break
-        self.assertIsNotNone(
-            matching_card,
-            "Expected a post card containing the title and the collection tag.",
+
+        cards_with_title = [card for card in soup.select("div.fr-card") if post.title in card.get_text()]
+        self.assertEqual(
+            len(cards_with_title),
+            1,
+            f"Expected exactly one post card for title: {post.title!r}",
         )
-        self.assertNotIn(theme_tag, "".join(str(tag) for tag in matching_card.select("p.fr-tag")))
+        matching_card = cards_with_title[0]
+
+        def card_contains_taxonomy_tag(card, tag_name: str) -> bool:
+            """Look for any .fr-tag element with the expected taxonomy name."""
+            return any(tag.get_text(strip=True) == tag_name for tag in card.select(".fr-tag"))
+
+        self.assertTrue(
+            card_contains_taxonomy_tag(matching_card, self.collection.name),
+            "Expected the card to contain the collection tag.",
+        )
+        self.assertFalse(
+            card_contains_taxonomy_tag(matching_card, self.theme.name),
+            "Expected the card not to contain the theme tag.",
+        )
