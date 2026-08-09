@@ -193,7 +193,7 @@ def toggle_url_filter(context, *_, **kwargs):
     """
     return build_toggle_url_query_string(context, FILTERS, **kwargs)
 
-  
+
 @register.simple_tag
 def event_date_range(event_date_start, event_date_end):
     """
