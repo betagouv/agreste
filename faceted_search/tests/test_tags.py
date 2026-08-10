@@ -5,6 +5,8 @@ from faceted_search.tests.test_filters import FacetedSearchFilterTestBase
 
 
 class FacetLabelTest(FacetedSearchFilterTestBase):
+    """``facet_label`` formats ``Name (N)`` (with ``FacetedSearchCountRenderingTest``)."""
+
     def test_facet_label_includes_count_when_present(self):
         self.assertEqual(facet_label("Agriculture", 3), "Agriculture (3)")
 
