@@ -2,22 +2,37 @@
 
 Forké depuis Sites Conformes (voir ci dessous)
 
-Branches : 
- - `main-agreste` : branchée depuis la branche `production` de sites conformes
- - `production-agreste` : pour les déploiements sur agreste-prod
+Releases are tagged commits in `production-agreste` branch, with a release created on github.
 
-For now, the package name and version in pyproject.toml is the Sites Conformes one, because agreste's modifications are minor. (It will probably change later)
+In code, whe agreste version is in agreste_version.txt, while pyproject.toml still has SC's version (for now).
+Version format : the first three numbers are the Agreste version, the second three are the Sites Conformes version (`${agreste_version}-{SC_version}`). Example : 2.8.0-4.1.0
 
-The agreste version is in agreste_version.txt (this is not used anywhere in code, it's just for tracking purposes). Format : the first three numbers are the Sites Conformes version, and the second three are the agreste version (e.g. 2.3.5-0.1.0)
+## To upgrade Sites Conformes : 
+ - Merge upstream's `production` into `main-agreste`, by making a PR : https://github.com/betagouv/agreste/compare/main-agreste...numerique-gouv:production. This will make sure you run the CI.
+    - if the merge has conflicts, give up that PR. Create a branch from main-agreste, call it `merge-sites-conformes-< version >`, and do the merge with multiple commits if needed. 
+    ```
+    SC_VERSION="4.1.0";
+    git fetch upstream production; # get latest changes
+    git checkout main-agreste; git pull; 
+    git checkout -B merge-sites-conformes-$SC_VERSION
+    git merge upstream/production
+    ```
+    - Then merge that branch into `main-agreste` with a PR : `gh pr create`
 
-To upgrade of Sites Conformes : 
- - on https://github.com/betagouv/agreste, run Sync Fork for `production` branch.
- - `git pull upstream production --tags` (avoid pulling all branches from upstream, it creates unnecessary noise in git history)
- - update the local branch as well (optional but avoids errors) : `git checkout production; git pull`
- - Merge `production` into `main-agreste`, by making a PR and merging it.
- - Update the version number in `agreste_version.txt` : `VERSION="3.1.0-1.1.0"; git checkout main-agreste; git pull; echo $VERSION > agreste_version.txt; git add agreste_version.txt; git commit -m "Bump version to $VERSION"; git push`
- - Create the release : 
-   - Open a PR to merge `main-agreste` into `production-agreste`. Name it with the new version number. Solve any conflicts and merge. This will trigger a github action that will create the release and tag. If the auto-deploy is configured on Scalingo, it will deploy the release.
+## To create a release :
+  - Update the version number in `agreste_version.txt` : 
+  ```
+  VERSION="2.8.0-4.1.0"; # ${agreste_version}-{SC_version}
+  git checkout main-agreste; git pull; 
+  echo $VERSION > agreste_version.txt; 
+  git add agreste_version.txt; 
+  git commit -m "Bump version to $VERSION"; 
+  git push
+  ```
+  - Open a PR to merge `main-agreste` into `production-agreste`. 
+    - https://github.com/betagouv/agreste/compare/production-agreste...betagouv:agreste:main-agreste
+    - Name it with the new version number ("v2.8.0-4.1.0"). The name will be picked up automatically to name the version and tag.
+    - Solve any conflicts and merge. This will trigger a github action that will create the release and tag. If the auto-deploy is configured on Scalingo, it will deploy the release.
 
 -----
 # Sites Conformes

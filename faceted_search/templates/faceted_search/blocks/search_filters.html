@@ -16,7 +16,8 @@
       <div class="fr-filter-group__selected">
         {% for theme in current_themes %}
           {% toggle_url_filter theme=theme as theme_query %}
-          {% dsfr_tag label=theme.name is_selectable=True is_selected=True link=search_url|add:theme_query|add:"#search-results" %}
+          {% facet_label theme.name theme.result_count as theme_label %}
+          {% dsfr_tag label=theme_label is_selectable=True is_selected=True link=search_url|add:theme_query %}
         {% endfor %}
       </div>
     {% endif %}
@@ -31,7 +32,8 @@
       <div class="fr-filter-group__selected">
         {% for collection in current_collections %}
           {% toggle_url_filter collection=collection as collection_query %}
-          {% dsfr_tag label=collection.name is_selectable=True is_selected=True link=search_url|add:collection_query|add:"#search-results" %}
+          {% facet_label collection.name collection.result_count as collection_label %}
+          {% dsfr_tag label=collection_label is_selectable=True is_selected=True link=search_url|add:collection_query %}
         {% endfor %}
       </div>
     {% endif %}
@@ -46,7 +48,8 @@
       <div class="fr-filter-group__selected">
         {% for category in current_categories %}
           {% toggle_url_filter category=category as category_query %}
-          {% dsfr_tag label=category.name is_selectable=True is_selected=True link=search_url|add:category_query|add:"#search-results" %}
+          {% facet_label category.name category.result_count as category_label %}
+          {% dsfr_tag label=category_label is_selectable=True is_selected=True link=search_url|add:category_query %}
         {% endfor %}
       </div>
     {% endif %}
@@ -61,7 +64,8 @@
       <div class="fr-filter-group__selected">
         {% for tag in current_tags %}
           {% toggle_url_filter tag=tag as tag_query %}
-          {% dsfr_tag label=tag is_selectable=True is_selected=True link=search_url|add:tag_query|add:"#search-results" %}
+          {% facet_label tag.name tag.result_count as tag_label %}
+          {% dsfr_tag label=tag_label is_selectable=True is_selected=True link=search_url|add:tag_query %}
         {% endfor %}
       </div>
     {% endif %}
@@ -76,7 +80,8 @@
       <div class="fr-filter-group__selected">
         {% for author in current_authors %}
           {% toggle_url_filter author=author as author_query %}
-          {% dsfr_tag label=author.name is_selectable=True is_selected=True link=search_url|add:author_query|add:"#search-results" %}
+          {% facet_label author.name author.result_count as author_label %}
+          {% dsfr_tag label=author_label is_selectable=True is_selected=True link=search_url|add:author_query %}
         {% endfor %}
       </div>
     {% endif %}
@@ -91,7 +96,8 @@
       <div class="fr-filter-group__selected">
         {% for source in current_sources %}
           {% toggle_url_filter source=source as source_query %}
-          {% dsfr_tag label=source.name is_selectable=True is_selected=True link=search_url|add:source_query|add:"#search-results" %}
+          {% facet_label source.name source.result_count as source_label %}
+          {% dsfr_tag label=source_label is_selectable=True is_selected=True link=search_url|add:source_query %}
         {% endfor %}
       </div>
     {% endif %}
