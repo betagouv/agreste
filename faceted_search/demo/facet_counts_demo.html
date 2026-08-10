@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Facet count semantics demo</title>
+  <style>
+    :root {
+      --bg: #f3f0e8;
+      --ink: #1c2420;
+      --muted: #5c675f;
+      --panel: #fffdf8;
+      --line: #d5cfc0;
+      --accent: #1f5c45;
+      --accent-soft: #dceee5;
+      --warn: #7a3e12;
+      --warn-soft: #f3e2d2;
+      --zero: #9aa39c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 0%, #efe8d5 0%, transparent 40%),
+        radial-gradient(circle at 90% 10%, #e2ebe4 0%, transparent 35%),
+        var(--bg);
+      line-height: 1.45;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 3vw, 2.4rem);
+      font-weight: 600;
+      margin: 0 0 0.35rem;
+      letter-spacing: -0.02em;
+    }
+
+    .lede {
+      color: var(--muted);
+      max-width: 42rem;
+      margin: 0 0 1.5rem;
+      font-size: 1.05rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(240px, 300px) 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 1rem 1.1rem 1.2rem;
+    }
+
+    .panel h2 {
+      margin: 0 0 0.75rem;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .mode {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .mode button {
+      font: inherit;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 0.4rem 0.85rem;
+      cursor: pointer;
+    }
+
+    .mode button[aria-pressed="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .mode-help {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin: 0 0 1.25rem;
+      padding: 0.75rem 0.9rem;
+      background: #fff;
+      border-left: 3px solid var(--accent);
+    }
+
+    .facet { margin-bottom: 1.1rem; }
+
+    .facet h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.05rem;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    .tag {
+      font: inherit;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 0.3rem 0.7rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.35rem;
+    }
+
+    .tag:hover { border-color: var(--accent); }
+
+    .tag[aria-pressed="true"] {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .tag.is-zero {
+      color: var(--zero);
+      border-style: dashed;
+    }
+
+    .tag .count {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.85em;
+      opacity: 0.85;
+    }
+
+    .results-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .results-header strong {
+      font-size: 1.25rem;
+    }
+
+    .reset {
+      font: inherit;
+      border: none;
+      background: transparent;
+      color: var(--accent);
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .pages {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .pages li {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.65rem 0.8rem;
+      background: #fff;
+    }
+
+    .pages li.dim {
+      opacity: 0.35;
+    }
+
+    .page-id {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 700;
+      margin-right: 0.4rem;
+    }
+
+    .chip {
+      display: inline-block;
+      font-size: 0.8rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 4px;
+      background: #eef2ef;
+      margin: 0.1rem 0.15rem 0 0;
+      color: var(--muted);
+    }
+
+    .explain {
+      margin-top: 1.25rem;
+      padding: 0.85rem 0.95rem;
+      background: var(--warn-soft);
+      border: 1px solid #e2c7ad;
+      border-radius: 8px;
+      color: var(--warn);
+      font-size: 0.95rem;
+    }
+
+    .explain code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.88em;
+    }
+
+    .catalog {
+      margin-top: 1.25rem;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+
+    .catalog table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.4rem;
+      font-size: 0.9rem;
+    }
+
+    .catalog th,
+    .catalog td {
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      padding: 0.35rem 0.4rem;
+    }
+
+    .formula {
+      margin: 0.35rem 0 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Facet count semantics demo</h1>
+    <p class="lede">
+      Toy catalog (no database). Filters combine as in search: <strong>OR within a facet</strong>,
+      <strong>AND across facets</strong>. Switch count modes and click tags to see what each number means.
+    </p>
+
+    <div class="mode" role="group" aria-label="Count mode">
+      <button type="button" data-mode="result_count" aria-pressed="true">Result count</button>
+      <button type="button" data-mode="union">OR-union (click preview)</button>
+      <button type="button" data-mode="distribution">Current-result distribution</button>
+      <button type="button" data-mode="absolute">Query only (ignore other filters)</button>
+    </div>
+    <p class="mode-help" id="mode-help"></p>
+
+    <div class="layout">
+      <aside class="panel" id="filters"></aside>
+      <section class="panel">
+        <div class="results-header">
+          <strong id="result-count"></strong>
+          <button type="button" class="reset" id="reset">Clear filters</button>
+        </div>
+        <ol class="pages" id="pages"></ol>
+        <div class="explain" id="explain"></div>
+        <div class="catalog">
+          <strong>Full toy catalog</strong> (always the same 7 pages; “search” is fixed)
+          <table>
+            <thead>
+              <tr><th>Page</th><th>Themes</th><th>Tags</th></tr>
+            </thead>
+            <tbody id="catalog-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const PAGES = [
+      { id: "P1", themes: ["Agriculture"], tags: ["Report"] },
+      { id: "P2", themes: ["Agriculture"], tags: ["Report", "Data"] },
+      { id: "P3", themes: ["Agriculture"], tags: ["Data"] },
+      { id: "P4", themes: ["Forestry"], tags: ["Report"] },
+      { id: "P5", themes: ["Forestry"], tags: ["Data"] },
+      { id: "P6", themes: ["Livestock"], tags: ["Report"] },
+      { id: "P7", themes: ["Livestock"], tags: ["Infographic"] },
+    ];
+
+    const FACETS = {
+      themes: ["Agriculture", "Forestry", "Livestock"],
+      tags: ["Report", "Data", "Infographic"],
+    };
+
+    const MODE_HELP = {
+      result_count:
+        "Result count: for each value V in facet F, count pages matching V alone, plus the active filters from other facets. Sibling options stay comparable. Reading: “this value alone accounts for N results under my other filters.”",
+      union:
+        "OR-union: for an unselected value V, count = current total if you OR-add V (preview of the header after click). Selected values show their result count. Easy to misread as “N results for this label.”",
+      distribution:
+        "Distribution: among pages in the current result set, how many have this value. Unselected siblings often show 0 even when they would add results under OR.",
+      absolute:
+        "Query only: for each value V, count pages matching q that have V — ignore every other active filter. Numbers stay fixed while you click around; they do not reflect the current narrowed set.",
+    };
+
+    const state = {
+      mode: "result_count",
+      selected: { themes: new Set(), tags: new Set() },
+    };
+
+    function intersects(pageValues, selected) {
+      if (selected.size === 0) return true;
+      return pageValues.some((value) => selected.has(value));
+    }
+
+    function matches(page, selected = state.selected) {
+      return (
+        intersects(page.themes, selected.themes) &&
+        intersects(page.tags, selected.tags)
+      );
+    }
+
+    function currentResults() {
+      return PAGES.filter((page) => matches(page));
+    }
+
+    function withFacetOverride(facet, values) {
+      return {
+        themes: facet === "themes" ? new Set(values) : new Set(state.selected.themes),
+        tags: facet === "tags" ? new Set(values) : new Set(state.selected.tags),
+      };
+    }
+
+    function countResultCount(facet, value) {
+      const selected = withFacetOverride(facet, [value]);
+      return PAGES.filter((page) => matches(page, selected)).length;
+    }
+
+    function countUnion(facet, value) {
+      const current = state.selected[facet];
+      if (current.has(value)) {
+        return countResultCount(facet, value);
+      }
+      const next = new Set(current);
+      next.add(value);
+      const selected = withFacetOverride(facet, [...next]);
+      return PAGES.filter((page) => matches(page, selected)).length;
+    }
+
+    function countDistribution(facet, value) {
+      return currentResults().filter((page) => page[facet].includes(value)).length;
+    }
+
+    function countAbsolute(facet, value) {
+      // q only + this value; ignore all other facet selections
+      const selected = {
+        themes: facet === "themes" ? new Set([value]) : new Set(),
+        tags: facet === "tags" ? new Set([value]) : new Set(),
+      };
+      return PAGES.filter((page) => matches(page, selected)).length;
+    }
+
+    function countFor(facet, value) {
+      if (state.mode === "union") return countUnion(facet, value);
+      if (state.mode === "distribution") return countDistribution(facet, value);
+      if (state.mode === "absolute") return countAbsolute(facet, value);
+      return countResultCount(facet, value);
+    }
+
+    function formulaFor(facet, value) {
+      const other =
+        facet === "themes"
+          ? state.selected.tags.size
+            ? `Tag ∈ {${[...state.selected.tags].join(", ")}}`
+            : "Tag = (any)"
+          : state.selected.themes.size
+            ? `Theme ∈ {${[...state.selected.themes].join(", ")}}`
+            : "Theme = (any)";
+
+      if (state.mode === "result_count") {
+        const label = facet === "themes" ? "Theme" : "Tag";
+        return `count = | q ∧ ${other} ∧ ${label} = {${value}} |`;
+      }
+      if (state.mode === "union") {
+        if (state.selected[facet].has(value)) {
+          return `selected → result count of {${value}} under other facets`;
+        }
+        const merged = new Set(state.selected[facet]);
+        merged.add(value);
+        const label = facet === "themes" ? "Theme" : "Tag";
+        return `count = | q ∧ ${other} ∧ ${label} ∈ {${[...merged].join(", ")}} |  (header after click)`;
+      }
+      if (state.mode === "absolute") {
+        const label = facet === "themes" ? "Theme" : "Tag";
+        return `count = | q ∧ ${label} = {${value}} |  (all other filters ignored)`;
+      }
+      return `count = how many of the current ${currentResults().length} result(s) have ${value}`;
+    }
+
+    function toggle(facet, value) {
+      const set = state.selected[facet];
+      if (set.has(value)) set.delete(value);
+      else set.add(value);
+      render();
+    }
+
+    function renderFilters() {
+      const root = document.getElementById("filters");
+      root.innerHTML = "<h2>Filters</h2>";
+
+      for (const [facet, values] of Object.entries(FACETS)) {
+        const section = document.createElement("div");
+        section.className = "facet";
+        section.innerHTML = `<h3>${facet === "themes" ? "Theme" : "Tag"}</h3>`;
+        const tags = document.createElement("div");
+        tags.className = "tags";
+
+        for (const value of values) {
+          const count = countFor(facet, value);
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "tag" + (count === 0 ? " is-zero" : "");
+          btn.setAttribute("aria-pressed", state.selected[facet].has(value) ? "true" : "false");
+          btn.innerHTML = `<span>${value}</span><span class="count">(${count})</span>`;
+          btn.title = formulaFor(facet, value);
+          btn.addEventListener("click", () => toggle(facet, value));
+          btn.addEventListener("mouseenter", () => showExplain(facet, value, count));
+          tags.appendChild(btn);
+        }
+
+        section.appendChild(tags);
+        root.appendChild(section);
+      }
+    }
+
+    function showExplain(facet, value, count) {
+      const el = document.getElementById("explain");
+      const selectedThemes = [...state.selected.themes];
+      const selectedTags = [...state.selected.tags];
+      const afterClick = (() => {
+        const next = {
+          themes: new Set(state.selected.themes),
+          tags: new Set(state.selected.tags),
+        };
+        const set = next[facet];
+        if (set.has(value)) set.delete(value);
+        else set.add(value);
+        return PAGES.filter((page) => matches(page, next)).length;
+      })();
+
+      el.innerHTML = `
+        <strong>Hover: ${value}</strong> in ${facet === "themes" ? "Theme" : "Tag"} → displayed count <strong>${count}</strong>.
+        <p class="formula">${formulaFor(facet, value)}</p>
+        <p style="margin:0.45rem 0 0">
+          Active now: Theme={${selectedThemes.join(", ") || "∅"}}, Tag={${selectedTags.join(", ") || "∅"}} →
+          header <strong>${currentResults().length}</strong>.
+          After click on ${value}: header would become <strong>${afterClick}</strong>
+          ${state.mode === "result_count" && !state.selected[facet].has(value) && state.selected[facet].size > 0
+            ? " (note: result count ≠ post-click header when OR-adding)"
+            : ""}.
+        </p>
+      `;
+    }
+
+    function renderResults() {
+      const results = currentResults();
+      document.getElementById("result-count").textContent =
+        `${results.length} result${results.length === 1 ? "" : "s"} (current selection)`;
+
+      const list = document.getElementById("pages");
+      list.innerHTML = "";
+      for (const page of PAGES) {
+        const li = document.createElement("li");
+        if (!results.includes(page)) li.className = "dim";
+        li.innerHTML = `
+          <span class="page-id">${page.id}</span>
+          ${page.themes.map((t) => `<span class="chip">${t}</span>`).join("")}
+          ${page.tags.map((t) => `<span class="chip">${t}</span>`).join("")}
+        `;
+        list.appendChild(li);
+      }
+
+      document.getElementById("explain").innerHTML =
+        "Hover a filter tag to see how its displayed number is computed, and what the header would become after a click.";
+    }
+
+    function renderCatalog() {
+      document.getElementById("catalog-body").innerHTML = PAGES.map(
+        (page) =>
+          `<tr><td>${page.id}</td><td>${page.themes.join(", ")}</td><td>${page.tags.join(", ")}</td></tr>`
+      ).join("");
+    }
+
+    function render() {
+      document.getElementById("mode-help").textContent = MODE_HELP[state.mode];
+      for (const btn of document.querySelectorAll(".mode button")) {
+        btn.setAttribute("aria-pressed", btn.dataset.mode === state.mode ? "true" : "false");
+      }
+      renderFilters();
+      renderResults();
+    }
+
+    document.querySelectorAll(".mode button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.mode = btn.dataset.mode;
+        render();
+      });
+    });
+
+    document.getElementById("reset").addEventListener("click", () => {
+      state.selected.themes.clear();
+      state.selected.tags.clear();
+      render();
+    });
+
+    renderCatalog();
+    render();
+  </script>
+</body>
+</html>

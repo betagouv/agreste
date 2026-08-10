@@ -6,6 +6,18 @@ from sites_conformes.core.templatetags.wagtail_dsfr_tags import FilterSpec
 
 register = template.Library()
 
+
+@register.simple_tag
+def facet_label(name, count=None):
+    """Label for a filter tag, with result count when available.
+
+    See ``faceted_search/result_counts.md`` for how ``count`` is computed.
+    """
+    if count is None or count == "":
+        return str(name)
+    return f"{name} ({count})"
+
+
 SEARCH_FILTERS: list[FilterSpec] = [
     ("author", "id"),
     ("category", "slug"),
