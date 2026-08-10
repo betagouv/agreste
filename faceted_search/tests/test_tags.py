@@ -1,7 +1,17 @@
 from urllib.parse import parse_qs
 
-from faceted_search.templatetags.faceted_search_tags import toggle_url_filter
+from faceted_search.templatetags.faceted_search_tags import facet_label, toggle_url_filter
 from faceted_search.tests.test_filters import FacetedSearchFilterTestBase
+
+
+class FacetLabelTest(FacetedSearchFilterTestBase):
+    def test_facet_label_includes_count_when_present(self):
+        self.assertEqual(facet_label("Agriculture", 3), "Agriculture (3)")
+
+    def test_facet_label_omits_count_when_missing(self):
+        self.assertEqual(facet_label("Agriculture"), "Agriculture")
+        self.assertEqual(facet_label("Agriculture", None), "Agriculture")
+        self.assertEqual(facet_label("Agriculture", ""), "Agriculture")
 
 
 class FacetedSearchToggleUrlTest(FacetedSearchFilterTestBase):

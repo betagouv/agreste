@@ -18,7 +18,12 @@ from django.http import Http404
 from django.urls import reverse
 from wagtail.models import Site
 
-from faceted_search.filters import ENABLED_FILTERS, get_active_filters_from_request_params, get_filter_context
+from faceted_search.filters import (
+    ENABLED_FILTERS,
+    compute_facet_result_counts,
+    get_active_filters_from_request_params,
+    get_filter_context,
+)
 from faceted_search.views import FacetedSearchResultsView
 from publications.tests.factories import CollectionFactory, ThemeFactory
 from publications.tests.test_publication_index_page import PublicationIndexPageFilterTestBase
@@ -442,6 +447,118 @@ class FacetedSearchGetActiveFiltersTest(FacetedSearchFilterTestBase):
         site = Site.objects.get(is_default_site=True)
         active = get_active_filters_from_request_params(request, site)
         self.assertEqual(active.years, ["2024"])
+
+
+class FacetedSearchResultCountTest(FacetedSearchFilterTestBase):
+    """Result counts for sidebar filters (see ``faceted_search/result_counts.md``)."""
+
+    def test_result_counts_can_exceed_one_per_value(self):
+        """Page.ordering by path must not collapse GROUP BY aggregations to 1."""
+        for index in range(3):
+            self.entry_page_factory(
+                parent=self.index,
+                owner=self.admin,
+                title=f"Post shared theme {index}",
+                slug=f"post-shared-theme-{index}",
+                themes=[self.theme],
+            )
+        call_command("update_index")
+        request = self.client.get(self.search_url()).wsgi_request  # no active filters
+        site = Site.objects.get(is_default_site=True)
+        active = get_active_filters_from_request_params(request, site)
+        counts = compute_facet_result_counts(
+            request,
+            site,
+            self.search_query,
+            active,
+            enabled_filters={**_all_filters_disabled(), "filter_by_theme": True},
+        )
+        # fixture post_with_theme + 3 new posts
+        self.assertGreaterEqual(counts["theme"].get(self.theme.pk), 4)
+
+    def test_result_counts_respect_other_facets_and_ignore_same_facet(self):
+        # collection A + theme T
+        self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post result count A T",
+            slug="post-result-count-a-t",
+            collections=[self.collection],
+            themes=[self.theme],
+        )
+        # collection B + theme T
+        self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post result count B T",
+            slug="post-result-count-b-t",
+            collections=[self.other_collection],
+            themes=[self.theme],
+        )
+        # collection A + other theme
+        self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post result count A other theme",
+            slug="post-result-count-a-other-theme",
+            collections=[self.collection],
+            themes=[self.other_theme],
+        )
+        call_command("update_index")
+
+        # active filters: theme=T, collection=A
+        request = self.client.get(self.search_url(theme=self.theme.slug, collection=self.collection.slug)).wsgi_request
+        site = Site.objects.get(is_default_site=True)
+        active = get_active_filters_from_request_params(request, site)
+        counts = compute_facet_result_counts(
+            request,
+            site,
+            self.search_query,
+            active,
+            enabled_filters={**_all_filters_disabled(), "filter_by_collection": True, "filter_by_theme": True},
+        )
+
+        # Theme facet ignores selected theme; keeps collection=A → posts with A (theme T and other)
+        self.assertEqual(counts["theme"].get(self.theme.pk), 1)
+        self.assertEqual(counts["theme"].get(self.other_theme.pk), 1)
+        # Collection facet ignores selected collection; keeps theme=T → A and B both count
+        self.assertEqual(counts["collection"].get(self.collection.pk), 1)
+        self.assertEqual(counts["collection"].get(self.other_collection.pk), 1)
+
+    def test_filter_context_hides_zeroes(self):
+        self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post count context",
+            slug="post-count-context",
+            collections=[self.collection],
+            themes=[self.theme],
+        )
+        call_command("update_index")
+        request = self.client.get(self.search_url(theme=self.theme.slug)).wsgi_request
+        context = get_filter_context(
+            request,
+            query=self.search_query,
+            enabled_filters={**_all_filters_disabled(), "filter_by_collection": True, "filter_by_theme": True},
+        )
+
+        def tree_taxonomies(nodes):
+            for node in nodes:
+                yield node.taxonomy
+                yield from tree_taxonomies(node.children)
+
+        collection_pks = {taxonomy.pk for taxonomy in tree_taxonomies(context["collection_tree"])}
+        self.assertIn(self.collection.pk, collection_pks)
+        # other_collection has posts for q but not with theme=T → excluded from sidebar
+        self.assertNotIn(self.other_collection.pk, collection_pks)
+
+    def test_rendered_page_shows_result_counts(self):
+        response = self.client.get(self.search_url())
+        self.assertEqual(response.status_code, 200)
+        soup = BeautifulSoup(response.content, "html.parser")
+        labels = [tag.get_text(strip=True) for tag in soup.select(".fr-sidemenu .fr-tag, .fr-filter-group .fr-tag")]
+        self.assertTrue(any(f"{self.collection.name} (" in label for label in labels), labels)
+        self.assertTrue(any(label.endswith(")") and "(" in label for label in labels), labels)
 
 
 class FacetedSearchResultsDisplayTest(FacetedSearchFilterTestBase):

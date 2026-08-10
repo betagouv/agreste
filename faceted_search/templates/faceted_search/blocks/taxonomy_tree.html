@@ -9,10 +9,11 @@
       {% else %}
         {% toggle_url_filter theme=node.taxonomy as item_query %}
       {% endif %}
+      {% facet_label node.taxonomy.name node.taxonomy.result_count as item_label %}
       {% if node.taxonomy in current_filters %}
-        {% dsfr_tag label=node.taxonomy.name is_selectable=True is_selected=True link=search_url|add:item_query %}
+        {% dsfr_tag label=item_label is_selectable=True is_selected=True link=search_url|add:item_query %}
       {% else %}
-        {% dsfr_tag label=node.taxonomy.name is_selectable=True is_selected=False link=search_url|add:item_query %}
+        {% dsfr_tag label=item_label is_selectable=True is_selected=False link=search_url|add:item_query %}
       {% endif %}
       {% if node.children %}
         {% include "faceted_search/blocks/taxonomy_tree.html" with nodes=node.children filter_name=filter_name current_filters=current_filters depth=True %}
