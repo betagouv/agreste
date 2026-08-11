@@ -198,6 +198,13 @@ TEMPLATES = [
     },
 ]
 
+WAGTAILSEARCH_BACKENDS = {
+    "default": {
+        "BACKEND": os.getenv("WAGTAILSEARCH_BACKEND", "wagtail.search.backends.database"),
+        "SEARCH_CONFIG": os.getenv("SEARCH_CONFIG", "french"),
+    }
+}
+
 WSGI_APPLICATION = "config.wsgi.application"
 HONEYPOT_ENABLED_DEFAULT = True
 
