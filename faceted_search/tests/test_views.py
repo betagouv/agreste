@@ -11,7 +11,7 @@ from django.urls import reverse
 from wagtail.models import Page, Site
 from wagtail.test.utils import WagtailPageTestCase
 
-from faceted_search.tests.test_filters import FacetedSearchFilterTestBase
+from faceted_search.tests.test_facets import FacetedSearchTestBase
 from faceted_search.views import FacetedSearchResultsView
 from publications.tests.factories import PublicationIndexPageFactory, PublicationPageFactory
 from sites_conformes.core.tests.test_search import SearchResultsTestCase
@@ -20,12 +20,12 @@ from sites_conformes.core.tests.test_search import SearchResultsTestCase
 class FacetedSearchResultsTestCase(SearchResultsTestCase):
     """Run the core search scenarios against the faceted search view.
 
-    With filters disabled, FacetedSearchResultsView should behave the same as
+    With facets disabled, FacetedSearchResultsView should behave the same as
     the core SearchResultsView.
     """
 
 
-class FacetedSearchResultsViewTest(FacetedSearchFilterTestBase):
+class FacetedSearchResultsViewTest(FacetedSearchTestBase):
     def setUp(self):
         super().setUp()
         self.factory = RequestFactory()
@@ -39,11 +39,12 @@ class FacetedSearchResultsViewTest(FacetedSearchFilterTestBase):
         view.kwargs = {}
         return view
 
-    def test_get_context_data_includes_filter_context(self):
+    def test_get_context_data_includes_facet_context(self):
         view = self._build_view(query=self.search_query)
         view.object_list = view.get_queryset()
         context = view.get_context_data()
-        self.assertIn("filter_by_collection", context)
+        self.assertIn("enabled_facets", context)
+        self.assertTrue(context["enabled_facets"]["collection"])
         self.assertIn("collection_tree", context)
 
 

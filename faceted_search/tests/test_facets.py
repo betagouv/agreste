@@ -18,11 +18,11 @@ from django.http import Http404
 from django.urls import reverse
 from wagtail.models import Site
 
-from faceted_search.filters import (
-    ENABLED_FILTERS,
+from faceted_search.facets import (
+    ENABLED_FACETS,
     compute_facet_result_counts,
-    get_active_filters_from_request_params,
-    get_filter_context,
+    get_facet_selection_from_request,
+    get_facet_context,
 )
 from faceted_search.views import FacetedSearchResultsView
 from publications.tests.factories import CollectionFactory, ThemeFactory
@@ -45,8 +45,8 @@ FILTER_CASES = [
 ]
 
 
-def _all_filters_disabled() -> dict[str, bool]:
-    return dict.fromkeys(ENABLED_FILTERS, False)
+def _all_facets_disabled() -> dict[str, bool]:
+    return dict.fromkeys(ENABLED_FACETS, False)
 
 
 def get_post_titles_in_response(response) -> list[str]:
@@ -56,7 +56,7 @@ def get_post_titles_in_response(response) -> list[str]:
     ]
 
 
-class FacetedSearchFilterTestBase(PublicationIndexPageFilterTestBase):
+class FacetedSearchTestBase(PublicationIndexPageFilterTestBase):
     filter_cases = FILTER_CASES
     search_query = "Post"
 
@@ -71,7 +71,7 @@ class FacetedSearchFilterTestBase(PublicationIndexPageFilterTestBase):
         return f"{url}?{urlencode({'q': query, **params}, doseq=True)}"
 
 
-class FacetedSearchRegistrationTest(FacetedSearchFilterTestBase):
+class FacetedSearchRegistrationTest(FacetedSearchTestBase):
     def test_faceted_search_registers_its_view(self):
         self.assertIs(get_search_results_view().view_class, FacetedSearchResultsView)
 
@@ -81,8 +81,8 @@ class FacetedSearchRegistrationTest(FacetedSearchFilterTestBase):
         self.assertIn("faceted_search/search_results.html", template_names)
 
 
-class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
-    """Test that``get_filter_context`` builds sidebar lists according to ``enabled_filters``."""
+class FacetedSearchContextTest(FacetedSearchTestBase):
+    """Test that``get_facet_context`` builds sidebar lists according to ``enabled_facets``."""
 
     def test_enabled_filter_flags_populate_context_lists(self):
         """Test that when a given filter is enabled, the context also has the filter activated,
@@ -91,32 +91,32 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
 
         def tree_nodes(tree):
             for node in tree:
-                yield node.taxonomy
+                yield node.value
                 yield from tree_nodes(node.children)
 
         for case in self.filter_cases:
-            filter_name = case["name"]
-            expected_item = getattr(self, filter_name)
-            enabled_flags = {**_all_filters_disabled(), f"filter_by_{filter_name}": True}
+            facet = case["name"]
+            expected_item = getattr(self, facet)
+            enabled_flags = {**_all_facets_disabled(), facet: True}
 
-            with self.subTest(filter_name):
-                context = get_filter_context(request, enabled_filters=enabled_flags)
-                self.assertTrue(context[f"filter_by_{filter_name}"])
-                if filter_name in ("collection", "theme"):
-                    self.assertIn(expected_item, list(tree_nodes(context[f"{filter_name}_tree"])))
+            with self.subTest(facet):
+                context = get_facet_context(request, enabled_facets=enabled_flags)
+                self.assertTrue(context["enabled_facets"][facet])
+                if facet in ("collection", "theme"):
+                    self.assertIn(expected_item, list(tree_nodes(context[f"{facet}_tree"])))
                 else:
-                    self.assertIn(expected_item, list(context[f"{filter_name}s"]))
+                    self.assertIn(expected_item, list(context[f"{facet}s"]))
 
         with self.subTest("author"):
-            enabled_flags = {**_all_filters_disabled(), "filter_by_author": True}
-            context = get_filter_context(request, enabled_filters=enabled_flags)
-            self.assertTrue(context["filter_by_author"])
+            enabled_flags = {**_all_facets_disabled(), "author": True}
+            context = get_facet_context(request, enabled_facets=enabled_flags)
+            self.assertTrue(context["enabled_facets"]["author"])
             self.assertIn(self.author, list(context["authors"]))
 
         with self.subTest("source"):
-            enabled_flags = {**_all_filters_disabled(), "filter_by_source": True}
-            context = get_filter_context(request, enabled_filters=enabled_flags)
-            self.assertTrue(context["filter_by_source"])
+            enabled_flags = {**_all_facets_disabled(), "source": True}
+            context = get_facet_context(request, enabled_facets=enabled_flags)
+            self.assertTrue(context["enabled_facets"]["source"])
             self.assertIn(self.organization, list(context["sources"]))
 
     def test_collection_and_theme_filter_context_is_hierarchical(self):
@@ -135,57 +135,57 @@ class FacetedSearchFilterContextTest(FacetedSearchFilterTestBase):
             themes=[child_theme],
         )
         request = self.client.request().wsgi_request
-        context = get_filter_context(request)
+        context = get_facet_context(request)
 
-        collection_parent = next(node for node in context["collection_tree"] if node.taxonomy == parent_collection)
-        theme_parent = next(node for node in context["theme_tree"] if node.taxonomy == parent_theme)
-        self.assertEqual([node.taxonomy for node in collection_parent.children], [child_collection])
-        self.assertEqual([node.taxonomy for node in theme_parent.children], [child_theme])
+        collection_parent = next(node for node in context["collection_tree"] if node.value == parent_collection)
+        theme_parent = next(node for node in context["theme_tree"] if node.value == parent_theme)
+        self.assertEqual([node.value for node in collection_parent.children], [child_collection])
+        self.assertEqual([node.value for node in theme_parent.children], [child_theme])
 
     def test_disabled_filter_flags_omit_context_lists(self):
         request = self.client.request().wsgi_request
-        context = get_filter_context(request, enabled_filters=_all_filters_disabled())
+        context = get_facet_context(request, enabled_facets=_all_facets_disabled())
 
         for case in self.filter_cases:
-            filter_name = case["name"]
+            facet = case["name"]
 
-            with self.subTest(filter_name):
-                self.assertFalse(context[f"filter_by_{filter_name}"])
-                self.assertNotIn(f"{filter_name}s", context)
+            with self.subTest(facet):
+                self.assertFalse(context["enabled_facets"][facet])
+                self.assertNotIn(f"{facet}s", context)
 
-        self.assertFalse(context["filter_by_author"])
+        self.assertFalse(context["enabled_facets"]["author"])
         self.assertNotIn("authors", context)
-        self.assertFalse(context["filter_by_source"])
+        self.assertFalse(context["enabled_facets"]["source"])
         self.assertNotIn("sources", context)
 
-    def test_show_search_filters_follows_enabled_flags(self):
+    def test_show_search_facets_follows_enabled_flags(self):
         request = self.client.request().wsgi_request
-        enabled_flags = {**_all_filters_disabled(), "filter_by_collection": True}
-        context = get_filter_context(request, enabled_filters=enabled_flags)
-        self.assertTrue(context["show_search_filters"])
+        enabled_flags = {**_all_facets_disabled(), "collection": True}
+        context = get_facet_context(request, enabled_facets=enabled_flags)
+        self.assertTrue(context["show_search_facets"])
 
-        context = get_filter_context(request, enabled_filters=_all_filters_disabled())
-        self.assertFalse(context["show_search_filters"])
+        context = get_facet_context(request, enabled_facets=_all_facets_disabled())
+        self.assertFalse(context["show_search_facets"])
 
 
-class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
-    """Full-text search combined with facet filters (``filter_before_search``).
+class FacetedSearchQueryTest(FacetedSearchTestBase):
+    """Full-text search combined with facet filters (``facet_before_search``).
     Posts should match the search query and the given filter. Other combinations should not match."""
 
     def test_single_filter_single_value(self):
         for case in self.filter_cases:
-            filter_name = case["name"]
-            taxonomy = getattr(self, filter_name)
-            filtered_url = self.search_url(**{filter_name: taxonomy.slug})
-            matching_post_title = getattr(self, f"post_with_{filter_name}").title
-            other_post_title = getattr(self, f"post_with_other_{filter_name}").title
+            facet = case["name"]
+            taxonomy = getattr(self, facet)
+            filtered_url = self.search_url(**{facet: taxonomy.slug})
+            matching_post_title = getattr(self, f"post_with_{facet}").title
+            other_post_title = getattr(self, f"post_with_other_{facet}").title
 
-            with self.subTest(filter_name):
+            with self.subTest(facet):
                 post_without_search_match = self.entry_page_factory(
                     parent=self.index,
                     owner=self.admin,
                     title="Annual Report",
-                    slug=f"annual-report-no-search-match-{filter_name}",
+                    slug=f"annual-report-no-search-match-{facet}",
                     **{case["relation"]: [taxonomy]},
                 )
                 call_command("update_index")
@@ -198,24 +198,24 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
 
     def test_single_filter_multiple_values(self):
         for case in self.filter_cases:
-            filter_name = case["name"]
-            taxonomy = getattr(self, filter_name)
-            other_taxonomy = getattr(self, f"other_{filter_name}")
+            facet = case["name"]
+            taxonomy = getattr(self, facet)
+            other_taxonomy = getattr(self, f"other_{facet}")
 
-            with self.subTest(filter_name):
+            with self.subTest(facet):
                 post_without_search_match = self.entry_page_factory(
                     parent=self.index,
                     owner=self.admin,
                     title="Annual Report",
-                    slug=f"annual-report-no-search-match-{filter_name}-multiple",
+                    slug=f"annual-report-no-search-match-{facet}-multiple",
                     **{case["relation"]: [taxonomy, other_taxonomy]},
                 )
                 call_command("update_index")
-                response = self.client.get(self.search_url(**{filter_name: [taxonomy.slug, other_taxonomy.slug]}))
+                response = self.client.get(self.search_url(**{facet: [taxonomy.slug, other_taxonomy.slug]}))
                 self.assertEqual(response.status_code, 200)
                 post_titles = get_post_titles_in_response(response)
-                self.assertIn(getattr(self, f"post_with_{filter_name}").title, post_titles)
-                self.assertIn(getattr(self, f"post_with_other_{filter_name}").title, post_titles)
+                self.assertIn(getattr(self, f"post_with_{facet}").title, post_titles)
+                self.assertIn(getattr(self, f"post_with_other_{facet}").title, post_titles)
                 self.assertNotIn(post_without_search_match.title, post_titles)
 
     def test_author_filter_single_value(self):
@@ -331,29 +331,29 @@ class FacetedSearchFilterQueryTest(FacetedSearchFilterTestBase):
         self.assertNotIn(self.post_with_theme.title, post_titles)
 
 
-class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
+class FacetedSearchCombinationTest(FacetedSearchTestBase):
     """Test that two filters can be combined in the search URL."""
 
     def test_two_filters_single_value(self):
         for case_a, case_b in combinations(self.filter_cases, 2):
-            filter_a = case_a["name"]
-            filter_b = case_b["name"]
+            facet_a = case_a["name"]
+            facet_b = case_b["name"]
             search_params = {
-                filter_a: getattr(self, filter_a).slug,
-                filter_b: getattr(self, filter_b).slug,
+                facet_a: getattr(self, facet_a).slug,
+                facet_b: getattr(self, facet_b).slug,
             }
             post_kwargs = {
-                case_a["relation"]: [getattr(self, filter_a)],
-                case_b["relation"]: [getattr(self, filter_b)],
+                case_a["relation"]: [getattr(self, facet_a)],
+                case_b["relation"]: [getattr(self, facet_b)],
             }
 
-            with self.subTest(f"{filter_a}+{filter_b}"):
+            with self.subTest(f"{facet_a}+{facet_b}"):
                 matching = self.entry_page_factory(parent=self.index, owner=self.admin, **post_kwargs)
                 post_without_search_match = self.entry_page_factory(
                     parent=self.index,
                     owner=self.admin,
                     title="Annual Report",
-                    slug=f"annual-report-no-search-match-{filter_a}-{filter_b}",
+                    slug=f"annual-report-no-search-match-{facet_a}-{facet_b}",
                     **post_kwargs,
                 )
                 call_command("update_index")
@@ -368,13 +368,13 @@ class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
                     self.assertNotIn(getattr(self, f"post_with_other_{case_name}").title, post_titles)
 
     def test_two_filters_multiple_values(self):
-        # Example: filter_a="collection", values_a=[self.collection, self.other_collection],
-        # filter_b="theme", values_b=[self.theme, self.other_theme].
+        # Example: facet_a="collection", values_a=[self.collection, self.other_collection],
+        # facet_b="theme", values_b=[self.theme, self.other_theme].
         for case_a, case_b in combinations(self.filter_cases, 2):
-            filter_a = case_a["name"]
-            filter_b = case_b["name"]
-            values_a = [getattr(self, filter_a), getattr(self, f"other_{filter_a}")]
-            values_b = [getattr(self, filter_b), getattr(self, f"other_{filter_b}")]
+            facet_a = case_a["name"]
+            facet_b = case_b["name"]
+            values_a = [getattr(self, facet_a), getattr(self, f"other_{facet_a}")]
+            values_b = [getattr(self, facet_b), getattr(self, f"other_{facet_b}")]
             matching = self.entry_page_factory(
                 parent=self.index,
                 owner=self.admin,
@@ -387,7 +387,7 @@ class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
                 parent=self.index,
                 owner=self.admin,
                 title="Annual Report",
-                slug=f"annual-report-no-search-match-{filter_a}-{filter_b}-multiple",
+                slug=f"annual-report-no-search-match-{facet_a}-{facet_b}-multiple",
                 **{
                     case_a["relation"]: values_a,
                     case_b["relation"]: values_b,
@@ -397,8 +397,8 @@ class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
             response = self.client.get(
                 self.search_url(
                     **{
-                        filter_a: [taxonomy.slug for taxonomy in values_a],
-                        filter_b: [taxonomy.slug for taxonomy in values_b],
+                        facet_a: [taxonomy.slug for taxonomy in values_a],
+                        facet_b: [taxonomy.slug for taxonomy in values_b],
                     }
                 )
             )
@@ -407,55 +407,55 @@ class FacetedSearchFilterCombinationTest(FacetedSearchFilterTestBase):
             self.assertIn(matching.title, post_titles)
             self.assertNotIn(post_without_search_match.title, post_titles)
             """ Test that posts that match only one filter are not included in the results."""
-            self.assertNotIn(getattr(self, f"post_with_{filter_a}").title, post_titles)
-            self.assertNotIn(getattr(self, f"post_with_other_{filter_a}").title, post_titles)
-            self.assertNotIn(getattr(self, f"post_with_{filter_b}").title, post_titles)
-            self.assertNotIn(getattr(self, f"post_with_other_{filter_b}").title, post_titles)
+            self.assertNotIn(getattr(self, f"post_with_{facet_a}").title, post_titles)
+            self.assertNotIn(getattr(self, f"post_with_other_{facet_a}").title, post_titles)
+            self.assertNotIn(getattr(self, f"post_with_{facet_b}").title, post_titles)
+            self.assertNotIn(getattr(self, f"post_with_other_{facet_b}").title, post_titles)
 
 
-class FacetedSearchGetActiveFiltersTest(FacetedSearchFilterTestBase):
-    def test_get_active_filters_from_request_params__single_value(self):
+class FacetedSearchGetFacetSelectionTest(FacetedSearchTestBase):
+    def test_get_facet_selection_from_request__single_value(self):
         request = self.client.request().wsgi_request
         request.GET = request.GET.copy()
         request.GET["collection"] = self.collection.slug
         request.GET["tag"] = self.tag.slug
         site = Site.objects.get(is_default_site=True)
-        active = get_active_filters_from_request_params(request, site)
-        self.assertEqual(active.collections, [self.collection])
-        self.assertEqual(active.tags, [self.tag])
+        selection = get_facet_selection_from_request(request, site)
+        self.assertEqual(selection.collections, [self.collection])
+        self.assertEqual(selection.tags, [self.tag])
 
-    def test_get_active_filters_from_request_params__multiple_values(self):
+    def test_get_facet_selection_from_request__multiple_values(self):
         request = self.client.request().wsgi_request
         request.GET = request.GET.copy()
         request.GET.setlist("collection", [self.collection.slug, self.other_collection.slug])
         site = Site.objects.get(is_default_site=True)
-        active = get_active_filters_from_request_params(request, site)
-        self.assertEqual(active.collections, [self.collection, self.other_collection])
+        selection = get_facet_selection_from_request(request, site)
+        self.assertEqual(selection.collections, [self.collection, self.other_collection])
 
-    def test_get_active_filters_from_request_params__invalid_author_id_raises_404(self):
+    def test_get_facet_selection_from_request__invalid_author_id_raises_404(self):
         request = self.client.request().wsgi_request
         request.GET = request.GET.copy()
         request.GET["author"] = "not-an-id"
         site = Site.objects.get(is_default_site=True)
         with self.assertRaises(Http404):
-            get_active_filters_from_request_params(request, site)
+            get_facet_selection_from_request(request, site)
 
-    def test_get_active_filters_from_request_params__invalid_year_is_ignored(self):
+    def test_get_facet_selection_from_request__invalid_year_is_ignored(self):
         request = self.client.request().wsgi_request
         request.GET = request.GET.copy()
         request.GET.setlist("year", ["2024", "not-a-year", "23"])
         site = Site.objects.get(is_default_site=True)
-        active = get_active_filters_from_request_params(request, site)
-        self.assertEqual(active.years, ["2024"])
+        selection = get_facet_selection_from_request(request, site)
+        self.assertEqual(selection.years, ["2024"])
 
 
 def _tree_taxonomies(nodes):
     for node in nodes:
-        yield node.taxonomy
+        yield node.value
         yield from _tree_taxonomies(node.children)
 
 
-class FacetedSearchCountComputingTest(FacetedSearchFilterTestBase):
+class FacetedSearchCountComputingTest(FacetedSearchTestBase):
     """``result_count(V in F) = |q ∧ other facets ∧ F={V} only|``.
 
     See ``faceted_search/result_counts.md``. Shared M2M facets use one semantic
@@ -473,15 +473,15 @@ class FacetedSearchCountComputingTest(FacetedSearchFilterTestBase):
                 themes=[self.theme],
             )
         call_command("update_index")
-        request = self.client.get(self.search_url()).wsgi_request  # no active filters
+        request = self.client.get(self.search_url()).wsgi_request  # no selected facets
         site = Site.objects.get(is_default_site=True)
-        active = get_active_filters_from_request_params(request, site)
+        selection = get_facet_selection_from_request(request, site)
         counts = compute_facet_result_counts(
             request,
             site,
             self.search_query,
-            active,
-            enabled_filters={**_all_filters_disabled(), "filter_by_theme": True},
+            selection,
+            enabled_facets={**_all_facets_disabled(), "theme": True},
         )
         # fixture post_with_theme + 3 new posts
         self.assertGreaterEqual(counts["theme"].get(self.theme.pk), 4)
@@ -516,16 +516,16 @@ class FacetedSearchCountComputingTest(FacetedSearchFilterTestBase):
         )
         call_command("update_index")
 
-        # active filters: theme=T, collection=A
+        # selected: theme=T, collection=A
         request = self.client.get(self.search_url(theme=self.theme.slug, collection=self.collection.slug)).wsgi_request
         site = Site.objects.get(is_default_site=True)
-        active = get_active_filters_from_request_params(request, site)
+        selection = get_facet_selection_from_request(request, site)
         counts = compute_facet_result_counts(
             request,
             site,
             self.search_query,
-            active,
-            enabled_filters={**_all_filters_disabled(), "filter_by_collection": True, "filter_by_theme": True},
+            selection,
+            enabled_facets={**_all_facets_disabled(), "collection": True, "theme": True},
         )
 
         # Theme facet ignores selected theme; keeps collection=A → posts with A (theme T and other)
@@ -548,13 +548,13 @@ class FacetedSearchCountComputingTest(FacetedSearchFilterTestBase):
         call_command("update_index")
         request = self.client.get(self.search_url()).wsgi_request
         site = Site.objects.get(is_default_site=True)
-        active = get_active_filters_from_request_params(request, site)
+        selection = get_facet_selection_from_request(request, site)
         counts = compute_facet_result_counts(
             request,
             site,
             self.search_query,
-            active,
-            enabled_filters={**_all_filters_disabled(), "filter_by_tag": True},
+            selection,
+            enabled_facets={**_all_facets_disabled(), "tag": True},
         )
         # fixture post_with_tag + 2 new posts
         self.assertEqual(counts["tag"].get(self.tag.pk), 3)
@@ -572,19 +572,19 @@ class FacetedSearchCountComputingTest(FacetedSearchFilterTestBase):
         call_command("update_index")
         request = self.client.get(self.search_url()).wsgi_request
         site = Site.objects.get(is_default_site=True)
-        active = get_active_filters_from_request_params(request, site)
+        selection = get_facet_selection_from_request(request, site)
         counts = compute_facet_result_counts(
             request,
             site,
             self.search_query,
-            active,
-            enabled_filters={**_all_filters_disabled(), "filter_by_source": True},
+            selection,
+            enabled_facets={**_all_facets_disabled(), "source": True},
         )
         # fixture post_with_author + 2 new posts
         self.assertEqual(counts["source"].get(self.organization.pk), 3)
 
 
-class FacetedSearchCountZeroesTest(FacetedSearchFilterTestBase):
+class FacetedSearchCountZeroesTest(FacetedSearchTestBase):
     """With ``query``, hide unselected zeroes; keep selected zeroes."""
 
     def test_hides_unselected_zeroes(self):
@@ -598,10 +598,10 @@ class FacetedSearchCountZeroesTest(FacetedSearchFilterTestBase):
         )
         call_command("update_index")
         request = self.client.get(self.search_url(theme=self.theme.slug)).wsgi_request
-        context = get_filter_context(
+        context = get_facet_context(
             request,
             query=self.search_query,
-            enabled_filters={**_all_filters_disabled(), "filter_by_collection": True, "filter_by_theme": True},
+            enabled_facets={**_all_facets_disabled(), "collection": True, "theme": True},
         )
 
         collection_pks = {taxonomy.pk for taxonomy in _tree_taxonomies(context["collection_tree"])}
@@ -615,20 +615,20 @@ class FacetedSearchCountZeroesTest(FacetedSearchFilterTestBase):
         request = self.client.get(
             self.search_url(theme=self.theme.slug, collection=self.other_collection.slug)
         ).wsgi_request
-        context = get_filter_context(
+        context = get_facet_context(
             request,
             query=self.search_query,
-            enabled_filters={**_all_filters_disabled(), "filter_by_collection": True, "filter_by_theme": True},
+            enabled_facets={**_all_facets_disabled(), "collection": True, "theme": True},
         )
 
         collections_by_pk = {taxonomy.pk: taxonomy for taxonomy in _tree_taxonomies(context["collection_tree"])}
         self.assertIn(self.other_collection.pk, collections_by_pk)
         self.assertEqual(collections_by_pk[self.other_collection.pk].result_count, 0)
-        current_by_pk = {taxonomy.pk: taxonomy for taxonomy in context["current_collections"]}
+        current_by_pk = {taxonomy.pk: taxonomy for taxonomy in context["selected_collections"]}
         self.assertEqual(current_by_pk[self.other_collection.pk].result_count, 0)
 
 
-class FacetedSearchCountRenderingTest(FacetedSearchFilterTestBase):
+class FacetedSearchCountRenderingTest(FacetedSearchTestBase):
     """Sidebar labels render as ``Name (N)`` (see also ``FacetLabelTest``)."""
 
     def test_search_page_shows_exact_result_count_label(self):
@@ -641,7 +641,7 @@ class FacetedSearchCountRenderingTest(FacetedSearchFilterTestBase):
         self.assertIn(f"{self.collection.name} (1)", labels)
 
 
-class FacetedSearchResultsDisplayTest(FacetedSearchFilterTestBase):
+class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
     """Test that search result items display metadata (date, themes, collections)."""
 
     def test_search_results_show_publication_date(self):

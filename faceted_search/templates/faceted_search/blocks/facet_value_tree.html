@@ -4,19 +4,19 @@
 <ul class="fr-tags-group{% if depth %} fr-ml-6w{% endif %}">
   {% for node in nodes %}
     <li>
-      {% if filter_name == "collection" %}
-        {% toggle_url_filter collection=node.taxonomy as item_query %}
+      {% if facet == "collection" %}
+        {% toggle_url_facet collection=node.value as item_query %}
       {% else %}
-        {% toggle_url_filter theme=node.taxonomy as item_query %}
+        {% toggle_url_facet theme=node.value as item_query %}
       {% endif %}
-      {% facet_label node.taxonomy.name node.taxonomy.result_count as item_label %}
-      {% if node.taxonomy in current_filters %}
+      {% facet_label node.value.name node.value.result_count as item_label %}
+      {% if node.value in selected_values %}
         {% dsfr_tag label=item_label is_selectable=True is_selected=True link=search_url|add:item_query %}
       {% else %}
         {% dsfr_tag label=item_label is_selectable=True is_selected=False link=search_url|add:item_query %}
       {% endif %}
       {% if node.children %}
-        {% include "faceted_search/blocks/taxonomy_tree.html" with nodes=node.children filter_name=filter_name current_filters=current_filters depth=True %}
+        {% include "faceted_search/blocks/facet_value_tree.html" with nodes=node.children facet=facet selected_values=selected_values depth=True %}
       {% endif %}
     </li>
   {% endfor %}

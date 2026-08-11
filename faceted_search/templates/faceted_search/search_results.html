@@ -1,4 +1,4 @@
-{# Forked from sites_conformes_core/search_results.html: adds a sidebar for search filters. #}
+{# Forked from sites_conformes_core/search_results.html: adds a sidebar for search facets. #}
 {% extends "sites_conformes_core/search_results.html" %}
 {% load i18n static dsfr_tags wagtailcore_tags wagtail_dsfr_tags %}
 
@@ -18,7 +18,7 @@
 {% endblock extra_css %}
 
 {% block search_sidebar %}
-  {% if show_search_filters %}
+  {% if show_search_facets %}
     <div class="fr-col fr-col-md-4 fr-col-12">
       <nav class="fr-sidemenu fr-sidemenu--sticky-full-height fr-mb-0-5v">
         <div class="fr-sidemenu__inner">
@@ -28,7 +28,7 @@
                   aria-expanded="false">{% translate "Filters" %}</button>
           <div class="fr-collapse" id="fr-sidemenu-wrapper-search">
             <h2 class="fr-sidemenu__title" id="fr-sidemenu-title-search">{% translate "Filters" %}</h2>
-            {% include "faceted_search/blocks/search_filters.html" %}
+            {% include "faceted_search/blocks/search_facets.html" %}
           </div>
         </div>
       </nav>
@@ -37,7 +37,7 @@
 {% endblock search_sidebar %}
 
 {% block search_results_column_class %}
-  {% if show_search_filters %}fr-col fr-col-md-8 fr-col-12{% else %}fr-col-12{% endif %}
+  {% if show_search_facets %}fr-col fr-col-md-8 fr-col-12{% else %}fr-col-12{% endif %}
 {% endblock search_results_column_class %}
 
 {% block search_results %}
