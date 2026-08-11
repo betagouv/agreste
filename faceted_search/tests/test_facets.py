@@ -21,8 +21,8 @@ from wagtail.models import Site
 from faceted_search.facets import (
     ENABLED_FACETS,
     compute_facet_result_counts,
-    get_facet_selection_from_request,
     get_facet_context,
+    get_facet_selection_from_request,
 )
 from faceted_search.views import FacetedSearchResultsView
 from publications.tests.factories import CollectionFactory, ThemeFactory

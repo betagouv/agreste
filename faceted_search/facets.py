@@ -154,10 +154,7 @@ def apply_facet_selection(queryset, site, selection: FacetSelection, *, exclude_
 
     if selection.tags and exclude_facet != "tag":
         content_page_ids = (
-            ContentPage.objects.descendant_of(root)
-            .live()
-            .filter(tags__in=selection.tags)
-            .values_list("pk", flat=True)
+            ContentPage.objects.descendant_of(root).live().filter(tags__in=selection.tags).values_list("pk", flat=True)
         )
         blog_page_ids = (
             # PublicationPage entries are included (subclass of BlogEntryPage).
@@ -287,9 +284,7 @@ def _counts_for_sources(page_ids: list[int]) -> dict[int, int]:
     return {pk: count for pk, count in rows if pk is not None}
 
 
-def _search_without_given_facet(
-    request, site, query: str, selection: FacetSelection, facet: str
-) -> BaseSearchResults:
+def _search_without_given_facet(request, site, query: str, selection: FacetSelection, facet: str) -> BaseSearchResults:
     """Full-text search with all selected facet values except ``facet``."""
     queryset = apply_facet_selection(searchable_pages(request, site), site, selection, exclude_facet=facet)
     return queryset.search(query)
@@ -329,15 +324,11 @@ def compute_facet_result_counts(
         counts["collection"] = _counts_for_m2m_field(PublicationPage, page_ids, "collections")
 
     if enabled_facets.get("theme"):
-        page_ids = _page_pks_from_search_results(
-            _search_without_given_facet(request, site, query, selection, "theme")
-        )
+        page_ids = _page_pks_from_search_results(_search_without_given_facet(request, site, query, selection, "theme"))
         counts["theme"] = _counts_for_m2m_field(PublicationPage, page_ids, "themes")
 
     if enabled_facets.get("tag"):
-        page_ids = _page_pks_from_search_results(
-            _search_without_given_facet(request, site, query, selection, "tag")
-        )
+        page_ids = _page_pks_from_search_results(_search_without_given_facet(request, site, query, selection, "tag"))
         counts["tag"] = _counts_for_tags(page_ids)
 
     if enabled_facets.get("author"):
@@ -482,9 +473,7 @@ def get_facet_context(request, *, enabled_facets: dict[str, bool] | None = None,
 
     facet_counts: dict[str, dict[int, int]] = {}
     if query:
-        facet_counts = compute_facet_result_counts(
-            request, site, query, selection, enabled_facets=enabled_facets
-        )
+        facet_counts = compute_facet_result_counts(request, site, query, selection, enabled_facets=enabled_facets)
 
     context = {
         "enabled_facets": enabled_facets,
