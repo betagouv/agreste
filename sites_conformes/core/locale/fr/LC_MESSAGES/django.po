@@ -1084,7 +1084,7 @@ msgstr ""
 "Permet de placer des scripts à l’intérieur du tag <body> des pages du site."
 
 msgid "Use Tarteaucitron?"
-msgstr "Utiliser Tarteaucitron ?"
+msgstr "Utiliser Tarteaucitron ? Il est désactivé, demander à Estelle"
 
 msgid ""
 "See <a href=\"https://sites.beta.gouv.fr/documentation/gestion-des-cookies/"
