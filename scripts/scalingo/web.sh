@@ -4,8 +4,8 @@ set -euo pipefail
 # DISABLE_COLLECTSTATIC: review apps / one-click deploys skip ``collectstatic``
 # during slug compile because DATABASE_URL is not injected yet (this is the
 # Scalingo Python buildpack flag). Run it here on web boot, once addon env
-# vars are present. Files collected in postdeploy would not persist on the
-# web container
+# vars are present. Postdeploy also collects static files in its own
+# container (for create_starter_pages); that copy is not visible to web.
 if [[ "${DISABLE_COLLECTSTATIC:-}" == "1" ]]; then
     python manage.py collectstatic --noinput
 fi

@@ -114,6 +114,8 @@ web-prompt:
 # Commands run by the Scalingo Procfile
 [group('Production')]
 scalingo-postdeploy:
+    # Review apps skip collectstatic at build; create_starter_pages needs DSFR files in staticfiles/.
+    if [ "${DISABLE_COLLECTSTATIC:-}" = "1" ]; then python manage.py collectstatic --noinput; fi
     python manage.py migrate_from_sites_faciles --no-input
     python manage.py migrate
     python manage.py create_starter_pages
