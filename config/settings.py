@@ -198,6 +198,15 @@ TEMPLATES = [
     },
 ]
 
+WAGTAILSEARCH_BACKENDS = {
+    "default": {
+        "BACKEND": os.getenv("WAGTAILSEARCH_BACKEND", "wagtail.search.backends.database"),
+        # PostgreSQL FTS dictionary/stemmer for plain `.search("…")` (core search,
+        # Wagtail admin). faceted_search uses Fuzzy() which ignores this.
+        "SEARCH_CONFIG": os.getenv("SEARCH_CONFIG", "french"),
+    }
+}
+
 WSGI_APPLICATION = "config.wsgi.application"
 HONEYPOT_ENABLED_DEFAULT = True
 

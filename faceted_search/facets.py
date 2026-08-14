@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404
 from modelsearch.backends.base import BaseSearchResults
 from wagtail.models import Page, Site
 
+from faceted_search.search import fuzzy_unaccent
 from publications.models import Collection, PublicationPage, Theme
 from sites_conformes.blog.models import BlogEntryPage, Category, Organization, Person
 from sites_conformes.core.models import ContentPage, Tag
@@ -287,7 +288,7 @@ def _counts_for_sources(page_ids: list[int]) -> dict[int, int]:
 def _search_without_given_facet(request, site, query: str, selection: FacetSelection, facet: str) -> BaseSearchResults:
     """Full-text search with all selected facet values except ``facet``."""
     queryset = apply_facet_selection(searchable_pages(request, site), site, selection, exclude_facet=facet)
-    return queryset.search(query)
+    return queryset.search(fuzzy_unaccent(query))
 
 
 def compute_facet_result_counts(
