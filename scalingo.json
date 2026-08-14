@@ -81,5 +81,9 @@
       "size": "M"
     }
   },
-  "addons": ["scalingo-postgresql"]
+  "addons": [
+    {
+      "plan": "postgresql:postgresql-sandbox"
+    }
+  ]
 }
