@@ -40,7 +40,7 @@
     },
     "WAGTAIL_PASSWORD_RESET_ENABLED": {
       "description": "Allows the 'Reset password' form on the login page. Only set to true if actual email settings have been set",
-      "value": false
+      "value": "false"
     },
     "SECRET_KEY": {
       "description": "Django secret key",
@@ -72,7 +72,7 @@
     },
     "SF_USE_DB_STORAGE": {
       "description": "Store the files in database instead of S3. Not recommanded for high trafic sites",
-      "value": false
+      "value": "false"
     }
   },
   "formation": {
