@@ -7,12 +7,12 @@
   "website": "https://sites.beta.gouv.fr",
   "env": {
     "ALLOWED_HOSTS": {
-      "description": "List of allowed host names, separated by commas (domain names only)",
-      "value": "sc-example.osc-fr1.scalingo.io,example.sites.beta.gouv.fr"
+      "description": "List of allowed host names, separated by commas (domain names only). Generated for review apps.",
+      "generator": "host"
     },
     "HOST_URL": {
-      "description": "The main hostname (domain name only)",
-      "value": "example.sites.beta.gouv.fr"
+      "description": "The main hostname (domain name only). Generated for review apps.",
+      "generator": "host"
     },
     "DEFAULT_FROM_EMAIL": {
       "description": "The default email address for sending transactional emails. Leave empty to disable emails entirely.",
