@@ -48,6 +48,10 @@
       "description": "Django secret key",
       "generator": "secret"
     },
+    "DISABLE_COLLECTSTATIC": {
+      "description": "Scalingo Python buildpack flag: skip collectstatic during buid because DATABASE_URL is not injected yet. See scalingo/web.sh",
+      "value": "1"
+    },
     "S3_HOST": {
       "description": "The host of the S3 bucket (ex: s3.eu-west-par.io.cloud.ovh.net)",
       "value": ""
