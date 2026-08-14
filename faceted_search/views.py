@@ -2,6 +2,7 @@ from django.views.generic import ListView
 from wagtail.models import Page, Site
 
 from faceted_search.facets import filter_queryset, get_facet_context, searchable_pages
+from faceted_search.search import fuzzy_unaccent
 
 
 class FacetedSearchResultsView(ListView):
@@ -28,7 +29,7 @@ class FacetedSearchResultsView(ListView):
             return Page.objects.none()
 
         object_list = filter_queryset(self.request, searchable_pages(self.request, site), site)
-        return object_list.search(query)
+        return object_list.search(fuzzy_unaccent(query))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
