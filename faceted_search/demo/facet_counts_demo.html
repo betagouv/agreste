@@ -470,7 +470,7 @@
         <strong>Hover: ${value}</strong> in ${facet === "themes" ? "Theme" : "Tag"} → displayed count <strong>${count}</strong>.
         <p class="formula">${formulaFor(facet, value)}</p>
         <p style="margin:0.45rem 0 0">
-          Active now: Theme={${selectedThemes.join(", ") || "∅"}}, Tag={${selectedTags.join(", ") || "∅"}} →
+          Selected now: Theme={${selectedThemes.join(", ") || "∅"}}, Tag={${selectedTags.join(", ") || "∅"}} →
           header <strong>${currentResults().length}</strong>.
           After click on ${value}: header would become <strong>${afterClick}</strong>
           ${state.mode === "result_count" && !state.selected[facet].has(value) && state.selected[facet].size > 0

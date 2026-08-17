@@ -1,0 +1,23 @@
+{% load i18n faceted_search_tags dsfr_tags %}
+{% url 'cms_search' as search_url %}
+
+<ul class="fr-tags-group{% if depth %} fr-ml-6w{% endif %}">
+  {% for node in nodes %}
+    <li>
+      {% if facet == "collection" %}
+        {% toggle_url_facet collection=node.value as item_query %}
+      {% else %}
+        {% toggle_url_facet theme=node.value as item_query %}
+      {% endif %}
+      {% facet_label node.value.name node.value.result_count as item_label %}
+      {% if node.value in selected_values %}
+        {% dsfr_tag label=item_label is_selectable=True is_selected=True link=search_url|add:item_query %}
+      {% else %}
+        {% dsfr_tag label=item_label is_selectable=True is_selected=False link=search_url|add:item_query %}
+      {% endif %}
+      {% if node.children %}
+        {% include "faceted_search/blocks/facet_value_tree.html" with nodes=node.children facet=facet selected_values=selected_values depth=True %}
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>

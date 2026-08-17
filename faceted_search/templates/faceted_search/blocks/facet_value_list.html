@@ -1,0 +1,41 @@
+{% load i18n faceted_search_tags dsfr_tags %}
+{% url 'cms_search' as search_url %}
+<ul class="fr-tags-group">
+  {% for item in items %}
+    <li>
+      {% if facet == "category" %}
+        {% toggle_url_facet category=item as item_query %}
+        {% facet_label item.name item.result_count as item_label %}
+        {% if item in selected_values %}
+          {% dsfr_tag label=item_label is_selectable=True is_selected=True link=search_url|add:item_query %}
+        {% else %}
+          {% dsfr_tag label=item_label is_selectable=True is_selected=False link=search_url|add:item_query %}
+        {% endif %}
+      {% elif facet == "tag" %}
+        {% toggle_url_facet tag=item as item_query %}
+        {% facet_label item.name item.result_count as item_label %}
+        {% if item in selected_values %}
+          {% dsfr_tag label=item_label is_selectable=True is_selected=True link=search_url|add:item_query %}
+        {% else %}
+          {% dsfr_tag label=item_label is_selectable=True is_selected=False link=search_url|add:item_query %}
+        {% endif %}
+      {% elif facet == "author" %}
+        {% toggle_url_facet author=item as item_query %}
+        {% facet_label item.name item.result_count as item_label %}
+        {% if item in selected_values %}
+          {% dsfr_tag label=item_label is_selectable=True is_selected=True link=search_url|add:item_query %}
+        {% else %}
+          {% dsfr_tag label=item_label is_selectable=True is_selected=False link=search_url|add:item_query %}
+        {% endif %}
+      {% elif facet == "source" %}
+        {% toggle_url_facet source=item as item_query %}
+        {% facet_label item.name item.result_count as item_label %}
+        {% if item in selected_values %}
+          {% dsfr_tag label=item_label is_selectable=True is_selected=True link=search_url|add:item_query %}
+        {% else %}
+          {% dsfr_tag label=item_label is_selectable=True is_selected=False link=search_url|add:item_query %}
+        {% endif %}
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
