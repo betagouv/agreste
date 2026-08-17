@@ -11,7 +11,7 @@ from django.urls import reverse
 from wagtail.models import Page, Site
 from wagtail.test.utils import WagtailPageTestCase
 
-from faceted_search.tests.test_facets import FacetedSearchTestBase
+from faceted_search.tests.test_facets import FacetedSearchTestBase, get_post_titles_in_response
 from faceted_search.views import FacetedSearchResultsView
 from publications.tests.factories import PublicationIndexPageFactory, PublicationPageFactory
 from sites_conformes.core.tests.test_search import SearchResultsTestCase
@@ -121,3 +121,36 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
         self.assertEqual(int(ol["start"]), 11)
         # DSFR fix : "start" is broken, so we reimplement counters.
         self.assertIn("--list-start: 11", ol["style"])
+
+
+class AccentInsensitiveSearchTest(FacetedSearchPaginationTestBase):
+    """``blé`` and ``ble`` should return the same FTS hits under french_unaccent."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.wheat_page = PublicationPageFactory(
+            parent=cls.index,
+            owner=cls.admin,
+            title="Culture du blé tendre",
+            slug="culture-du-ble-tendre",
+        )
+        cls.other_page = PublicationPageFactory(
+            parent=cls.index,
+            owner=cls.admin,
+            title="Rapport annuel",
+            slug="rapport-annuel-unaccent",
+        )
+        call_command("update_index")
+
+    def test_unaccented_query_matches_accented_title(self):
+        response = self.client.get(self.search_url(query="ble"))
+        titles = get_post_titles_in_response(response)
+        self.assertIn(self.wheat_page.title, titles)
+        self.assertNotIn(self.other_page.title, titles)
+
+    def test_accented_and_unaccented_queries_return_the_same_results(self):
+        accented = get_post_titles_in_response(self.client.get(self.search_url(query="blé")))
+        unaccented = get_post_titles_in_response(self.client.get(self.search_url(query="ble")))
+        self.assertEqual(accented, unaccented)
+        self.assertIn(self.wheat_page.title, accented)
