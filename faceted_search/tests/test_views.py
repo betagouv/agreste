@@ -24,6 +24,7 @@ class FacetedSearchResultsTestCase(SearchResultsTestCase):
     the core SearchResultsView.
     """
 
+
 class FacetedSearchResultsViewTest(FacetedSearchTestBase):
     def setUp(self):
         super().setUp()
