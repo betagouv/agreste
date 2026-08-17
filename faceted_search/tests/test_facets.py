@@ -13,7 +13,6 @@ from itertools import combinations
 from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
-from django.core.management import call_command
 from django.http import Http404
 from django.urls import reverse
 from wagtail.models import Site
@@ -59,11 +58,6 @@ def get_post_titles_in_response(response) -> list[str]:
 class FacetedSearchTestBase(PublicationIndexPageFilterTestBase):
     filter_cases = FILTER_CASES
     search_query = "Post"
-
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-        call_command("update_index")
 
     def search_url(self, query=None, **params):
         query = self.search_query if query is None else query
@@ -188,7 +182,6 @@ class FacetedSearchQueryTest(FacetedSearchTestBase):
                     slug=f"annual-report-no-search-match-{facet}",
                     **{case["relation"]: [taxonomy]},
                 )
-                call_command("update_index")
                 response = self.client.get(filtered_url)
                 self.assertEqual(response.status_code, 200)
                 post_titles = get_post_titles_in_response(response)
@@ -210,7 +203,6 @@ class FacetedSearchQueryTest(FacetedSearchTestBase):
                     slug=f"annual-report-no-search-match-{facet}-multiple",
                     **{case["relation"]: [taxonomy, other_taxonomy]},
                 )
-                call_command("update_index")
                 response = self.client.get(self.search_url(**{facet: [taxonomy.slug, other_taxonomy.slug]}))
                 self.assertEqual(response.status_code, 200)
                 post_titles = get_post_titles_in_response(response)
@@ -226,7 +218,6 @@ class FacetedSearchQueryTest(FacetedSearchTestBase):
             slug="annual-report-no-search-match-author",
             authors=[self.author],
         )
-        call_command("update_index")
         response = self.client.get(self.search_url(author=self.author.id))
         self.assertEqual(response.status_code, 200)
         post_titles = get_post_titles_in_response(response)
@@ -249,7 +240,6 @@ class FacetedSearchQueryTest(FacetedSearchTestBase):
             slug="annual-report-no-search-match-source",
             authors=[self.author],
         )
-        call_command("update_index")
         response = self.client.get(self.search_url(source=self.organization.slug))
         self.assertEqual(response.status_code, 200)
         post_titles = get_post_titles_in_response(response)
@@ -291,7 +281,6 @@ class FacetedSearchQueryTest(FacetedSearchTestBase):
             slug="post-from-2023",
             date=datetime(2023, 1, 1, 12, 0, 0, tzinfo=zoneinfo.ZoneInfo("Europe/Paris")),
         )
-        call_command("update_index")
         response = self.client.get(self.search_url(year=2024))
         self.assertEqual(response.status_code, 200)
         post_titles = get_post_titles_in_response(response)
@@ -316,7 +305,6 @@ class FacetedSearchQueryTest(FacetedSearchTestBase):
             collections=[self.collection],
             themes=[self.theme],
         )
-        call_command("update_index")
         response = self.client.get(
             self.search_url(
                 collection=[self.collection.slug, self.other_collection.slug],
@@ -356,7 +344,6 @@ class FacetedSearchCombinationTest(FacetedSearchTestBase):
                     slug=f"annual-report-no-search-match-{facet_a}-{facet_b}",
                     **post_kwargs,
                 )
-                call_command("update_index")
                 response = self.client.get(self.search_url(**search_params))
                 post_titles = get_post_titles_in_response(response)
                 self.assertIn(matching.title, post_titles)
@@ -393,7 +380,6 @@ class FacetedSearchCombinationTest(FacetedSearchTestBase):
                     case_b["relation"]: values_b,
                 },
             )
-            call_command("update_index")
             response = self.client.get(
                 self.search_url(
                     **{
@@ -472,7 +458,6 @@ class FacetedSearchCountComputingTest(FacetedSearchTestBase):
                 slug=f"post-shared-theme-{index}",
                 themes=[self.theme],
             )
-        call_command("update_index")
         request = self.client.get(self.search_url()).wsgi_request  # no selected facets
         site = Site.objects.get(is_default_site=True)
         selection = get_facet_selection_from_request(request, site)
@@ -514,8 +499,6 @@ class FacetedSearchCountComputingTest(FacetedSearchTestBase):
             collections=[self.collection],
             themes=[self.other_theme],
         )
-        call_command("update_index")
-
         # selected: theme=T, collection=A
         request = self.client.get(self.search_url(theme=self.theme.slug, collection=self.collection.slug)).wsgi_request
         site = Site.objects.get(is_default_site=True)
@@ -545,7 +528,6 @@ class FacetedSearchCountComputingTest(FacetedSearchTestBase):
                 slug=f"post-tag-count-{index}",
                 tags=[self.tag],
             )
-        call_command("update_index")
         request = self.client.get(self.search_url()).wsgi_request
         site = Site.objects.get(is_default_site=True)
         selection = get_facet_selection_from_request(request, site)
@@ -569,7 +551,6 @@ class FacetedSearchCountComputingTest(FacetedSearchTestBase):
                 slug=f"post-source-count-{index}",
                 authors=[self.author],
             )
-        call_command("update_index")
         request = self.client.get(self.search_url()).wsgi_request
         site = Site.objects.get(is_default_site=True)
         selection = get_facet_selection_from_request(request, site)
@@ -596,7 +577,6 @@ class FacetedSearchCountZeroesTest(FacetedSearchTestBase):
             collections=[self.collection],
             themes=[self.theme],
         )
-        call_command("update_index")
         request = self.client.get(self.search_url(theme=self.theme.slug)).wsgi_request
         context = get_facet_context(
             request,
@@ -611,7 +591,6 @@ class FacetedSearchCountZeroesTest(FacetedSearchTestBase):
 
     def test_keeps_selected_zeroes(self):
         # other_collection is selected but has no pages under theme=T → count 0, still shown
-        call_command("update_index")
         request = self.client.get(
             self.search_url(theme=self.theme.slug, collection=self.other_collection.slug)
         ).wsgi_request
@@ -632,7 +611,6 @@ class FacetedSearchCountRenderingTest(FacetedSearchTestBase):
     """Sidebar labels render as ``Name (N)`` (see also ``FacetLabelTest``)."""
 
     def test_search_page_shows_exact_result_count_label(self):
-        call_command("update_index")
         response = self.client.get(self.search_url())
         self.assertEqual(response.status_code, 200)
         soup = BeautifulSoup(response.content, "html.parser")
@@ -671,7 +649,6 @@ class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
             slug="post-with-many-collections",
             collections=[self.collection, self.other_collection] + extra_collections,
         )
-        call_command("update_index")
         response = self.client.get(self.search_url())
         soup = BeautifulSoup(response.content, "html.parser")
         result_li = soup.find("a", string=post.title).find_parent("li")
@@ -692,7 +669,6 @@ class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
             slug="post-with-many-themes",
             themes=[self.theme, self.other_theme] + extra_themes,
         )
-        call_command("update_index")
         response = self.client.get(self.search_url())
         soup = BeautifulSoup(response.content, "html.parser")
         result_li = soup.find("a", string=post.title).find_parent("li")
