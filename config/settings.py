@@ -202,8 +202,10 @@ WAGTAILSEARCH_BACKENDS = {
     "default": {
         "BACKEND": os.getenv("WAGTAILSEARCH_BACKEND", "wagtail.search.backends.database"),
         # PostgreSQL FTS dictionary/stemmer for `.search("…")` (core search,
-        # Wagtail admin, faceted search).
-        "SEARCH_CONFIG": os.getenv("SEARCH_CONFIG", "french"),
+        # Wagtail admin, faceted search). ``french_unaccent`` folds accents
+        # (blé ≡ ble) then applies french_stem. Requires migration
+        # faceted_search.0004_french_unaccent_search_config and ``just index``.
+        "SEARCH_CONFIG": os.getenv("SEARCH_CONFIG", "french_unaccent"),
     }
 }
 
