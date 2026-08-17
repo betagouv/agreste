@@ -29,9 +29,9 @@ Version format : the first three numbers are the Agreste version, the second thr
   git commit -m "Bump version to $VERSION"; 
   git push
   ```
-  - Open a PR to merge `main-agreste` into `production-agreste`. 
-    - https://github.com/betagouv/agreste/compare/production-agreste...betagouv:agreste:main-agreste
-    - Name it with the new version number ("v2.8.0-4.1.0"). The name will be picked up automatically to name the version and tag.
+  - Open a PR to merge `main-agreste` into `production-agreste`
+    - `gh pr create --base production-agreste --head main-agreste --title "v$VERSION" --body ""`
+    The name is the version number ("v2.8.0-4.1.0") and will be picked up automatically to name the version and tag.
     - Solve any conflicts and merge. This will trigger a github action that will create the release and tag. If the auto-deploy is configured on Scalingo, it will deploy the release.
 
 -----
