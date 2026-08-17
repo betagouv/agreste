@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.core.management import call_command
-from django.db import connection
 from django.test import RequestFactory
 from django.urls import reverse
 from wagtail.models import Page, Site
