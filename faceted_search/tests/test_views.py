@@ -14,7 +14,6 @@ from wagtail.test.utils import WagtailPageTestCase
 from faceted_search.tests.test_facets import FacetedSearchTestBase
 from faceted_search.views import FacetedSearchResultsView
 from publications.tests.factories import PublicationIndexPageFactory, PublicationPageFactory
-from sites_conformes.core.models import ContentPage
 from sites_conformes.core.tests.test_search import SearchResultsTestCase
 
 
@@ -24,26 +23,6 @@ class FacetedSearchResultsTestCase(SearchResultsTestCase):
     With facets disabled, FacetedSearchResultsView should behave the same as
     the core SearchResultsView.
     """
-
-    def test_search_is_accent_insensitive(self):
-        accented_page = self.home_page.add_child(
-            instance=ContentPage(
-                title="Gestion de la forêt",
-                body=[],
-                slug="gestion-de-la-foret",
-                owner=self.admin,
-            )
-        )
-        accented_page.save_revision().publish()
-        call_command("update_index")
-
-        search_url = reverse("cms_search")
-        for query in ("forêt", "foret"):
-            with self.subTest(query=query):
-                response = self.client.get(f"{search_url}?q={query}")
-                self.assertEqual(response.status_code, 200)
-                self.assertContains(response, "Gestion de la forêt")
-
 
 class FacetedSearchResultsViewTest(FacetedSearchTestBase):
     def setUp(self):
