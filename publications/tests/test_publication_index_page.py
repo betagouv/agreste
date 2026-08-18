@@ -44,32 +44,33 @@ class PublicationIndexPageFilterTestBase(BlogIndexPageFilterTestBase):
     entry_page_factory = PublicationPageFactory
     filter_cases = FILTER_CASES
 
-    def setup_taxonomy_filter_fixtures(self):
-        locale = self.index.locale
-        self.collection = CollectionFactory(locale=locale)
-        self.other_collection = CollectionFactory(locale=locale)
-        self.theme = ThemeFactory(locale=locale)
-        self.other_theme = ThemeFactory(locale=locale)
+    @classmethod
+    def setup_taxonomy_filter_fixtures(cls):
+        locale = cls.index.locale
+        cls.collection = CollectionFactory(locale=locale)
+        cls.other_collection = CollectionFactory(locale=locale)
+        cls.theme = ThemeFactory(locale=locale)
+        cls.other_theme = ThemeFactory(locale=locale)
 
-        self.post_with_collection = self.entry_page_factory(
-            parent=self.index,
-            owner=self.admin,
-            collections=[self.collection],
+        cls.post_with_collection = cls.entry_page_factory(
+            parent=cls.index,
+            owner=cls.admin,
+            collections=[cls.collection],
         )
-        self.post_with_other_collection = self.entry_page_factory(
-            parent=self.index,
-            owner=self.admin,
-            collections=[self.other_collection],
+        cls.post_with_other_collection = cls.entry_page_factory(
+            parent=cls.index,
+            owner=cls.admin,
+            collections=[cls.other_collection],
         )
-        self.post_with_theme = self.entry_page_factory(
-            parent=self.index,
-            owner=self.admin,
-            themes=[self.theme],
+        cls.post_with_theme = cls.entry_page_factory(
+            parent=cls.index,
+            owner=cls.admin,
+            themes=[cls.theme],
         )
-        self.post_with_other_theme = self.entry_page_factory(
-            parent=self.index,
-            owner=self.admin,
-            themes=[self.other_theme],
+        cls.post_with_other_theme = cls.entry_page_factory(
+            parent=cls.index,
+            owner=cls.admin,
+            themes=[cls.other_theme],
         )
 
 

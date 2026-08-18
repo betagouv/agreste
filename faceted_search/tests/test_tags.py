@@ -1,10 +1,11 @@
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlencode
+
+from django.test import RequestFactory, SimpleTestCase
 
 from faceted_search.templatetags.faceted_search_tags import facet_label, toggle_url_facet
-from faceted_search.tests.test_facets import FacetedSearchTestBase
 
 
-class FacetLabelTest(FacetedSearchTestBase):
+class FacetLabelTest(SimpleTestCase):
     """``facet_label`` formats ``Name (N)`` (with ``FacetedSearchCountRenderingTest``)."""
 
     def test_facet_label_includes_count_when_present(self):
@@ -16,7 +17,14 @@ class FacetLabelTest(FacetedSearchTestBase):
         self.assertEqual(facet_label("Agriculture", ""), "Agriculture")
 
 
-class FacetedSearchToggleUrlFacetTest(FacetedSearchTestBase):
+class FacetedSearchToggleUrlFacetTest(SimpleTestCase):
+    def setUp(self):
+        self.factory = (
+            RequestFactory()
+        )  # We use a dummy request rather than a real client request, to save test running time.
+        self.collection = type("Collection", (), {"slug": "agriculture"})()
+        self.other_collection = type("Collection", (), {"slug": "climate"})()
+
     def _assert_toggle_url_facet(
         self,
         *,
@@ -24,9 +32,9 @@ class FacetedSearchToggleUrlFacetTest(FacetedSearchTestBase):
         expected,
         **toggle_kwargs,
     ):
-        request = self.client.get(self.search_url(**(request_params or {}))).wsgi_request
-        context = {"request": request}
-        result = toggle_url_facet(context, **toggle_kwargs)
+        query = urlencode({"q": "Post", **(request_params or {})}, doseq=True)
+        request = self.factory.get(f"/search/?{query}")
+        result = toggle_url_facet({"request": request}, **toggle_kwargs)
         self.assertEqual(parse_qs(result.removeprefix("?")), expected)
 
     def test_toggle_adds_facet_value(self):

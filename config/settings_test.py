@@ -10,3 +10,6 @@ WHITENOISE_MANIFEST_STRICT = False
 
 FORCE_SCRIPT_NAME = ""
 WAGTAILADMIN_BASE_URL = "http://localhost"
+
+# Custom runner to skip some Sites Conformes tests.
+TEST_RUNNER = "config.test_runner.AgresteDiscoverRunner"

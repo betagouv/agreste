@@ -5,7 +5,6 @@ from urllib.parse import urlencode
 from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
-from django.core.management import call_command
 from django.test import RequestFactory
 from django.urls import reverse
 from wagtail.models import Page, Site
@@ -70,7 +69,6 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
         super().setUpTestData()
         for _ in range(15):
             PublicationPageFactory(parent=cls.index, owner=cls.admin)
-        call_command("update_index")
 
     def test_pagination_first_page_is_limited_to_page_size(self):
         response = self.client.get(self.search_url())
@@ -141,7 +139,6 @@ class AccentInsensitiveSearchTest(FacetedSearchPaginationTestBase):
             title="Rapport annuel",
             slug="rapport-annuel-unaccent",
         )
-        call_command("update_index")
 
     def test_unaccented_query_matches_accented_title(self):
         response = self.client.get(self.search_url(query="ble"))
