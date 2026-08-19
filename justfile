@@ -78,8 +78,12 @@ mmi:
 nginx-generate-config-file:
     cd scripts && bash nginx_generate_config_file.sh
 
+patch:
+    {{docker_cmd}} bash patches/apply.sh
+
 alias rs := runserver
 runserver host_url=host_url host_port=host_port:
+    just patch
     {{docker_cmd}} {{uv_run}} python manage.py runserver {{host_url}}:{{host_port}}
 
 alias rg:= run_gunicorn
