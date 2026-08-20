@@ -33,6 +33,8 @@ COPY --chown=app:app . .
 # version resolves and the project can be installed editable into the env.
 RUN uv sync --locked
 
+RUN bash patches/apply.sh
+
 RUN uv run python manage.py collectstatic --no-input
 
 RUN chown 1000:1000 -R /app
