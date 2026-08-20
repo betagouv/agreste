@@ -41,6 +41,7 @@ dependencies = [
     "wand>=0.6.13",
     "wagtail-honeypot>=1.2.1",
     "sentry-sdk[django]>=2.61.0",
+    "wagtail-transfer>=0.11",
 ]
 
 [dependency-groups]
@@ -166,3 +167,7 @@ ignore = ["E203", "E266"]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
+
+# Blocks installation of known malware (typosquatting, deliberately malicious packages)
+[tool.uv.audit]
+malware-check = true

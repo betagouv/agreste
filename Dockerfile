@@ -1,4 +1,4 @@
-FROM python:3.13-bookworm
+FROM python:3.14-bookworm
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ARG CONTAINER_PORT=8000
@@ -32,6 +32,8 @@ COPY --chown=app:app . .
 # Now the source (incl. sites_conformes/_version.py) is present, so the dynamic
 # version resolves and the project can be installed editable into the env.
 RUN uv sync --locked
+
+RUN bash patches/apply.sh
 
 RUN uv run python manage.py collectstatic --no-input
 

@@ -10,6 +10,7 @@ from django.views.i18n import JavaScriptCatalog
 from wagtail.admin import urls as wagtailadmin_urls
 from wagtail.contrib.sitemaps.views import sitemap
 from wagtail.documents import urls as wagtaildocs_urls
+from wagtail_transfer import urls as wagtailtransfer_urls
 
 from config.api import api_router
 from sites_conformes.proconnect import urls as oidc_urls
@@ -21,6 +22,7 @@ urlpatterns = [
     path("sitemap.xml", sitemap, name="xml_sitemap"),
     path(settings.WAGTAILADMIN_PATH, include(wagtailadmin_urls)),
     path("documents/", include(wagtaildocs_urls)),
+    path("wagtail-transfer/", include(wagtailtransfer_urls)),
     path("api/v2/", api_router.urls),
     path("favicon.ico", RedirectView.as_view(url="/static/dsfr/dist/favicon/favicon.ico", permanent=True)),
     path(

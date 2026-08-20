@@ -13,6 +13,7 @@ Inspiration
 https://github.com/betagouv/tous-a-bord/blob/main/config/settings.py
 """
 
+import json
 import os
 import sys
 from pathlib import Path
@@ -88,6 +89,7 @@ INSTALLED_APPS = [
     "wagtail",
     "wagtailmarkdown",
     "wagtailmenus",  # Obsolete, to be removed in a future version (replaced by "sites_conformes.menus")
+    "wagtail_transfer",
     "wagtail_localize",
     "wagtail_localize.locales",
     "taggit",
@@ -551,6 +553,25 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # sites_conformes.core.middleware.IframeMiddleware.
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
+
+# (Optional) Wagtail Transfer settings
+# https://wagtail.github.io/wagtail-transfer/settings/
+WAGTAILTRANSFER_SECRET_KEY = os.getenv("WAGTAILTRANSFER_SECRET_KEY", "")
+WAGTAILTRANSFER_SOURCES = json.loads(os.getenv("WAGTAILTRANSFER_SOURCES", "{}"))
+WAGTAILTRANSFER_NO_FOLLOW_MODELS = [
+    "wagtailcore.page",
+    "contenttypes.contenttype",
+    # Prevent importing auth objects from the source instance — each
+    # environment must manage its own users and permissions.
+    "auth.user",
+    "auth.group",
+    "auth.permission",
+]
+# What fields are used to match objects from the source to the target instance.
+# Since we don't import users, match them by username.
+WAGTAILTRANSFER_LOOKUP_FIELDS = {
+    "auth.user": ["username"],
+}
 
 if sentry_dsn := os.getenv("SENTRY_DSN"):
     import sentry_sdk  # noqa: E402
