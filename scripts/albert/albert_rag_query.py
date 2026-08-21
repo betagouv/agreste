@@ -4,7 +4,7 @@
 Auth: set ALBERT_API_KEY (Bearer). Optional ALBERT_API_BASE_URL overrides the
 default https://albert.api.etalab.gouv.fr. Collection id may come from
 --collection-id or ALBERT_COLLECTION_ID. Chat model from --model or ALBERT_MODEL
-(default: openweight-small). List models with GET /v1/models.
+(default: openweight-large). List models with GET /v1/models.
 
 Flow (official Albert RAG guide: search, then prompt, then chat):
 
@@ -21,7 +21,7 @@ Usage:
   python scripts/albert/albert_rag_query.py "Quelle est la production de blé en 2024 ?"
   python scripts/albert/albert_rag_query.py "..." --show-chunk-text
   python scripts/albert/albert_rag_query.py "..." --system-prompt-file my_prompt.txt
-  python scripts/albert/albert_rag_query.py "..." --collection-id 123 --model openweight-small
+  python scripts/albert/albert_rag_query.py "..." --collection-id 123 --model openweight-large
 """
 
 from __future__ import annotations
@@ -35,9 +35,9 @@ import urllib.error
 import urllib.request
 
 DEFAULT_BASE_URL = "https://albert.api.etalab.gouv.fr"
-DEFAULT_MODEL = "openweight-small"
+DEFAULT_MODEL = "openweight-large"
 DEFAULT_LIMIT = 10
-DEFAULT_METHOD = "semantic"
+DEFAULT_METHOD = "hybrid"
 SEARCH_METHODS = ("semantic", "hybrid", "lexical")
 
 SYSTEM_PROMPT = """\
@@ -307,7 +307,7 @@ def chat_completion(
         if status == 404:
             hint = (
                 f"\nModel {model!r} was not found. Pass --model / ALBERT_MODEL "
-                f"(e.g. openweight-small) or list models via GET {base_url.rstrip('/')}/v1/models"
+                f"(e.g. openweight-large) or list models via GET {base_url.rstrip('/')}/v1/models"
             )
         raise SystemExit(f"Chat completion failed (HTTP {status}): {body}{hint}")
     choices = body.get("choices")
