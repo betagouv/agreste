@@ -44,13 +44,17 @@ SYSTEM_PROMPT = """\
 Réponds uniquement en t'appuyant sur les documents fournis, et de façon concise.
 Si les documents ne permettent pas de répondre, dis-le clairement.
 
-À la fin de ta réponse, ajoute une section « Sources » listant chaque extrait utilisé, avec :
-- le nom du document
-- l'identifiant du document (document_id)
-- l'identifiant du chunk (chunk_id)
+Quand tu cites une information, utilise le nom de fichier du document. N'utilise jamais de numéros d'extrait du type « Extrait 1 » : le lecteur
+ne voit pas la liste interne des extraits. 
+Ne mentionne pas non plus le document_id ou le chunk_id, ni le concept de chunk.
 
+À la fin de ta réponse, ajoute une section « Sources » listant chaque passage utilisé,
+avec :
+- le nom du document
+- le numéro de page
+Ne parle pas de chunk, le lecteur ne sait pas ce que c'est.
 Format attendu pour chaque source :
-- document: <nom> | document_id: <id> | chunk_id: <id>
+- <nom de fichier du document>, <numéro de page>
 """
 
 
@@ -231,7 +235,6 @@ def print_retrieval(
 
 
 def format_excerpt(
-    index: int,
     hit: dict,
     *,
     document_names: dict[int, str],
@@ -247,7 +250,7 @@ def format_excerpt(
         or "(unknown)"
     )
     return (
-        f"[Extrait {index}]\n"
+        f"---\n"
         f"document_name: {name}\n"
         f"document_id: {doc_id}\n"
         f"chunk_id: {chunk.get('id')}\n"
@@ -261,13 +264,9 @@ def build_user_prompt(
     *,
     document_names: dict[int, str],
 ) -> str:
-    excerpts = [
-        text
-        for i, hit in enumerate(hits, start=1)
-        if (text := format_excerpt(i, hit, document_names=document_names)) is not None
-    ]
-    joined = "\n\n".join(excerpts) if excerpts else "(aucun extrait)"
-    return f"[Question]\n{query}\n\n" f"[Extraits]\n{joined}"
+    excerpts = [text for hit in hits if (text := format_excerpt(hit, document_names=document_names)) is not None]
+    joined = "\n\n".join(excerpts) if excerpts else "(aucun document)"
+    return f"[Question]\n{query}\n\n[Documents]\n{joined}"
 
 
 def resolve_system_prompt(cli_text: str | None, prompt_file: pathlib.Path | None) -> str:
