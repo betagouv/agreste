@@ -1,11 +1,11 @@
 from django.contrib.auth.models import AnonymousUser
 from django.core.management import call_command
-from django.test import SimpleTestCase
-from django.urls import reverse
+from django.test import RequestFactory, SimpleTestCase
 from dsfr.forms import DsfrBoundField
 from wagtail.test.utils import WagtailPageTestCase
 from wagtail_localize.models import TranslationSource
 
+from sites_conformes.core.views import SearchResultsView
 from sites_conformes.forms.models import FormField, FormPage, SitesFacilesFormBuilder
 
 
