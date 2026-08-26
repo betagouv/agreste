@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-26 11:03+0200\n"
+"POT-Creation-Date: 2026-08-26 14:15+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,15 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "Rank by:"
+msgstr "Trier par :"
+
+msgid "Relevance"
+msgstr "Pertinence"
+
+msgid "Date"
+msgstr "Date"
 
 msgid "Filter by theme"
 msgstr "Filtrer par thématique"
@@ -42,26 +51,11 @@ msgstr "Résultats de recherche"
 msgid "Filters"
 msgstr "Filtres"
 
-msgid "Rank by"
-msgstr "Trier par"
-
-msgid "Relevance"
-msgstr "Pertinence"
-
-msgid "Date"
-msgstr "Date"
-
 #, python-format
 msgid "%(count)s result (%(per_page)s per page)"
 msgid_plural "%(count)s results (%(per_page)s per page)"
 msgstr[0] "%(count)s résultat (%(per_page)s par page)"
 msgstr[1] "%(count)s résultats (%(per_page)s par page)"
-
-msgid "Rank by relevance"
-msgstr "Trier par pertinence"
-
-msgid "Rank by date"
-msgstr "Trier par date"
 
 msgid "We did not find any content matching your search."
 msgstr "Nous n’avons trouvé aucun contenu correspondant à votre recherche."

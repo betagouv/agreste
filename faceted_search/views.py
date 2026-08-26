@@ -2,12 +2,8 @@ from django.views.generic import ListView
 from wagtail.models import Page, Site
 
 from faceted_search.facets import filter_queryset_for_facets, get_facet_context
-from faceted_search.search import (
-    RANK_BY_DATE,
-    RANK_BY_RELEVANCE,
-    get_rank_by_from_querystring,
-    searchable_pages,
-)
+from faceted_search.forms import RankByForm
+from faceted_search.search import RANK_BY_DATE, get_rank_by_from_querystring, searchable_pages
 
 
 class FacetedSearchResultsView(ListView):
@@ -18,7 +14,9 @@ class FacetedSearchResultsView(ListView):
 
     - ``query``: raw ``?q=`` string (or ``None``).
     - ``rank_by``: ``relevance`` (default) or ``date``.
-    - ``rank_by_relevance_url`` / ``rank_by_date_url``: same search with ranking swapped.
+    - ``rank_by_form``: GET form with radio options for ranking; ``hidden_params``
+      holds ``(name, value)`` pairs to re-send on submit (current GET params except
+      ``rank_by`` and ``page``).
     - Everything returned by :func:`faceted_search.facets.get_facet_context`
       (see its docstring).
 
@@ -41,17 +39,10 @@ class FacetedSearchResultsView(ListView):
             return object_list.order_by("-date").search(query, order_by_relevance=False)
         return object_list.search(query)
 
-    def _rank_by_url(self, rank_by: str) -> str:
-        params = self.request.GET.copy()
-        params["rank_by"] = rank_by
-        params.pop("page", None)  # reset to page 1 because results will change
-        return f"?{params.urlencode()}"
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["query"] = self.request.GET.get("q")
         context["rank_by"] = get_rank_by_from_querystring(self.request)
-        context["rank_by_relevance_url"] = self._rank_by_url(RANK_BY_RELEVANCE)
-        context["rank_by_date_url"] = self._rank_by_url(RANK_BY_DATE)
+        context["rank_by_form"] = RankByForm(query_dict=self.request.GET)
         context.update(get_facet_context(self.request, query=context["query"]))
         return context

@@ -6,12 +6,17 @@ RANK_BY_RELEVANCE = "relevance"
 RANK_BY_DATE = "date"
 
 
-def get_rank_by_from_querystring(request) -> str:
-    """Return ``rank_by`` from the query string; defaults to relevance. Invalid values default to relevance."""
-    rank_by = request.GET.get("rank_by", RANK_BY_RELEVANCE)
+def get_rank_by_from_query_dict(query_dict) -> str:
+    """Return ``rank_by`` from a query dict; defaults to relevance. Invalid values default to relevance."""
+    rank_by = query_dict.get("rank_by", RANK_BY_RELEVANCE)
     if rank_by not in (RANK_BY_RELEVANCE, RANK_BY_DATE):
         return RANK_BY_RELEVANCE
     return rank_by
+
+
+def get_rank_by_from_querystring(request) -> str:
+    """Return ``rank_by`` from the request query string; defaults to relevance."""
+    return get_rank_by_from_query_dict(request.GET)
 
 
 def searchable_pages(request, site):

@@ -7,12 +7,14 @@ from urllib.parse import urlencode
 from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
+from django.http import QueryDict
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
 from wagtail.models import Page, Site
 from wagtail.rich_text import RichText
 from wagtail.test.utils import WagtailPageTestCase
 
+from faceted_search.forms import RankByForm
 from faceted_search.search import RANK_BY_DATE, RANK_BY_RELEVANCE, get_rank_by_from_querystring
 from faceted_search.tests.test_facets import FacetedSearchTestBase, get_post_titles_in_response
 from faceted_search.views import FacetedSearchResultsView
@@ -161,7 +163,7 @@ class AccentInsensitiveSearchTest(FacetedSearchPaginationTestBase):
 
 
 class RankByParamTest(SimpleTestCase):
-    """No DB: ``get_rank_by_from_querystring`` and ranking URLs."""
+    """No DB: ``get_rank_by_from_querystring`` and the ranking form."""
 
     def test_get_rank_by_from_querystring(self):
         factory = RequestFactory()
@@ -176,11 +178,25 @@ class RankByParamTest(SimpleTestCase):
             get_rank_by_from_querystring(factory.get("/search/", {"rank_by": "popularity"})), RANK_BY_RELEVANCE
         )
 
-    def test_rank_by_url_preserves_query_and_drops_page(self):
-        view = FacetedSearchResultsView()
-        view.request = RequestFactory().get("/search/", {"q": "Report", "rank_by": "date", "page": "2"})
-        self.assertEqual(view._rank_by_url(RANK_BY_RELEVANCE), "?q=Report&rank_by=relevance")
-        self.assertEqual(view._rank_by_url(RANK_BY_DATE), "?q=Report&rank_by=date")
+    def test_rank_by_form_initial_value(self):
+        # default is relevance
+        self.assertEqual(RankByForm()["rank_by"].value(), RANK_BY_RELEVANCE)
+        self.assertEqual(
+            RankByForm(query_dict=QueryDict("rank_by=date"))["rank_by"].value(),
+            RANK_BY_DATE,
+        )
+        # invalid values default to relevance
+        self.assertEqual(
+            RankByForm(query_dict=QueryDict("rank_by=popularity"))["rank_by"].value(),
+            RANK_BY_RELEVANCE,
+        )
+
+    def test_rank_by_form_preserves_get_params_but_drops_page(self):
+        form = RankByForm(query_dict=QueryDict("q=Report&theme=agriculture&theme=water&page=2&rank_by=date"))
+        # params are preserved as hidden inputs except page
+        self.assertEqual(form.hidden_params, [("q", "Report"), ("theme", "agriculture"), ("theme", "water")])
+        # rank_by is preserved as the selected value
+        self.assertEqual(form["rank_by"].value(), RANK_BY_DATE)
 
 
 class FacetedSearchRankingTest(FacetedSearchPaginationTestBase):
