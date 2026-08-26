@@ -51,11 +51,6 @@
       {% endfor %}
       {{ rank_by_form.rank_by.as_field_group }}
     </form>
-    {% if page_obj.paginator.num_pages > 1 %}
-      <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">
-        {% dsfr_pagination page_obj %}
-      </div>
-    {% endif %}
     <ol class="fr-mb-2w"
         start="{{ page_obj.start_index }}"
         style="--list-start: {{ page_obj.start_index }}">
