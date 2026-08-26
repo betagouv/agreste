@@ -113,6 +113,28 @@ upgrade:
 web-prompt:
     {{docker_cmd}} bash
 
+#### Albert API
+
+# Upload documents from DIR to an Albert collection.
+# Requires ALBERT_API_KEY. Collection id: pass COLLECTION_ID or set ALBERT_COLLECTION_ID.
+# Examples:
+#   just upload-albert-docs medias/documents 123456
+#   ALBERT_COLLECTION_ID=123456 just upload-albert-docs medias/documents
+upload-albert-docs DIR COLLECTION_ID="" *ARGS:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ -n "{{COLLECTION_ID}}" ]]; then
+      python scripts/albert/upload_albert_documents.py "{{DIR}}" --collection-id "{{COLLECTION_ID}}" {{ARGS}}
+    else
+      python scripts/albert/upload_albert_documents.py "{{DIR}}" {{ARGS}}
+    fi
+
+# RAG query against Albert (search + chat). Requires ALBERT_API_KEY and
+# ALBERT_COLLECTION_ID (or pass --collection-id via ARGS).
+# Example: just albert-rag-query "ma question" --show-chunk-text
+albert-rag-query QUERY *ARGS:
+    python scripts/albert/albert_rag_query.py "{{QUERY}}" {{ARGS}}
+
 #### Production-related recipes
 
 # Commands run by the Scalingo Procfile.
