@@ -1,19 +1,28 @@
 """Tests for the faceted search results view."""
 
+import zoneinfo
+from datetime import datetime
 from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
-from django.test import RequestFactory
+from django.http import QueryDict
+from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
 from wagtail.models import Page, Site
+from wagtail.rich_text import RichText
 from wagtail.test.utils import WagtailPageTestCase
 
+from faceted_search.forms import RankByForm
+from faceted_search.search import RANK_BY_DATE, RANK_BY_RELEVANCE, get_rank_by_from_querystring
 from faceted_search.tests.test_facets import FacetedSearchTestBase, get_post_titles_in_response
 from faceted_search.views import FacetedSearchResultsView
 from publications.tests.factories import PublicationIndexPageFactory, PublicationPageFactory
+from sites_conformes.core.models import ContentPage
 from sites_conformes.core.tests.test_search import SearchResultsTestCase
+
+PARIS_TZ = zoneinfo.ZoneInfo("Europe/Paris")
 
 
 class FacetedSearchResultsTestCase(SearchResultsTestCase):
@@ -151,3 +160,88 @@ class AccentInsensitiveSearchTest(FacetedSearchPaginationTestBase):
         unaccented = get_post_titles_in_response(self.client.get(self.search_url(query="ble")))
         self.assertEqual(accented, unaccented)
         self.assertIn(self.wheat_page.title, accented)
+
+
+class RankByParamTest(SimpleTestCase):
+    """No DB: ``get_rank_by_from_querystring`` and the ranking form."""
+
+    def test_get_rank_by_from_querystring(self):
+        factory = RequestFactory()
+        # default is relevance
+        self.assertEqual(get_rank_by_from_querystring(factory.get("/search/")), RANK_BY_RELEVANCE)
+        self.assertEqual(
+            get_rank_by_from_querystring(factory.get("/search/", {"rank_by": "relevance"})), RANK_BY_RELEVANCE
+        )
+        self.assertEqual(get_rank_by_from_querystring(factory.get("/search/", {"rank_by": "date"})), RANK_BY_DATE)
+        # invalid values default to relevance
+        self.assertEqual(
+            get_rank_by_from_querystring(factory.get("/search/", {"rank_by": "popularity"})), RANK_BY_RELEVANCE
+        )
+
+    def test_rank_by_form_initial_value(self):
+        # default is relevance
+        self.assertEqual(RankByForm()["rank_by"].value(), RANK_BY_RELEVANCE)
+        self.assertEqual(
+            RankByForm(query_dict=QueryDict("rank_by=date"))["rank_by"].value(),
+            RANK_BY_DATE,
+        )
+        # invalid values default to relevance
+        self.assertEqual(
+            RankByForm(query_dict=QueryDict("rank_by=popularity"))["rank_by"].value(),
+            RANK_BY_RELEVANCE,
+        )
+
+    def test_rank_by_form_preserves_get_params_but_drops_page(self):
+        form = RankByForm(query_dict=QueryDict("q=Report&theme=agriculture&theme=water&page=2&rank_by=date"))
+        # params are preserved as hidden inputs except page
+        self.assertEqual(form.hidden_params, [("q", "Report"), ("theme", "agriculture"), ("theme", "water")])
+        # rank_by is preserved as the selected value
+        self.assertEqual(form["rank_by"].value(), RANK_BY_DATE)
+
+
+class FacetedSearchRankingTest(FacetedSearchPaginationTestBase):
+    """Queryset ranking only (no full page render, to keep runtime down)."""
+
+    search_query = "Report"
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        body = [("paragraph", RichText("<p>Report content for search.</p>"))]
+        cls.content_page = cls.home.add_child(
+            instance=ContentPage(
+                title="Report content page",
+                body=body,
+                slug="report-content-page",
+                owner=cls.admin,
+            )
+        )
+        cls.content_page.save_revision().publish()
+
+        cls.older = PublicationPageFactory(
+            parent=cls.index,
+            owner=cls.admin,
+            title="Older Report",
+            slug="older-report",
+            date=datetime(2020, 1, 1, 12, 0, 0, tzinfo=PARIS_TZ),
+        )
+        cls.newer = PublicationPageFactory(
+            parent=cls.index,
+            owner=cls.admin,
+            title="Newer Report",
+            slug="newer-report",
+            date=datetime(2024, 6, 1, 12, 0, 0, tzinfo=PARIS_TZ),
+        )
+
+    def _result_titles(self, **params):
+        request = RequestFactory().get("/search/", {"q": self.search_query, **params})
+        request.user = AnonymousUser()
+        view = FacetedSearchResultsView()
+        view.request = request
+        view.kwargs = {}
+        return [page.title for page in view.get_queryset()]
+
+    def test_rank_by_date_excludes_content_pages_and_orders_by_date(self):
+        self.assertIn(self.content_page.title, self._result_titles())
+        self.assertIn(self.content_page.title, self._result_titles(rank_by="relevance"))
+        self.assertEqual(self._result_titles(rank_by="date"), [self.newer.title, self.older.title])

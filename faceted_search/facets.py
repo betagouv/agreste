@@ -11,8 +11,9 @@ from django.db.models import Count
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from modelsearch.backends.base import BaseSearchResults
-from wagtail.models import Page, Site
+from wagtail.models import Site
 
+from faceted_search.search import searchable_pages
 from publications.models import Collection, PublicationPage, Theme
 from sites_conformes.blog.models import BlogEntryPage, Category, Organization, Person
 from sites_conformes.core.models import ContentPage, Tag
@@ -112,15 +113,6 @@ def get_facet_selection_from_request(request, site) -> FacetSelection:
     return selection
 
 
-def searchable_pages(request, site):
-    """Live pages under the site root, restricted to public pages for anonymous users."""
-    root = site.root_page.localized
-    queryset = Page.objects.descendant_of(root, inclusive=True).live()
-    if not request.user.is_authenticated:
-        queryset = queryset.public()
-    return queryset
-
-
 def apply_facet_selection(queryset, site, selection: FacetSelection, *, exclude_facet: str | None = None):
     """Apply selected facet values to ``queryset``, optionally skipping one facet."""
     root = site.root_page.localized
@@ -195,8 +187,8 @@ def apply_facet_selection(queryset, site, selection: FacetSelection, *, exclude_
     return queryset
 
 
-def filter_queryset(request, queryset, site):
-    """Apply GET facet params before full-text search (see ``filter_before_search``)."""
+def filter_queryset_for_facets(request, queryset, site):
+    """Apply GET facet params before full-text search."""
     selection = get_facet_selection_from_request(request, site)
     return apply_facet_selection(queryset, site, selection)
 
@@ -463,12 +455,6 @@ def get_facet_context(request, *, enabled_facets: dict[str, bool] | None = None,
         enabled_facets = ENABLED_FACETS
 
     site = Site.find_for_request(request)
-    root = site.root_page.localized
-    locale = root.locale
-    # Includes PublicationPage entries (subclass of BlogEntryPage).
-    blog_entries = BlogEntryPage.objects.descendant_of(root).live()
-    content_pages = ContentPage.objects.descendant_of(root).live()
-    publication_pages = PublicationPage.objects.descendant_of(root).live()
     selection = get_facet_selection_from_request(request, site)
 
     facet_counts: dict[str, dict[int, int]] = {}
@@ -479,6 +465,13 @@ def get_facet_context(request, *, enabled_facets: dict[str, bool] | None = None,
         "enabled_facets": enabled_facets,
         "selected_years": selection.years,
     }
+
+    root = site.root_page.localized
+    locale = root.locale
+    # Includes PublicationPage entries (subclass of BlogEntryPage).
+    blog_entries = BlogEntryPage.objects.descendant_of(root).live()
+    content_pages = ContentPage.objects.descendant_of(root).live()
+    publication_pages = PublicationPage.objects.descendant_of(root).live()
 
     if enabled_facets.get("category"):
         category_ids = blog_entries.values_list("blog_categories", flat=True)
