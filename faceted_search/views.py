@@ -1,7 +1,7 @@
 from django.views.generic import ListView
 from wagtail.models import Page, Site
 
-from faceted_search.facets import filter_queryset, get_facet_context
+from faceted_search.facets import filter_queryset_for_facets, get_facet_context
 from faceted_search.search import (
     RANK_BY_DATE,
     RANK_BY_RELEVANCE,
@@ -35,7 +35,7 @@ class FacetedSearchResultsView(ListView):
         if not query:
             return Page.objects.none()
 
-        object_list = filter_queryset(self.request, searchable_pages(self.request, site), site)
+        object_list = filter_queryset_for_facets(self.request, searchable_pages(self.request, site), site)
         if get_rank_by_from_querystring(self.request) == RANK_BY_DATE:
             # order_by_relevance=False is needed, from Wagtail docs.
             return object_list.order_by("-date").search(query, order_by_relevance=False)
