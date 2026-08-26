@@ -11,8 +11,9 @@ from django.db.models import Count
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from modelsearch.backends.base import BaseSearchResults
-from wagtail.models import Page, Site
+from wagtail.models import Site
 
+from faceted_search.search import searchable_pages
 from publications.models import Collection, PublicationPage, Theme
 from sites_conformes.blog.models import BlogEntryPage, Category, Organization, Person
 from sites_conformes.core.models import ContentPage, Tag
@@ -110,15 +111,6 @@ def get_facet_selection_from_request(request, site) -> FacetSelection:
 
     selection.years = [year for year in request.GET.getlist("year") if _is_valid_year(year)]
     return selection
-
-
-def searchable_pages(request, site):
-    """Live pages under the site root, restricted to public pages for anonymous users."""
-    root = site.root_page.localized
-    queryset = Page.objects.descendant_of(root, inclusive=True).live()
-    if not request.user.is_authenticated:
-        queryset = queryset.public()
-    return queryset
 
 
 def apply_facet_selection(queryset, site, selection: FacetSelection, *, exclude_facet: str | None = None):

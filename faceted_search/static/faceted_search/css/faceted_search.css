@@ -21,6 +21,12 @@
     padding-top: 0.5rem;
 }
 
+.search-rank-by {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
 /* DSFR resets ordered-list counters, so the HTML start attribute is ignored.
    Use a CSS variable so the counter starts from the page's first result number. */
 #search-results ol {

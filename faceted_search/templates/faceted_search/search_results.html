@@ -45,6 +45,14 @@
     <h2>
       {% blocktranslate with per_page=page_obj.paginator.per_page count count=page_obj.paginator.count %}{{ count }} result ({{ per_page }} per page){% plural %}{{ count }} results ({{ per_page }} per page){% endblocktranslate %}
     </h2>
+    <div class="search-rank-by fr-mb-2w">
+      <a class="fr-btn fr-btn--sm{% if rank_by == 'date' %} fr-btn--secondary{% endif %}"
+         href="{{ rank_by_relevance_url }}"
+         {% if rank_by != 'date' %}aria-current="true"{% endif %}>{% translate "Rank by relevance" %}</a>
+      <a class="fr-btn fr-btn--sm{% if rank_by != 'date' %} fr-btn--secondary{% endif %}"
+         href="{{ rank_by_date_url }}"
+         {% if rank_by == 'date' %}aria-current="true"{% endif %}>{% translate "Rank by date" %}</a>
+    </div>
     {% if page_obj.paginator.num_pages > 1 %}
       <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">
         {% dsfr_pagination page_obj %}
