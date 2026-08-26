@@ -13,11 +13,14 @@ from itertools import combinations
 from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.http import Http404
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
-from wagtail.models import Site
+from wagtail.models import Page, Site
+from wagtail.rich_text import RichText
+from wagtail.test.utils import WagtailPageTestCase
 
 from faceted_search.facets import (
     ENABLED_FACETS,
@@ -26,8 +29,15 @@ from faceted_search.facets import (
     get_facet_selection_from_request,
 )
 from faceted_search.views import FacetedSearchResultsView
-from publications.tests.factories import CollectionFactory, ThemeFactory
+from publications.tests.factories import (
+    CollectionFactory,
+    PublicationIndexPageFactory,
+    PublicationPageFactory,
+    ThemeFactory,
+)
 from publications.tests.test_publication_index_page import PublicationIndexPageFilterTestBase
+from sites_conformes.blog.tests.factories import TagFactory
+from sites_conformes.core.models import ContentPage
 from sites_conformes.core.search_view_loader import get_search_results_view
 
 FILTER_CASES = [
@@ -681,3 +691,61 @@ class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
         displayed_themes = [tag for tag in tags if tag in all_theme_names]
         self.assertEqual(len(displayed_themes), 4)
         self.assertIn("+2", tags)
+
+
+class FacetCountsWithRankingTest(WagtailPageTestCase):
+    """Facet counts follow ``searchable_pages`` (ContentPages drop out for ``rank_by=date``).
+
+    Uses RequestFactory only — no full page render.
+    """
+
+    search_query = "Report"
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.home = Page.objects.get(slug="home")
+        cls.admin = get_user_model().objects.create_superuser("rank-counts", "rank@test.test", "pass")
+        cls.index = PublicationIndexPageFactory(parent=cls.home, owner=cls.admin)
+        cls.tag = TagFactory(name="Report-only tag", slug="report-only-tag")
+        cls.theme = ThemeFactory(locale=cls.index.locale, name="Report theme", slug="report-theme")
+
+        content_page = cls.home.add_child(
+            instance=ContentPage(
+                title="Report content page",
+                body=[("paragraph", RichText("<p>Report content for search.</p>"))],
+                slug="report-content-for-counts",
+                owner=cls.admin,
+            )
+        )
+        content_page.tags.add(cls.tag)
+        content_page.save_revision().publish()
+
+        PublicationPageFactory(
+            parent=cls.index,
+            owner=cls.admin,
+            title="Report publication",
+            slug="report-publication-for-counts",
+            themes=[cls.theme],
+        )
+
+    def _counts(self, **params):
+        request = RequestFactory().get("/search/", {"q": self.search_query, **params})
+        request.user = AnonymousUser()
+        site = Site.objects.get(is_default_site=True)
+        selection = get_facet_selection_from_request(request, site)
+        return compute_facet_result_counts(
+            request,
+            site,
+            self.search_query,
+            selection,
+            enabled_facets={**dict.fromkeys(ENABLED_FACETS, False), "tag": True, "theme": True},
+        )
+
+    def test_date_ranking_excludes_content_pages_from_tag_counts(self):
+        relevance = self._counts()
+        self.assertEqual(relevance["tag"].get(self.tag.pk, 0), 1)
+        self.assertEqual(relevance["theme"].get(self.theme.pk, 0), 1)
+
+        by_date = self._counts(rank_by="date")
+        self.assertEqual(by_date["tag"].get(self.tag.pk, 0), 0)
+        self.assertEqual(by_date["theme"].get(self.theme.pk, 0), 1)
