@@ -94,6 +94,18 @@ run_gunicorn host_url=host_url host_port=host_port script_name=script_name:
 shell:
     {{docker_cmd}} {{uv_run}} python manage.py shell
 
+# Re-vendor the TarteAuCitron JS library from the installed npm package
+sync-tarteaucitron:
+    {{docker_cmd}} npm ci
+    cd scripts && bash sync_tarteaucitron.sh
+
+# During a merge: keep our deletion for "deleted by us" (DU) conflicts under path.
+# Example: just accept-deleted-by-us sites_conformes/static/lib/tarteaucitronjs
+#          just accept-deleted-by-us demo
+[group('Git')]
+accept-deleted-by-us path:
+    bash scripts/accept_deleted_by_us.sh "{{path}}"
+
 test app="":
     {{docker_cmd}} {{uv_run}} python manage.py test {{app}} --buffer --parallel --settings config.settings_test
 
