@@ -7,9 +7,11 @@ Releases are tagged commits in `production-agreste` branch, with a release creat
 In code, whe agreste version is in agreste_version.txt, while pyproject.toml still has SC's version (for now).
 Version format : the first three numbers are the Agreste version, the second three are the Sites Conformes version (`${agreste_version}-{SC_version}`). Example : 2.8.0-4.1.0
 
-## To upgrade Sites Conformes : 
- - Merge upstream's `production` into `main-agreste`, by making a PR : https://github.com/betagouv/agreste/compare/main-agreste...numerique-gouv:production. This will make sure you run the CI.
-    - if the merge has conflicts, give up that PR. Create a branch from main-agreste, call it `merge-sites-conformes-< version >`, and do the merge with multiple commits if needed. 
+## To upgrade Sites Conformes
+
+- Merge upstream's `production` into `main-agreste`, by making a PR : <https://github.com/betagouv/agreste/compare/main-agreste...numerique-gouv:production>. This will make sure you run the CI.
+  - if the merge has conflicts, give up that PR. Create a branch from main-agreste, call it `merge-sites-conformes-< version >`, and do the merge with multiple commits if needed.
+
     ```
     SC_VERSION="4.1.0";
     git fetch upstream production; # get latest changes
@@ -17,10 +19,13 @@ Version format : the first three numbers are the Agreste version, the second thr
     git checkout -B merge-sites-conformes-$SC_VERSION
     git merge upstream/production
     ```
-    - Then merge that branch into `main-agreste` with a PR : `gh pr create`
 
-## To create a release :
-  - Update the version number in `agreste_version.txt` : 
+  - Then merge that branch into `main-agreste` with a PR : `gh pr create`
+
+## To create a release
+
+- Update the version number in `agreste_version.txt` :
+
   ```
   VERSION="2.8.0-4.1.0"; # ${agreste_version}-{SC_version}
   git checkout main-agreste; git pull; 
@@ -29,12 +34,14 @@ Version format : the first three numbers are the Agreste version, the second thr
   git commit -m "Bump version to $VERSION"; 
   git push
   ```
-  - Open a PR to merge `main-agreste` into `production-agreste`
-    - `gh pr create --base production-agreste --head main-agreste --title "v$VERSION" --body ""`
+
+- Open a PR to merge `main-agreste` into `production-agreste`
+  - `gh pr create --base production-agreste --head main-agreste --title "v$VERSION" --body ""`
     The name is the version number ("v2.8.0-4.1.0") and will be picked up automatically to name the version and tag.
-    - Solve any conflicts and merge. This will trigger a github action that will create the release and tag. If the auto-deploy is configured on Scalingo, it will deploy the release.
+  - Solve any conflicts and merge. This will trigger a github action that will create the release and tag. If the auto-deploy is configured on Scalingo, it will deploy the release.
 
 -----
+
 # Sites Conformes
 
 **Sites Conformes** (anciennement « Sites Faciles ») vise à permettre la
@@ -52,6 +59,7 @@ Sites Conformes vise à utiliser les dernières versions disponibles de
 [Django (6.0+)](https://www.djangoproject.com/download/) et [Wagtail](https://docs.wagtail.org/en/stable/releases/upgrading.html).
 
 Les tests automatisés couvrent les versions suivantes :
+
 - Python 3.10 à 3.14 (cf. [versions de Python supportées par Django](https://docs.djangoproject.com/en/5.2/faq/install/))
 - PostgreSQL 14 à 17 (cf. [versions de PostgreSQL supportées par Django](https://code.djangoproject.com/wiki/SupportedDatabaseVersions))
 
@@ -66,6 +74,7 @@ Les tests automatisés couvrent les versions suivantes :
 - Pour les sauvegardes et le stockage des médias, voir la [gestion des données](https://numerique-gouv.github.io/sites-conformes/donnees/index.md)
 
 ## Architecture
+
 [![Made with Django](https://img.shields.io/badge/Made%20with-Django-0C4B33.svg)](https://www.djangoproject.com/)
 [![Made with Wagtail](https://img.shields.io/badge/Made%20with-Wagtail-0F7676.svg)](https://wagtail.io/)
 
