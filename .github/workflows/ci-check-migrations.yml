@@ -45,4 +45,3 @@ jobs:
       - name: 🚧 Check pending migrations
         run: |
           uv run django-admin makemigrations --check --dry-run --noinput
-

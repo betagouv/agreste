@@ -31,4 +31,3 @@ jobs:
         run: |
           just sync-tarteaucitron
           git diff --exit-code sites_conformes/static/lib/tarteaucitronjs/
-

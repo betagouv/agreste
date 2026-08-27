@@ -14,4 +14,3 @@ jobs:
         with:
           publiccode: 'publiccode.yml'
         continue-on-error: true
-

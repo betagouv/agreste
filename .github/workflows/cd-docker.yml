@@ -40,4 +40,3 @@ jobs:
             ${{ env.TAG_NO_V && format('ghcr.io/{0}/sites-conformes:{1}', env.GITHUB_REPOSITORY_OWNER_PART_SLUG, env.TAG_NO_V) || '' }}
           cache-from: type=registry,ref=ghcr.io/${{ env.GITHUB_REPOSITORY_OWNER_PART_SLUG }}/sites-conformes:${{ env.GITHUB_REF_SLUG }}
           cache-to: type=inline
-
