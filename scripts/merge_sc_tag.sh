@@ -19,7 +19,6 @@ if [ "${USE_DOCKER:-0}" = "1" ]; then
     docker_prefix=(docker compose exec -ti web)
 fi
 
-echo "==> Merging Sites Conformes v${SC_VERSION} into ${BRANCH}"
 
 git fetch upstream --tags
 if ! git rev-parse -q --verify "refs/tags/v${SC_VERSION}" >/dev/null; then
@@ -33,6 +32,7 @@ git checkout -B "${BRANCH}"
 echo "==> Publishing empty branch on origin (pre-merge)"
 git push -u origin "HEAD:${BRANCH}"
 
+echo "==> Merging Sites Conformes v${SC_VERSION} into ${BRANCH}"
 set +e
 git merge "v${SC_VERSION}"
 merge_status=$?
@@ -45,8 +45,9 @@ if [ "$merge_status" -ne 0 ]; then
     echo "==> Merge stopped with conflicts; applying known resolutions…"
 fi
 
-just accept-deleted-by-us demo
-just accept-deleted-by-us sites_conformes/static/lib/tarteaucitronjs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+bash "${SCRIPT_DIR}/accept_deleted_by_us.sh" demo
+bash "${SCRIPT_DIR}/accept_deleted_by_us.sh" sites_conformes/static/lib/tarteaucitronjs
 
 # Always keep Agreste's package.json; never take upstream changes.
 echo "==> package.json: forcing ours (main-agreste)"
