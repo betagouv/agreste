@@ -587,6 +587,7 @@ WAGTAILTRANSFER_LOOKUP_FIELDS = {
     "auth.user": ["username"],
 }
 
+
 # Sentry
 if sentry_dsn := os.getenv("SENTRY_DSN"):
     import sentry_sdk  # noqa: E402
