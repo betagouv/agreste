@@ -13,21 +13,19 @@ Example : 2.8.0-4.1.0
 
 ## To upgrade Sites Conformes
 
-- Merge upstream's `production` into `main-agreste`, by making a PR.
-This will make sure you run the CI.
-  - if the merge has conflicts, give up that PR. Create a branch from
-  main-agreste, call it `merge-sites-conformes-< version >`, and do the merge
-  with multiple commits if needed.
+- Start the merge from `main-agreste`:
 
-    ```sh
-    SC_VERSION="4.1.0";
-    git fetch upstream production; # get latest changes
-    git checkout main-agreste; git pull; 
-    git checkout -B merge-sites-conformes-$SC_VERSION
-    git merge upstream/production
-    ```
+  ```sh
+  just upgrade-sc 4.2.0-rc1
+  ```
 
-  - Then merge that branch into `main-agreste` with a PR : `gh pr create`
+  This will attempt to merge the given tag from SC into main-agreste, and
+  resolve known conflicts (uv.lock and deleted code : demo/, tarteaucitron lib,
+  package.json, uv.lock) and makemigrations.
+
+- Review remaining changes (especially any new migrations), commit, push
+
+- `gh pr create` to open a PR. Pass the CI and merge.
 
 ## To create a release
 
