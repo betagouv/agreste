@@ -128,87 +128,10 @@ accept-deleted-by-us path:
 
 # Merge Sites Conformes tag v<version> into a fresh branch from main-agreste.
 # Resolves known Agreste paths (deleted demo/tarteaucitron, ours package.json, uv.lock).
-# Example: just upgrade-sc 4.2.0-rc1
+# Example: just merge-sc-tag 4.2.0-rc1
 [group('Git')]
-upgrade-sc version:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    SC_VERSION="{{version}}"
-    echo "==> Merging Sites Conformes v${SC_VERSION} into merge-sites-conformes-${SC_VERSION}"
-
-    git fetch upstream --tags
-    if ! git rev-parse -q --verify "refs/tags/v${SC_VERSION}" >/dev/null; then
-        echo "ERROR: tag v${SC_VERSION} not found on upstream (after fetch --tags)" >&2
-        exit 1
-    fi
-
-    git checkout main-agreste
-    git pull
-    git checkout -B "merge-sites-conformes-${SC_VERSION}"
-    echo "==> Publishing empty branch on origin (pre-merge)"
-    git push -u origin "HEAD:merge-sites-conformes-${SC_VERSION}"
-
-    set +e
-    git merge "v${SC_VERSION}"
-    merge_status=$?
-    set -e
-    if [ "$merge_status" -ne 0 ]; then
-        if ! git rev-parse -q --verify MERGE_HEAD >/dev/null; then
-            echo "ERROR: merge failed (not a conflict state)" >&2
-            exit "$merge_status"
-        fi
-        echo "==> Merge stopped with conflicts; applying known resolutions…"
-    fi
-
-    just accept-deleted-by-us demo
-    just accept-deleted-by-us sites_conformes/static/lib/tarteaucitronjs
-
-    # Always keep Agreste's package.json; never take upstream changes.
-    echo "==> package.json: forcing ours (main-agreste)"
-    git checkout main-agreste -- package.json
-    git add -- package.json
-
-    if git ls-files -u -- uv.lock | grep -q .; then
-        echo "==> uv.lock: taking theirs, then regenerating"
-        git checkout --theirs -- uv.lock
-        git add -- uv.lock
-    else
-        echo "==> uv.lock: no conflict"
-    fi
-    {{docker_cmd}} uv lock
-    {{docker_cmd}} uv sync
-    git add -- uv.lock
-
-    echo "==> Running makemigrations"
-    just makemigrations
-    migrations_changed="$(git status --porcelain -- '**/migrations/*.py' || true)"
-    if [ -n "${migrations_changed}" ]; then
-        echo ""
-        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        echo "!!  WARNING: makemigrations created or modified migrations  !!"
-        echo "!!  This is not necessarily an error — review carefully.    !!"
-        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        echo "${migrations_changed}"
-        echo ""
-    else
-        echo "==> No new migrations"
-    fi
-
-    remaining="$(git diff --name-only --diff-filter=U || true)"
-    if [ -n "${remaining}" ]; then
-        echo ""
-        echo "==> Remaining unresolved conflicts:"
-        echo "${remaining}"
-        exit 1
-    fi
-
-    if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
-        # merge had conflicts, but they are resolved. The changes are uncommitted.
-        echo "==> Conflicts resolved."
-    else
-        # merge had no conflicts, so the commit is already done
-        echo "==> Done. Review the merge, then: git push"
-    fi
+merge-sc-tag version:
+    bash scripts/merge_sc_tag.sh "{{version}}"
 
 test app="":
     {{docker_cmd}} {{uv_run}} python manage.py test {{app}} --buffer --parallel --settings config.settings_test

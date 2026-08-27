@@ -16,7 +16,7 @@ Example : 2.8.0-4.1.0
 - Start the merge from `main-agreste`:
 
   ```sh
-  just upgrade-sc 4.2.0-rc1
+  just merge-sc-tag 4.2.0-rc1
   ```
 
   This will attempt to merge the given tag from SC into main-agreste, and
