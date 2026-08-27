@@ -22,6 +22,20 @@ run_uv() {
     fi
 }
 
+run_manage() {
+    if [ "${USE_DOCKER:-0}" = "1" ]; then
+        if [ "${USE_UV:-0}" = "1" ]; then
+            docker compose exec -ti web uv run python manage.py "$@"
+        else
+            docker compose exec -ti web python manage.py "$@"
+        fi
+    elif [ "${USE_UV:-0}" = "1" ]; then
+        uv run python manage.py "$@"
+    else
+        python manage.py "$@"
+    fi
+}
+
 
 git fetch upstream --tags
 if ! git rev-parse -q --verify "refs/tags/v${SC_VERSION}" >/dev/null; then
@@ -74,7 +88,12 @@ else
 fi
 
 echo "==> Running makemigrations"
-just makemigrations
+if git ls-files -u -- justfile | grep -q .; then
+    echo "==> justfile is conflicted; calling manage.py makemigrations directly"
+    run_manage makemigrations
+else
+    just makemigrations
+fi
 migrations_changed="$(git status --porcelain -- '**/migrations/*.py' || true)"
 if [ -n "${migrations_changed}" ]; then
     echo ""
