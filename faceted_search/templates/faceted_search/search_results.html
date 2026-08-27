@@ -45,11 +45,12 @@
     <h2>
       {% blocktranslate with per_page=page_obj.paginator.per_page count count=page_obj.paginator.count %}{{ count }} result ({{ per_page }} per page){% plural %}{{ count }} results ({{ per_page }} per page){% endblocktranslate %}
     </h2>
-    {% if page_obj.paginator.num_pages > 1 %}
-      <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">
-        {% dsfr_pagination page_obj %}
-      </div>
-    {% endif %}
+    <form method="get" class="search-rank-by fr-mb-2w">
+      {% for key, value in rank_by_form.hidden_params %}
+        <input type="hidden" name="{{ key }}" value="{{ value }}" />
+      {% endfor %}
+      {{ rank_by_form.rank_by.as_field_group }}
+    </form>
     <ol class="fr-mb-2w"
         start="{{ page_obj.start_index }}"
         style="--list-start: {{ page_obj.start_index }}">
