@@ -14,35 +14,69 @@ fi
 SC_VERSION="$1"
 BRANCH="merge-sites-conformes-${SC_VERSION}-test" # todo
 
-docker_prefix=()
-if [ "${USE_DOCKER:-0}" = "1" ]; then
-    docker_prefix=(docker compose exec -ti web)
-fi
-
-echo "==> Merging Sites Conformes v${SC_VERSION} into ${BRANCH}"
-
-git fetch upstream --tags
-if ! git rev-parse -q --verify "refs/tags/v${SC_VERSION}" >/dev/null; then
-    echo "ERROR: tag v${SC_VERSION} not found on upstream (after fetch --tags)" >&2
-    exit 1
-fi
-
-#git checkout main-agreste # todo
-#git pull # todo
-git checkout -B "${BRANCH}"
-echo "==> Publishing empty branch on origin (pre-merge)"
-git push -u origin "HEAD:${BRANCH}"
-
-set +e
-git merge "v${SC_VERSION}"
-merge_status=$?
-set -e
-if [ "$merge_status" -ne 0 ]; then
-    if ! git rev-parse -q --verify MERGE_HEAD >/dev/null; then
-        echo "ERROR: merge failed (not a conflict state)" >&2
-        exit "$merge_status"
+run_uv() {
+    if [ "${USE_DOCKER:-0}" = "1" ]; then
+        docker compose exec -ti web uv "$@"
+    else
+        uv "$@"
     fi
-    echo "==> Merge stopped with conflicts; applying known resolutions…"
+}
+
+current_branch="$(git branch --show-current)"
+if [ "${current_branch}" = "${BRANCH}" ] && git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+    echo "==> Already on ${BRANCH} with a merge in progress; resuming resolutions…"
+else
+    git fetch upstream --tags
+    if ! git rev-parse -q --verify "refs/tags/v${SC_VERSION}" >/dev/null; then
+        echo "ERROR: tag v${SC_VERSION} not found on upstream (after fetch --tags)" >&2
+        exit 1
+    fi
+
+    #git checkout main-agreste # todo
+    #git pull # todo
+    git checkout -B "${BRANCH}"
+    echo "==> Publishing empty branch on origin (pre-merge)"
+    git push -u origin "HEAD:${BRANCH}"
+
+    echo "==> Merging Sites Conformes v${SC_VERSION} into ${BRANCH}"
+    set +e
+    git merge "v${SC_VERSION}"
+    merge_status=$?
+    set -e
+    if [ "$merge_status" -ne 0 ]; then
+        if ! git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+            echo "ERROR: merge failed (not a conflict state)" >&2
+            exit "$merge_status"
+        fi
+        echo "==> Merge stopped with conflicts; applying known resolutions…"
+    fi
+fi
+
+blocked=()
+for required in justfile pyproject.toml config/settings.py; do
+    if git ls-files -u -- "$required" | grep -q .; then
+        blocked+=("$required")
+    fi
+done
+if [ "${#blocked[@]}" -gt 0 ]; then
+    echo ""
+    echo "================================================================"
+    echo "  Manual conflict resolution required before continuing"
+    echo "================================================================"
+    echo ""
+    echo "  The following file(s) still have merge conflicts:"
+    echo ""
+    for f in "${blocked[@]}"; do
+        echo "    - ${f}"
+    done
+    echo ""
+    echo "  Resolve them, then re-run:"
+    echo ""
+    echo "    just merge-sc-tag ${SC_VERSION}"
+    echo ""
+    echo "================================================================"
+    echo ""
+    exit 1
 fi
 
 just accept-deleted-by-us demo
@@ -58,10 +92,10 @@ if git ls-files -u -- uv.lock | grep -q .; then
     git checkout --theirs -- uv.lock
     git add -- uv.lock
 else
-    echo "==> uv.lock: no conflict"
+    echo "==> uv.lock: no conflict; regenerating from pyproject.toml"
 fi
-"${docker_prefix[@]}" uv lock
-"${docker_prefix[@]}" uv sync
+run_uv lock
+run_uv sync
 git add -- uv.lock
 
 echo "==> Running makemigrations"
@@ -82,9 +116,14 @@ fi
 remaining="$(git diff --name-only --diff-filter=U || true)"
 if [ -n "${remaining}" ]; then
     echo ""
-    echo "==> Remaining unresolved conflicts:"
+    echo "==> Remaining unresolved conflicts (resolve manually, then commit the merge and push):"
     echo "${remaining}"
-    exit 1
+    if [ -n "${migrations_changed}" ]; then
+        echo ""
+        echo "==> Reminder: review the migrations created or modified above."
+        echo ""
+    fi
+    exit 0
 fi
 
 if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
@@ -92,7 +131,14 @@ if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
     echo "==> Conflicts resolved. Review the tree, then finish with:"
     echo "    git add -A && git commit  # conclude the merge"
     echo "    git push                # branch already tracks origin"
+    echo ""
 else
     # Merge had no conflicts, so the merge commit is already done.
     echo "==> Done. Review the merge, then: git push"
+    echo ""
+fi
+if [ -n "${migrations_changed}" ]; then
+    echo ""
+    echo "==> Reminder: review the migrations created or modified by makemigrations."
+    echo ""
 fi
