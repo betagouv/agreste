@@ -22,20 +22,6 @@ run_uv() {
     fi
 }
 
-run_manage() {
-    if [ "${USE_DOCKER:-0}" = "1" ]; then
-        if [ "${USE_UV:-0}" = "1" ]; then
-            docker compose exec -ti web uv run python manage.py "$@"
-        else
-            docker compose exec -ti web python manage.py "$@"
-        fi
-    elif [ "${USE_UV:-0}" = "1" ]; then
-        uv run python manage.py "$@"
-    else
-        python manage.py "$@"
-    fi
-}
-
 
 git fetch upstream --tags
 if ! git rev-parse -q --verify "refs/tags/v${SC_VERSION}" >/dev/null; then
@@ -62,38 +48,34 @@ if [ "$merge_status" -ne 0 ]; then
     echo "==> Merge stopped with conflicts; applying known resolutions…"
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-bash "${SCRIPT_DIR}/accept_deleted_by_us.sh" demo
-bash "${SCRIPT_DIR}/accept_deleted_by_us.sh" sites_conformes/static/lib/tarteaucitronjs
+for required in justfile pyproject.toml; do
+    if git ls-files -u -- "$required" | grep -q .; then
+        echo "ERROR: ${required} has merge conflicts. Resolve it manually, then re-run." >&2
+        exit 1
+    fi
+done
+
+just accept-deleted-by-us demo
+just accept-deleted-by-us sites_conformes/static/lib/tarteaucitronjs
 
 # Always keep Agreste's package.json; never take upstream changes.
 echo "==> package.json: forcing ours (main-agreste)"
 git checkout main-agreste -- package.json
 git add -- package.json
 
-if git ls-files -u -- pyproject.toml | grep -q .; then
-    echo "==> Skipping uv.lock resolution: pyproject.toml is still conflicted"
-elif git ls-files -u -- uv.lock | grep -q .; then
+if git ls-files -u -- uv.lock | grep -q .; then
     echo "==> uv.lock: taking theirs, then regenerating"
     git checkout --theirs -- uv.lock
     git add -- uv.lock
-    run_uv lock
-    run_uv sync
-    git add -- uv.lock
 else
     echo "==> uv.lock: no conflict; regenerating from pyproject.toml"
-    run_uv lock
-    run_uv sync
-    git add -- uv.lock
 fi
+run_uv lock
+run_uv sync
+git add -- uv.lock
 
 echo "==> Running makemigrations"
-if git ls-files -u -- justfile | grep -q .; then
-    echo "==> justfile is conflicted; calling manage.py makemigrations directly"
-    run_manage makemigrations
-else
-    just makemigrations
-fi
+just makemigrations
 migrations_changed="$(git status --porcelain -- '**/migrations/*.py' || true)"
 if [ -n "${migrations_changed}" ]; then
     echo ""
