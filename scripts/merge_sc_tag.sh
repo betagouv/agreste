@@ -12,7 +12,7 @@ if [ "$#" -ne 1 ]; then
 fi
 
 SC_VERSION="$1"
-BRANCH="merge-sites-conformes-${SC_VERSION}-test" # todo
+BRANCH="merge-sites-conformes-${SC_VERSION}"
 
 run_uv() {
     if [ "${USE_DOCKER:-0}" = "1" ]; then
@@ -32,8 +32,36 @@ else
         exit 1
     fi
 
-    #git checkout main-agreste # todo
-    #git pull # todo
+    git fetch origin main-agreste
+    warnings=()
+    if [ "${current_branch}" != "main-agreste" ]; then
+        warnings+=("current branch is '${current_branch}', expected 'main-agreste'")
+    fi
+    head_sha="$(git rev-parse HEAD)"
+    origin_sha="$(git rev-parse origin/main-agreste)"
+    if [ "${head_sha}" != "${origin_sha}" ]; then
+        warnings+=("HEAD (${head_sha:0:7}) is not at origin/main-agreste (${origin_sha:0:7})")
+    fi
+    if [ "${#warnings[@]}" -gt 0 ]; then
+        echo ""
+        echo "================================================================"
+        echo "  Warning: you arenot on latest origin/main-agreste"
+        echo "================================================================"
+        echo ""
+        for w in "${warnings[@]}"; do
+            echo "    - ${w}"
+        done
+        echo ""
+        echo "  Merge branch ${BRANCH} will be created from the current HEAD."
+        echo ""
+        read -r -p "  Continue anyway? [y/N] " reply
+        echo ""
+        if [[ ! "${reply}" =~ ^[Yy]$ ]]; then
+            echo "Aborted."
+            exit 1
+        fi
+    fi
+
     git checkout -B "${BRANCH}"
     echo "==> Publishing empty branch on origin (pre-merge)"
     git push -u origin "HEAD:${BRANCH}"
