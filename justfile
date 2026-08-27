@@ -47,6 +47,26 @@ import_domain_whitelist:
 index:
     {{docker_cmd}} {{uv_run}} python manage.py update_index
 
+# Create .env from .env.example with a generated SECRET_KEY (never overwrites an existing .env)
+setup-env:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -f .env ]; then
+        echo ".env existe déjà, on n'écrase rien."
+        exit 0
+    fi
+    cp .env.example .env
+    python3 -c "import secrets,pathlib; c='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#%^&*(-_=+)'; k=''.join(secrets.choice(c) for _ in range(50)); p=pathlib.Path('.env'); p.write_text('\n'.join('SECRET_KEY='+k if l.startswith('SECRET_KEY=') else l for l in p.read_text().splitlines())+'\n')"
+    echo "✅ .env créé et SECRET_KEY générée."
+
+# Create the PostgreSQL user and database defined in .env (DATABASE_USER / DATABASE_PASSWORD / DATABASE_NAME)
+setup-db:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    psql -U postgres -c "CREATE USER ${DATABASE_USER} WITH CREATEDB LOGIN PASSWORD '${DATABASE_PASSWORD}';"
+    psql -U postgres -c "CREATE DATABASE ${DATABASE_NAME} OWNER ${DATABASE_USER};"
+    echo "✅ Utilisateur et base PostgreSQL créés (${DATABASE_USER} / ${DATABASE_NAME})."
+
 init:
     {{docker_cmd}} uv sync --no-group dev
     just deploy
@@ -61,9 +81,9 @@ alias messages := makemessages
 [group('Internationalization')]
 makemessages:
     {{docker_cmd}} {{uv_run}} python manage.py makemessages -l fr --ignore=manage.py --ignore=config --ignore=medias --ignore=__init__.py --ignore=setup.py --ignore=staticfiles --ignore=docs --no-location
-    {{docker_cmd}} {{uv_run}} python manage.py makemessages -d djangojs -l fr --ignore=config --ignore=medias --ignore=staticfiles --ignore=docs --no-location
+    {{docker_cmd}} {{uv_run}} python manage.py makemessages -d djangojs -l fr --ignore=config --ignore=medias --ignore=staticfiles --ignore=docs --ignore=node_modules --no-location
 
-alias mm:= makemigrations
+alias mm := makemigrations
 makemigrations app="":
     {{docker_cmd}} {{uv_run}} python manage.py makemigrations {{app}}
 
@@ -120,6 +140,7 @@ upgrade:
     {{docker_cmd}} uv lock --upgrade
     {{docker_cmd}} {{uv_run}} pre-commit autoupdate
     {{docker_cmd}} npm update
+    just sync-tarteaucitron
     {{docker_cmd}} uv lock --upgrade --project ./demo
 
 web-prompt:
@@ -142,6 +163,11 @@ scalingo-postdeploy:
     python manage.py update_index
 
 #### Audit-related recipes
+
+# Run the Django system check framework
+[group('Code audit')]
+check +apps="":
+    {{docker_cmd}} {{uv_run}} python manage.py check {{apps}}
 
 # Run a global pre-commit
 [group('Code audit')]
@@ -237,3 +263,17 @@ restore-prod-db:
 [group('Dev DB and medias management')]
 restore-prod-medias:
     cd scripts && bash restore_prod_medias.sh
+
+#### Documentation-related recipes
+
+# Build the documentation and serve it locally with live reload (opens the browser)
+[group('Documentation')]
+docs:
+    uv run --no-project --with-requirements docs/requirements.txt --with sphinx-autobuild \
+        sphinx-autobuild docs docs/_build/html --open-browser
+
+# Build the documentation once (HTML written to docs/_build/html)
+[group('Documentation')]
+docs-build:
+    uv run --no-project --with-requirements docs/requirements.txt \
+        sphinx-build -b html -a docs docs/_build/html
