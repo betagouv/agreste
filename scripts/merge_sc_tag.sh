@@ -57,16 +57,21 @@ echo "==> package.json: forcing ours (main-agreste)"
 git checkout main-agreste -- package.json
 git add -- package.json
 
-if git ls-files -u -- uv.lock | grep -q .; then
+if git ls-files -u -- pyproject.toml | grep -q .; then
+    echo "==> Skipping uv.lock resolution: pyproject.toml is still conflicted"
+elif git ls-files -u -- uv.lock | grep -q .; then
     echo "==> uv.lock: taking theirs, then regenerating"
     git checkout --theirs -- uv.lock
     git add -- uv.lock
+    run_uv lock
+    run_uv sync
+    git add -- uv.lock
 else
-    echo "==> uv.lock: no conflict"
+    echo "==> uv.lock: no conflict; regenerating from pyproject.toml"
+    run_uv lock
+    run_uv sync
+    git add -- uv.lock
 fi
-run_uv lock
-run_uv sync
-git add -- uv.lock
 
 echo "==> Running makemigrations"
 just makemigrations
