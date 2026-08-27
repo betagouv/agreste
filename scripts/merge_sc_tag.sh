@@ -14,10 +14,13 @@ fi
 SC_VERSION="$1"
 BRANCH="merge-sites-conformes-${SC_VERSION}-test" # todo
 
-docker_prefix=()
-if [ "${USE_DOCKER:-0}" = "1" ]; then
-    docker_prefix=(docker compose exec -ti web)
-fi
+run_uv() {
+    if [ "${USE_DOCKER:-0}" = "1" ]; then
+        docker compose exec -ti web uv "$@"
+    else
+        uv "$@"
+    fi
+}
 
 
 git fetch upstream --tags
@@ -61,8 +64,8 @@ if git ls-files -u -- uv.lock | grep -q .; then
 else
     echo "==> uv.lock: no conflict"
 fi
-"${docker_prefix[@]}" uv lock
-"${docker_prefix[@]}" uv sync
+run_uv lock
+run_uv sync
 git add -- uv.lock
 
 echo "==> Running makemigrations"
