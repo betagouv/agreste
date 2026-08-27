@@ -2,17 +2,24 @@
 
 Forké depuis Sites Conformes (voir ci dessous)
 
-Releases are tagged commits in `production-agreste` branch, with a release created on github.
+Releases are tagged commits in `production-agreste` branch, with a release
+created on github.
 
-In code, whe agreste version is in agreste_version.txt, while pyproject.toml still has SC's version (for now).
-Version format : the first three numbers are the Agreste version, the second three are the Sites Conformes version (`${agreste_version}-{SC_version}`). Example : 2.8.0-4.1.0
+In code, whe agreste version is in agreste_version.txt, while pyproject.toml
+still has SC's version (for now).
+Version format : the first three numbers are the Agreste version, the second
+three are the Sites Conformes version (`${agreste_version}-{SC_version}`).
+Example : 2.8.0-4.1.0
 
 ## To upgrade Sites Conformes
 
-- Merge upstream's `production` into `main-agreste`, by making a PR : <https://github.com/betagouv/agreste/compare/main-agreste...numerique-gouv:production>. This will make sure you run the CI.
-  - if the merge has conflicts, give up that PR. Create a branch from main-agreste, call it `merge-sites-conformes-< version >`, and do the merge with multiple commits if needed.
+- Merge upstream's `production` into `main-agreste`, by making a PR.
+This will make sure you run the CI.
+  - if the merge has conflicts, give up that PR. Create a branch from
+  main-agreste, call it `merge-sites-conformes-< version >`, and do the merge
+  with multiple commits if needed.
 
-    ```
+    ```sh
     SC_VERSION="4.1.0";
     git fetch upstream production; # get latest changes
     git checkout main-agreste; git pull; 
@@ -26,7 +33,7 @@ Version format : the first three numbers are the Agreste version, the second thr
 
 - Update the version number in `agreste_version.txt` :
 
-  ```
+  ```sh
   VERSION="2.8.0-4.1.0"; # ${agreste_version}-{SC_version}
   git checkout main-agreste; git pull; 
   echo $VERSION > agreste_version.txt; 
@@ -36,13 +43,17 @@ Version format : the first three numbers are the Agreste version, the second thr
   ```
 
 - Open a PR to merge `main-agreste` into `production-agreste`
+  <!-- markdownlint-disable-next-line MD013 -->
   - `gh pr create --base production-agreste --head main-agreste --title "v$VERSION" --body ""`
-    The name is the version number ("v2.8.0-4.1.0") and will be picked up automatically to name the version and tag.
-  - Solve any conflicts and merge. This will trigger a github action that will create the release and tag. If the auto-deploy is configured on Scalingo, it will deploy the release.
+    The name is the version number ("v2.8.0-4.1.0") and will be picked up
+    automatically to name the version and tag.
+  - Solve any conflicts and merge. This will trigger a github action that will
+  create the release and tag. If the auto-deploy is configured on Scalingo, it
+  will deploy the release.
 
 -----
 
-# Sites Conformes
+## Sites Conformes
 
 **Sites Conformes** (anciennement « Sites Faciles ») vise à permettre la
 création simplifiée de **sites dont le domaine se termine par .gouv.fr**.
@@ -102,7 +113,7 @@ documentation dédiée : [`NOTIFICATIONS.md`](./docs/notifications.md).
 Ce projet utilise le DSFR et est donc tenu par les conditions d’utilisations
 suivantes :
 
-#### ⚠️ Utilisation interdite en dehors des sites Internet de l’État
+### ⚠️ Utilisation interdite en dehors des sites Internet de l’État
 
 >Il est formellement interdit à tout autre acteur d’utiliser le
 Système de Design de l’État (les administrations territoriales ou tout autre
