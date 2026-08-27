@@ -118,8 +118,10 @@ if [ -n "${remaining}" ]; then
     echo ""
     echo "==> Remaining unresolved conflicts (resolve manually, then commit the merge and push):"
     echo "${remaining}"
-    echo ""
-    echo "==> Reminder: review any migrations created or modified above."
+    if [ -n "${migrations_changed}" ]; then
+        echo ""
+        echo "==> Reminder: review the migrations created or modified above."
+    fi
     exit 0
 fi
 
@@ -132,5 +134,7 @@ else
     # Merge had no conflicts, so the merge commit is already done.
     echo "==> Done. Review the merge, then: git push"
 fi
-echo ""
-echo "==> Reminder: review any migrations created or modified by makemigrations."
+if [ -n "${migrations_changed}" ]; then
+    echo ""
+    echo "==> Reminder: review the migrations created or modified by makemigrations."
+fi
