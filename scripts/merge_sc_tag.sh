@@ -52,12 +52,32 @@ else
     fi
 fi
 
+blocked=()
 for required in justfile pyproject.toml config/settings.py; do
     if git ls-files -u -- "$required" | grep -q .; then
-        echo "ERROR: ${required} has merge conflicts. Resolve it manually, then re-run this script." >&2
-        exit 1
+        blocked+=("$required")
     fi
 done
+if [ "${#blocked[@]}" -gt 0 ]; then
+    echo ""
+    echo "================================================================"
+    echo "  Manual conflict resolution required before continuing"
+    echo "================================================================"
+    echo ""
+    echo "  The following file(s) still have merge conflicts:"
+    echo ""
+    for f in "${blocked[@]}"; do
+        echo "    - ${f}"
+    done
+    echo ""
+    echo "  Resolve them, then re-run:"
+    echo ""
+    echo "    just merge-sc-tag ${SC_VERSION}"
+    echo ""
+    echo "================================================================"
+    echo ""
+    exit 1
+fi
 
 just accept-deleted-by-us demo
 just accept-deleted-by-us sites_conformes/static/lib/tarteaucitronjs
@@ -96,9 +116,11 @@ fi
 remaining="$(git diff --name-only --diff-filter=U || true)"
 if [ -n "${remaining}" ]; then
     echo ""
-    echo "==> Remaining unresolved conflicts:"
+    echo "==> Remaining unresolved conflicts (resolve manually, then commit the merge and push):"
     echo "${remaining}"
-    exit 1
+    echo ""
+    echo "==> Reminder: review any migrations created or modified above."
+    exit 0
 fi
 
 if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
@@ -110,3 +132,5 @@ else
     # Merge had no conflicts, so the merge commit is already done.
     echo "==> Done. Review the merge, then: git push"
 fi
+echo ""
+echo "==> Reminder: review any migrations created or modified by makemigrations."
