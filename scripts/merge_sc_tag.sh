@@ -52,7 +52,7 @@ else
     fi
 fi
 
-for required in justfile pyproject.toml; do
+for required in justfile pyproject.toml config/settings.py; do
     if git ls-files -u -- "$required" | grep -q .; then
         echo "ERROR: ${required} has merge conflicts. Resolve it manually, then re-run." >&2
         exit 1
