@@ -12,7 +12,7 @@ if [ "$#" -ne 1 ]; then
 fi
 
 SC_VERSION="$1"
-BRANCH="merge-sites-conformes-${SC_VERSION}"
+BRANCH="merge-sites-conformes-${SC_VERSION}-test" # todo
 
 docker_prefix=()
 if [ "${USE_DOCKER:-0}" = "1" ]; then
@@ -27,8 +27,8 @@ if ! git rev-parse -q --verify "refs/tags/v${SC_VERSION}" >/dev/null; then
     exit 1
 fi
 
-git checkout main-agreste
-git pull
+#git checkout main-agreste # todo
+#git pull # todo
 git checkout -B "${BRANCH}"
 echo "==> Publishing empty branch on origin (pre-merge)"
 git push -u origin "HEAD:${BRANCH}"
