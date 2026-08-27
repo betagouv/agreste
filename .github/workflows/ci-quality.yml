@@ -34,3 +34,4 @@ jobs:
       - name: ✨ Black & ruff on all files
         run: |
           just quality
+

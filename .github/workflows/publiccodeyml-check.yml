@@ -25,3 +25,4 @@ jobs:
         with:
           publiccode: "publiccode.yml"
           no-network: true
+

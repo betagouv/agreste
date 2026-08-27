@@ -53,3 +53,4 @@ jobs:
         run: |
           just init
           uv run python manage.py create_demo_pages
+
