@@ -22,30 +22,34 @@ run_uv() {
     fi
 }
 
-
-git fetch upstream --tags
-if ! git rev-parse -q --verify "refs/tags/v${SC_VERSION}" >/dev/null; then
-    echo "ERROR: tag v${SC_VERSION} not found on upstream (after fetch --tags)" >&2
-    exit 1
-fi
-
-#git checkout main-agreste # todo
-#git pull # todo
-git checkout -B "${BRANCH}"
-echo "==> Publishing empty branch on origin (pre-merge)"
-git push -u origin "HEAD:${BRANCH}"
-
-echo "==> Merging Sites Conformes v${SC_VERSION} into ${BRANCH}"
-set +e
-git merge "v${SC_VERSION}"
-merge_status=$?
-set -e
-if [ "$merge_status" -ne 0 ]; then
-    if ! git rev-parse -q --verify MERGE_HEAD >/dev/null; then
-        echo "ERROR: merge failed (not a conflict state)" >&2
-        exit "$merge_status"
+current_branch="$(git branch --show-current)"
+if [ "${current_branch}" = "${BRANCH}" ] && git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+    echo "==> Already on ${BRANCH} with a merge in progress; resuming resolutions…"
+else
+    git fetch upstream --tags
+    if ! git rev-parse -q --verify "refs/tags/v${SC_VERSION}" >/dev/null; then
+        echo "ERROR: tag v${SC_VERSION} not found on upstream (after fetch --tags)" >&2
+        exit 1
     fi
-    echo "==> Merge stopped with conflicts; applying known resolutions…"
+
+    #git checkout main-agreste # todo
+    #git pull # todo
+    git checkout -B "${BRANCH}"
+    echo "==> Publishing empty branch on origin (pre-merge)"
+    git push -u origin "HEAD:${BRANCH}"
+
+    echo "==> Merging Sites Conformes v${SC_VERSION} into ${BRANCH}"
+    set +e
+    git merge "v${SC_VERSION}"
+    merge_status=$?
+    set -e
+    if [ "$merge_status" -ne 0 ]; then
+        if ! git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+            echo "ERROR: merge failed (not a conflict state)" >&2
+            exit "$merge_status"
+        fi
+        echo "==> Merge stopped with conflicts; applying known resolutions…"
+    fi
 fi
 
 for required in justfile pyproject.toml; do
