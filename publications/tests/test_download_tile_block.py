@@ -1,6 +1,6 @@
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import RequestFactory, SimpleTestCase, TestCase
-from django.utils.translation import gettext
+from django.utils.translation import gettext, override
 from wagtail.documents import get_document_model
 
 from publications.blocks.download_tile import DOWNLOAD_TILE_BLOCK, DownloadTileBlock
@@ -9,6 +9,7 @@ from sites_conformes.core.models import ContentPage
 Document = get_document_model()
 
 
+@override("fr")
 class DownloadTileBlockTestCase(TestCase):
     def _render_block(self, document, download_type="publication"):
         block = DownloadTileBlock()
@@ -49,8 +50,9 @@ class DownloadTileBlockTestCase(TestCase):
         self.assertIn(gettext("Download publication"), html)
         self.assertIn("fr-tile--download", html)
         self.assertIn('href="#"', html)
-        self.assertIn(gettext("Your document will appear here"), html)
-        self.assertIn("<em>Your document will appear here</em>", html)
+        document_placeholder = gettext("Your document will appear here")
+        self.assertIn(document_placeholder, html)
+        self.assertIn(f"<em>{document_placeholder}</em>", html)
 
 
 class DownloadTileBlockRegistrationTestCase(SimpleTestCase):
