@@ -20,7 +20,7 @@ msgid "Publication"
 msgstr "Publication"
 
 msgid "Data"
-msgstr ""
+msgstr "Données"
 
 msgid "Download publication"
 msgstr "Télécharger la publication"
