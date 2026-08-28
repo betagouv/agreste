@@ -47,7 +47,10 @@ class DownloadTileBlockTestCase(TestCase):
         html = block.render(value, context={"request": RequestFactory().get("/")})
 
         self.assertIn(gettext("Download publication"), html)
-        self.assertNotIn("fr-tile--download", html)
+        self.assertIn("fr-tile--download", html)
+        self.assertIn('href="#"', html)
+        self.assertIn(gettext("Your document will appear here"), html)
+        self.assertIn("<em>Your document will appear here</em>", html)
 
 
 class DownloadTileBlockRegistrationTestCase(SimpleTestCase):

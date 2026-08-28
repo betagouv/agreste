@@ -17,6 +17,9 @@ DOWNLOAD_TYPE_TITLES = {
     "data": _("Download data"),
 }
 
+DOWNLOAD_TILE_LINK_PLACEHOLDER = "#"
+DOWNLOAD_TILE_DOCUMENT_PLACEHOLDER = _("Your document will appear here")
+
 
 class DownloadTileBlock(blocks.StructBlock):
     download_type = blocks.ChoiceBlock(
@@ -38,6 +41,12 @@ class DownloadTileBlock(blocks.StructBlock):
         if document:
             tile_data["description"] = f"<p>{escape(document.title)}</p>"
             tile_data["link"] = {"link_type": "document", "document": document.pk}
+        else:
+            tile_data["description"] = f"<p><em>{escape(DOWNLOAD_TILE_DOCUMENT_PLACEHOLDER)}</em></p>"
+            tile_data["link"] = {
+                "link_type": "external_url",
+                "external_url": DOWNLOAD_TILE_LINK_PLACEHOLDER,
+            }
 
         context["value"] = TileBlock().to_python(tile_data)
         return context
@@ -45,5 +54,5 @@ class DownloadTileBlock(blocks.StructBlock):
     class Meta:
         icon = "download"
         label = _("Download tile")
-        template = "sites_conformes_core/blocks/tile.html"
+        template = "publications/blocks/download_tile.html"
         group = _("Agreste")
