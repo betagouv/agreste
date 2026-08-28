@@ -9,6 +9,7 @@ definition time. Host projects add blocks at startup without editing
   ``blog_recent_entries`` (typically ``body``, sometimes ``header_cta_buttons``, …).
 - ``publication_recent_entries`` on nested ``CommonStreamBlock`` instances inside
   multicolumns, tabs, item grids, etc.
+- ``download_tile`` on the top-level ``body`` ``StreamField`` (group: Agreste).
 
 Nested block instances are created at import time and keep their own ``child_blocks``
 copy, so class-level ``base_blocks`` patching alone is not enough: we also walk each
@@ -25,6 +26,7 @@ from wagtail import blocks
 from wagtail.blocks import StreamBlock
 from wagtail.fields import StreamField
 
+from publications.blocks.download_tile import DOWNLOAD_TILE_BLOCK, DownloadTileBlock
 from publications.blocks.recent_entries import (
     PUBLICATION_RECENT_ENTRIES_BLOCK,
     PublicationRecentEntriesBlock,
@@ -85,6 +87,15 @@ def _add_publication_recent_entries_to_stream_field(field) -> bool:
     return BLOG_RECENT_ENTRIES_BLOCK in current_block.child_blocks
 
 
+def _add_download_tile_to_blocks(blocks_mapping: dict) -> bool:
+    if DOWNLOAD_TILE_BLOCK in blocks_mapping:
+        return False
+    block = DownloadTileBlock()
+    block.set_name(DOWNLOAD_TILE_BLOCK)
+    blocks_mapping[DOWNLOAD_TILE_BLOCK] = block
+    return True
+
+
 def _register_publication_recent_entries_on_common_stream_blocks() -> None:
     """Patch ``CommonStreamBlock`` class definitions for newly created instances."""
     from sites_conformes.core.blocks.layout import CommonStreamBlock
@@ -101,7 +112,7 @@ def _register_publication_recent_entries_on_common_stream_blocks() -> None:
 
 
 def register_sites_conformes_blocks():
-    """Add ``publication_recent_entries`` wherever ``blog_recent_entries`` is already allowed."""
+    """Register publications StreamField blocks on Sites Conformes page types."""
     if _is_migration_authoring_command():
         return
 
@@ -113,4 +124,6 @@ def register_sites_conformes_blocks():
         for field in model._meta.get_fields():
             if not isinstance(field, StreamField):
                 continue
+            if field.name == "body":
+                _add_download_tile_to_blocks(field.stream_block.child_blocks)
             _add_publication_recent_entries_to_stream_field(field)
