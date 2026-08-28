@@ -1,5 +1,8 @@
 {
   "type": "module",
+  "engines": {
+    "npm": ">=11.10.0"
+  },
   "devDependencies": {
   },
   "dependencies": {
