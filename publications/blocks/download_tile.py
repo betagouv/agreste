@@ -28,16 +28,18 @@ class DownloadTileBlock(blocks.StructBlock):
 
     def get_context(self, value, parent_context=None):
         context = super().get_context(value, parent_context=parent_context)
-        document = value["document"]
+        document = value.get("document")
         download_type = value.get("download_type")
-        context["value"] = TileBlock().to_python(
-            {
-                "title": DOWNLOAD_TYPE_TITLES.get(download_type, DOWNLOAD_TYPE_TITLES["publication"]),
-                "heading_tag": "h3",
-                "description": f"<p>{escape(document.title)}</p>",
-                "link": {"link_type": "document", "document": document.pk},
-            }
-        )
+
+        tile_data = {
+            "title": DOWNLOAD_TYPE_TITLES.get(download_type, DOWNLOAD_TYPE_TITLES["publication"]),
+            "heading_tag": "h3",
+        }
+        if document:
+            tile_data["description"] = f"<p>{escape(document.title)}</p>"
+            tile_data["link"] = {"link_type": "document", "document": document.pk}
+
+        context["value"] = TileBlock().to_python(tile_data)
         return context
 
     class Meta:

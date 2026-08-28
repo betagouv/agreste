@@ -41,6 +41,14 @@ class DownloadTileBlockTestCase(TestCase):
         self.assertIn("Dataset CSV", html)
         self.assertIn(document.url, html)
 
+    def test_renders_incomplete_tile_without_document(self):
+        block = DownloadTileBlock()
+        value = block.to_python({"download_type": "publication", "document": None})
+        html = block.render(value, context={"request": RequestFactory().get("/")})
+
+        self.assertIn(gettext("Download publication"), html)
+        self.assertNotIn("fr-tile--download", html)
+
 
 class DownloadTileBlockRegistrationTestCase(SimpleTestCase):
     def test_block_is_registered_on_content_page_body(self):
