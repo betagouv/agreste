@@ -27,7 +27,7 @@ class DownloadTileBlock(blocks.StructBlock):
         choices=DOWNLOAD_TYPE_CHOICES,
         default="publication",
     )
-    document = DocumentChooserBlock(label=_("Document"))
+    document = DocumentChooserBlock(label=_("Document to download"))
 
     def get_context(self, value, parent_context=None):
         context = super().get_context(value, parent_context=parent_context)
