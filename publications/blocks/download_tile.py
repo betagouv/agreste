@@ -41,7 +41,7 @@ class DownloadTileBlock(blocks.StructBlock):
         return context
 
     class Meta:
-        icon = "doc-full"
+        icon = "download"
         label = _("Download tile")
         template = "sites_conformes_core/blocks/tile.html"
         group = _("Agreste")
