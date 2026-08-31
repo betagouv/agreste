@@ -52,3 +52,17 @@ class DownloadableDocumentBlockTestCase(TestCase):
         document_placeholder = gettext("Your document will appear here")
         self.assertIn(document_placeholder, html)
         self.assertIn(f"<em>{document_placeholder}</em>", html)
+
+    def test_searchable_content_includes_document_title_not_download_type(self):
+        document = Document.objects.create(
+            title="Indexed publication PDF",
+            file=SimpleUploadedFile("indexed.pdf", b"%PDF-1.4", content_type="application/pdf"),
+        )
+        block = DownloadableDocumentBlock()
+        value = block.to_python({"download_type": "publication", "document": document.pk})
+
+        searchable = block.get_searchable_content(value)
+
+        self.assertEqual(searchable, ["Indexed publication PDF"])
+        # The type of file (publication/data) is not indexed
+        self.assertNotIn(gettext("Publication"), searchable)

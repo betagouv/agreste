@@ -29,6 +29,14 @@ class DownloadableDocumentBlock(blocks.StructBlock):
     )
     document = DocumentChooserBlock(label=_("Document"))
 
+    """ Index only the document title """
+    def get_searchable_content(self, value):
+        content = []
+        document = value.get("document")
+        if document:
+            content.append(document.title)
+        return content
+
     def get_context(self, value, parent_context=None):
         context = super().get_context(value, parent_context=parent_context)
         document = value.get("document")
