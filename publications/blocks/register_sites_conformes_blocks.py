@@ -7,7 +7,7 @@ or generating migrations there. On startup (``publications.apps.PublicationsConf
 is already available:
 
 - ``publication_recent_entries`` — same picker group as ``blog_recent_entries``
-- ``download_tile`` — always in the "Agreste" group (from ``DownloadTileBlock.Meta``)
+- ``downloadable_document`` — always in the "Agreste" group (from ``DownloadableDocumentBlock.Meta``)
 - ``publication_subtitle`` — always in the "Agreste" group (from ``PublicationSubtitleBlock.Meta``)
 - ``publication_summary`` — always in the "Agreste" group (from ``PublicationSummaryBlock.Meta``)
 - ``standard_publication`` — always in the "Agreste" group (from ``StandardPublicationBlock.Meta``)
@@ -35,7 +35,10 @@ from wagtail import blocks
 from wagtail.blocks import StreamBlock
 from wagtail.fields import StreamField
 
-from publications.blocks.download_tile import DOWNLOAD_TILE_BLOCK, DownloadTileBlock
+from publications.blocks.downloadable_document import (
+    DOWNLOADABLE_DOCUMENT_BLOCK,
+    DownloadableDocumentBlock,
+)
 from publications.blocks.publication_subtitle import (
     PUBLICATION_SUBTITLE_BLOCK,
     PublicationSubtitleBlock,
@@ -70,9 +73,9 @@ def _make_publication_recent_entries_block(group) -> PublicationRecentEntriesBlo
     return block
 
 
-def _make_download_tile_block() -> DownloadTileBlock:
-    block = DownloadTileBlock()
-    block.set_name(DOWNLOAD_TILE_BLOCK)
+def _make_downloadable_document_block() -> DownloadableDocumentBlock:
+    block = DownloadableDocumentBlock()
+    block.set_name(DOWNLOADABLE_DOCUMENT_BLOCK)
     return block
 
 
@@ -108,8 +111,8 @@ def _add_publications_blocks_to_mapping(blocks_mapping: dict) -> bool:
         )
         added = True
 
-    if DOWNLOAD_TILE_BLOCK not in blocks_mapping:
-        blocks_mapping[DOWNLOAD_TILE_BLOCK] = _make_download_tile_block()
+    if DOWNLOADABLE_DOCUMENT_BLOCK not in blocks_mapping:
+        blocks_mapping[DOWNLOADABLE_DOCUMENT_BLOCK] = _make_downloadable_document_block()
         added = True
 
     if PUBLICATION_SUBTITLE_BLOCK not in blocks_mapping:

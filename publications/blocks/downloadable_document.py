@@ -5,7 +5,7 @@ from wagtail.documents.blocks import DocumentChooserBlock
 
 from sites_conformes.core.blocks.cards import TileBlock
 
-DOWNLOAD_TILE_BLOCK = "download_tile"
+DOWNLOADABLE_DOCUMENT_BLOCK = "downloadable_document"
 
 DOWNLOAD_TYPE_CHOICES = [
     ("publication", _("Publication")),
@@ -17,17 +17,17 @@ DOWNLOAD_TYPE_TITLES = {
     "data": _("Download data"),
 }
 
-DOWNLOAD_TILE_LINK_PLACEHOLDER = "#"
-DOWNLOAD_TILE_DOCUMENT_PLACEHOLDER = _("Your document will appear here")
+DOWNLOADABLE_DOCUMENT_LINK_PLACEHOLDER = "#"
+DOWNLOADABLE_DOCUMENT_PLACEHOLDER = _("Your document will appear here")
 
 
-class DownloadTileBlock(blocks.StructBlock):
+class DownloadableDocumentBlock(blocks.StructBlock):
     download_type = blocks.ChoiceBlock(
         label=_("Type"),
         choices=DOWNLOAD_TYPE_CHOICES,
         default="publication",
     )
-    document = DocumentChooserBlock(label=_("Document to download"))
+    document = DocumentChooserBlock(label=_("Document"))
 
     def get_context(self, value, parent_context=None):
         context = super().get_context(value, parent_context=parent_context)
@@ -42,10 +42,10 @@ class DownloadTileBlock(blocks.StructBlock):
             tile_data["description"] = f"<p>{escape(document.title)}</p>"
             tile_data["link"] = {"link_type": "document", "document": document.pk}
         else:
-            tile_data["description"] = f"<p><em>{escape(DOWNLOAD_TILE_DOCUMENT_PLACEHOLDER)}</em></p>"
+            tile_data["description"] = f"<p><em>{escape(DOWNLOADABLE_DOCUMENT_PLACEHOLDER)}</em></p>"
             tile_data["link"] = {
                 "link_type": "external_url",
-                "external_url": DOWNLOAD_TILE_LINK_PLACEHOLDER,
+                "external_url": DOWNLOADABLE_DOCUMENT_LINK_PLACEHOLDER,
             }
 
         context["value"] = TileBlock().to_python(tile_data)
@@ -53,6 +53,6 @@ class DownloadTileBlock(blocks.StructBlock):
 
     class Meta:
         icon = "download"
-        label = _("Download tile")
-        template = "publications/blocks/download_tile.html"
+        label = _("Downloadable document")
+        template = "publications/blocks/downloadable_document.html"
         group = _("Agreste")

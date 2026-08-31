@@ -3,15 +3,15 @@ from django.test import RequestFactory, TestCase
 from django.utils.translation import gettext, override
 from wagtail.documents import get_document_model
 
-from publications.blocks.download_tile import DownloadTileBlock
+from publications.blocks.downloadable_document import DownloadableDocumentBlock
 
 Document = get_document_model()
 
 
 @override("fr")
-class DownloadTileBlockTestCase(TestCase):
+class DownloadableDocumentBlockTestCase(TestCase):
     def _render_block(self, document, download_type="publication"):
-        block = DownloadTileBlock()
+        block = DownloadableDocumentBlock()
         value = block.to_python({"download_type": download_type, "document": document.pk})
         return block.render(value, context={"request": RequestFactory().get("/")})
 
@@ -42,7 +42,7 @@ class DownloadTileBlockTestCase(TestCase):
         self.assertIn(document.url, html)
 
     def test_renders_incomplete_tile_without_document(self):
-        block = DownloadTileBlock()
+        block = DownloadableDocumentBlock()
         value = block.to_python({"download_type": "publication", "document": None})
         html = block.render(value, context={"request": RequestFactory().get("/")})
 
