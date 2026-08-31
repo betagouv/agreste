@@ -1,12 +1,12 @@
 {% load wagtailcore_tags %}
 <div class="cmsfr-block-standard-publication">
-  <div class="fr-grid-row fr-grid-row--gutters">
+  <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--top">
     <div class="fr-col-12 fr-col-md-8">
       <h2>{{ value.subtitle }}</h2>
       {{ value.summary|richtext }}
     </div>
-    <div class="fr-col-12 fr-col-md-4">
-      {% for tile in value.download_tiles %}
+    <div class="fr-col-12 fr-col-md-4 cmsfr-block-standard-publication__tiles">
+      {% for tile in value.download_tiles.bound_blocks %}
         {% include_block tile %}
       {% endfor %}
     </div>
