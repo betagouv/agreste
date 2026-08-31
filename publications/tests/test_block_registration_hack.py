@@ -74,7 +74,7 @@ class PublicationsBlockAvailabilityTestCase(WagtailPageTestCase):
     def _download_tile_block_value(self, **overrides):
         return {
             "download_type": "publication",
-            "document": self.document.pk,
+            "document": self.document,
             **overrides,
         }
 
