@@ -31,7 +31,7 @@ class DownloadTileBlock(blocks.StructBlock):
 
     def get_context(self, value, parent_context=None):
         context = super().get_context(value, parent_context=parent_context)
-        document = self.child_blocks["document"].to_python(value.get("document"))
+        document = value.get("document")
         download_type = value.get("download_type")
 
         tile_data = {
