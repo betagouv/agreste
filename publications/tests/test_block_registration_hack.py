@@ -12,6 +12,7 @@ from publications.blocks.publication_subtitle import PUBLICATION_SUBTITLE_BLOCK
 from publications.blocks.publication_summary import PUBLICATION_SUMMARY_BLOCK
 from publications.blocks.recent_entries import PUBLICATION_RECENT_ENTRIES_BLOCK
 from publications.blocks.register_sites_conformes_blocks import BLOG_RECENT_ENTRIES_BLOCK
+from publications.blocks.standard_publication import STANDARD_PUBLICATION_BLOCK
 from publications.models import PublicationIndexPage
 from sites_conformes.core.models import ContentPage
 
@@ -37,6 +38,9 @@ class PublicationsBlockRegistrationTestCase(SimpleTestCase):
 
         self.assertIn(PUBLICATION_SUMMARY_BLOCK, child_blocks)
         self.assertEqual(child_blocks[PUBLICATION_SUMMARY_BLOCK].meta.group, "Agreste")
+
+        self.assertIn(STANDARD_PUBLICATION_BLOCK, child_blocks)
+        self.assertEqual(child_blocks[STANDARD_PUBLICATION_BLOCK].meta.group, "Agreste")
 
 
 class PublicationsBlockAvailabilityTestCase(WagtailPageTestCase):
@@ -73,6 +77,7 @@ class PublicationsBlockAvailabilityTestCase(WagtailPageTestCase):
         self.assertIn(DOWNLOAD_TILE_BLOCK, stream_block.child_blocks)
         self.assertIn(PUBLICATION_SUBTITLE_BLOCK, stream_block.child_blocks)
         self.assertIn(PUBLICATION_SUMMARY_BLOCK, stream_block.child_blocks)
+        self.assertIn(STANDARD_PUBLICATION_BLOCK, stream_block.child_blocks)
 
     def _publication_block_value(self, **overrides):
         return {
@@ -209,6 +214,49 @@ class PublicationsBlockAvailabilityTestCase(WagtailPageTestCase):
                 self.assertIsNotNone(block)
                 self.assertIn(title, block.get_text())
 
+    def _standard_publication_block_value(self, **overrides):
+        return {
+            "subtitle": "Standard publication subtitle",
+            "summary": "<p>Standard publication summary.</p>",
+            "download_tiles": [
+                {
+                    "download_type": "publication",
+                    "document": self.document,
+                }
+            ],
+            **overrides,
+        }
+
+    def _standard_publication_nested_cases(self):
+        return (
+            (
+                "multicolumn column",
+                "standard-publication-in-multicolumn-column",
+                [
+                    (
+                        "multicolumns",
+                        {
+                            "columns": [
+                                (
+                                    "column",
+                                    {
+                                        "width": "6",
+                                        "content": [
+                                            (
+                                                STANDARD_PUBLICATION_BLOCK,
+                                                self._standard_publication_block_value(),
+                                            ),
+                                        ],
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                ],
+                "Standard publication subtitle",
+            ),
+        )
+
     def test_can_render_page_with_download_tile_in_nested_streams(self):
         for case_label, slug, body, title in self._download_tile_nested_cases():
             with self.subTest(stream=case_label):
@@ -219,5 +267,19 @@ class PublicationsBlockAvailabilityTestCase(WagtailPageTestCase):
                 self.assertContains(response, title)
                 self.assertContains(response, self.document.title)
                 self.assertContains(response, self.document.url)
+
+    def test_can_render_page_with_standard_publication_in_nested_streams(self):
+        for case_label, slug, body, subtitle in self._standard_publication_nested_cases():
+            with self.subTest(stream=case_label):
+                page = self._content_page_with_body(slug, body)
+                self.assertPageIsRenderable(page)
+
+                response = self.client.get(page.url)
+                block = BeautifulSoup(response.content, "html.parser").select_one(
+                    ".cmsfr-block-standard-publication",
+                )
+                self.assertIsNotNone(block)
+                self.assertIn(subtitle, block.get_text())
+                self.assertIn(self.document.title, block.get_text())
 
     # TODO test that the block picker offers the registered blocks (e2e test)

@@ -3,13 +3,14 @@ Inject publications StreamField blocks into Sites Conformes at Django startup.
 
 The ``publications`` app extends page editors without editing ``sites_conformes``
 or generating migrations there. On startup (``publications.apps.PublicationsConfig.ready``),
-``register_sites_conformes_blocks()`` adds four blocks wherever ``blog_recent_entries``
+``register_sites_conformes_blocks()`` adds five blocks wherever ``blog_recent_entries``
 is already available:
 
 - ``publication_recent_entries`` — same picker group as ``blog_recent_entries``
 - ``download_tile`` — always in the "Agreste" group (from ``DownloadTileBlock.Meta``)
 - ``publication_subtitle`` — always in the "Agreste" group (from ``PublicationSubtitleBlock.Meta``)
 - ``publication_summary`` — always in the "Agreste" group (from ``PublicationSummaryBlock.Meta``)
+- ``standard_publication`` — always in the "Agreste" group (from ``StandardPublicationBlock.Meta``)
 
 That includes the top-level ``body`` stream on every ``SitesFacilesBasePage``, and
 nested streams inside layout blocks (multicolumns, item grid, tabs, etc.).
@@ -47,6 +48,10 @@ from publications.blocks.recent_entries import (
     PUBLICATION_RECENT_ENTRIES_BLOCK,
     PublicationRecentEntriesBlock,
 )
+from publications.blocks.standard_publication import (
+    STANDARD_PUBLICATION_BLOCK,
+    StandardPublicationBlock,
+)
 from sites_conformes.core.abstract import SitesFacilesBasePage
 
 _MIGRATION_AUTHORING_COMMANDS = frozenset({"makemigrations", "squashmigrations"})
@@ -83,6 +88,12 @@ def _make_publication_summary_block() -> PublicationSummaryBlock:
     return block
 
 
+def _make_standard_publication_block() -> StandardPublicationBlock:
+    block = StandardPublicationBlock()
+    block.set_name(STANDARD_PUBLICATION_BLOCK)
+    return block
+
+
 def _add_publications_blocks_to_mapping(blocks_mapping: dict) -> bool:
     """Add publications blocks next to ``blog_recent_entries`` in a block mapping."""
     if BLOG_RECENT_ENTRIES_BLOCK not in blocks_mapping:
@@ -107,6 +118,10 @@ def _add_publications_blocks_to_mapping(blocks_mapping: dict) -> bool:
 
     if PUBLICATION_SUMMARY_BLOCK not in blocks_mapping:
         blocks_mapping[PUBLICATION_SUMMARY_BLOCK] = _make_publication_summary_block()
+        added = True
+
+    if STANDARD_PUBLICATION_BLOCK not in blocks_mapping:
+        blocks_mapping[STANDARD_PUBLICATION_BLOCK] = _make_standard_publication_block()
         added = True
 
     return added
