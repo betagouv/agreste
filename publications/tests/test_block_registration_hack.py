@@ -1,33 +1,53 @@
 from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase
+from django.utils.translation import gettext
+from wagtail.documents import get_document_model
 from wagtail.models import Page
 from wagtail.test.utils import WagtailPageTestCase
 
+from publications.blocks.download_tile import DOWNLOAD_TILE_BLOCK
 from publications.blocks.recent_entries import PUBLICATION_RECENT_ENTRIES_BLOCK
+from publications.blocks.register_sites_conformes_blocks import BLOG_RECENT_ENTRIES_BLOCK
 from publications.models import PublicationIndexPage
 from sites_conformes.core.models import ContentPage
 
 User = get_user_model()
+Document = get_document_model()
 
 
-class PublicationRecentEntriesBlockRegistrationTestCase(SimpleTestCase):
-    """The PublicationRecentEntriesBlock is registered with a hook on the
-    ContentPage model. Check that it is registered on the top-level body stream block."""
+class PublicationsBlockRegistrationTestCase(SimpleTestCase):
+    """Publications blocks are injected at startup wherever blog_recent_entries exists."""
 
-    def test_block_is_registered_on_content_page(self):
-        block_names = ContentPage._meta.get_field("body").stream_block.child_blocks
-        self.assertIn(PUBLICATION_RECENT_ENTRIES_BLOCK, block_names)
+    def test_blocks_are_registered_on_content_page_body(self):
+        child_blocks = ContentPage._meta.get_field("body").stream_block.child_blocks
+        blog_group = child_blocks[BLOG_RECENT_ENTRIES_BLOCK].meta.group
+
+        self.assertIn(PUBLICATION_RECENT_ENTRIES_BLOCK, child_blocks)
+        self.assertEqual(child_blocks[PUBLICATION_RECENT_ENTRIES_BLOCK].meta.group, blog_group)
+
+        self.assertIn(DOWNLOAD_TILE_BLOCK, child_blocks)
+        self.assertEqual(child_blocks[DOWNLOAD_TILE_BLOCK].meta.group, "Agreste")
 
 
-class PublicationRecentEntriesBlockAvailabilityTestCase(WagtailPageTestCase):
-    """Test that we can use our custom block within nested blocks in a page (not just top-level)."""
+class PublicationsBlockAvailabilityTestCase(WagtailPageTestCase):
+    """Blocks are available in nested streams, not only at the top level of body."""
+
+    NESTED_STREAM_PATHS = (
+        ("multicolumn column", ("multicolumns", "columns", "column", "content")),
+        ("item grid", ("item_grid", "items")),
+    )
 
     def setUp(self):
         self.home = Page.objects.get(slug="home")
         self.admin = User.objects.create_superuser("test", "test@test.test", "pass")
         self.index_page = self.home.add_child(
             instance=PublicationIndexPage(title="Publications", slug="publications-availability"),
+        )
+        self.document = Document.objects.create(
+            title="Nested publication PDF",
+            file=SimpleUploadedFile("nested.pdf", b"%PDF-1.4", content_type="application/pdf"),
         )
 
     def _body_stream_block(self):
@@ -39,10 +59,10 @@ class PublicationRecentEntriesBlockAvailabilityTestCase(WagtailPageTestCase):
             block = block.child_blocks[segment]
         return block
 
-    def _assert_block_registered_in_stream(self, *path):
-        """Check that the block is registered in the stream block at the given path."""
+    def _assert_blocks_registered_in_stream(self, *path):
         stream_block = self._body_stream_block() if not path else self._stream_block_at(*path)
         self.assertIn(PUBLICATION_RECENT_ENTRIES_BLOCK, stream_block.child_blocks)
+        self.assertIn(DOWNLOAD_TILE_BLOCK, stream_block.child_blocks)
 
     def _publication_block_value(self, **overrides):
         return {
@@ -51,16 +71,22 @@ class PublicationRecentEntriesBlockAvailabilityTestCase(WagtailPageTestCase):
             **overrides,
         }
 
+    def _download_tile_block_value(self, **overrides):
+        return {
+            "download_type": "publication",
+            "document": self.document.pk,
+            **overrides,
+        }
+
     def _content_page_with_body(self, slug, body):
         return self.home.add_child(
             instance=ContentPage(title="Availability page", slug=slug, owner=self.admin, body=body),
         )
 
-    def _nested_stream_cases(self):
+    def _publication_recent_entries_nested_cases(self):
         return (
             (
                 "multicolumn column",
-                ("multicolumns", "columns", "column", "content"),
                 "publication-in-multicolumn-column",
                 [
                     (
@@ -87,7 +113,6 @@ class PublicationRecentEntriesBlockAvailabilityTestCase(WagtailPageTestCase):
             ),
             (
                 "item grid",
-                ("item_grid", "items"),
                 "publication-in-item-grid",
                 [
                     (
@@ -107,14 +132,62 @@ class PublicationRecentEntriesBlockAvailabilityTestCase(WagtailPageTestCase):
             ),
         )
 
-    def test_block_is_registered_in_nested_streams(self):
-        for case_label, stream_path, _slug, _body, _title in self._nested_stream_cases():
-            with self.subTest(stream=case_label):
-                self._assert_block_registered_in_stream(*stream_path)
+    def _download_tile_nested_cases(self):
+        return (
+            (
+                "multicolumn column",
+                "download-tile-in-multicolumn-column",
+                [
+                    (
+                        "multicolumns",
+                        {
+                            "columns": [
+                                (
+                                    "column",
+                                    {
+                                        "width": "6",
+                                        "content": [
+                                            (
+                                                DOWNLOAD_TILE_BLOCK,
+                                                self._download_tile_block_value(),
+                                            ),
+                                        ],
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                ],
+                gettext("Download publication"),
+            ),
+            (
+                "item grid",
+                "download-tile-in-item-grid",
+                [
+                    (
+                        "item_grid",
+                        {
+                            "column_width": "4",
+                            "items": [
+                                (
+                                    DOWNLOAD_TILE_BLOCK,
+                                    self._download_tile_block_value(),
+                                ),
+                            ],
+                        },
+                    ),
+                ],
+                gettext("Download publication"),
+            ),
+        )
 
-    def test_can_render_page_with_block_in_nested_streams(self):
-        """Programmatically add the block on a page inside the nested path, and check the page is renderable."""
-        for case_label, _stream_path, slug, body, title in self._nested_stream_cases():
+    def test_blocks_are_registered_in_nested_streams(self):
+        for case_label, stream_path in self.NESTED_STREAM_PATHS:
+            with self.subTest(stream=case_label):
+                self._assert_blocks_registered_in_stream(*stream_path)
+
+    def test_can_render_page_with_publication_recent_entries_in_nested_streams(self):
+        for case_label, slug, body, title in self._publication_recent_entries_nested_cases():
             with self.subTest(stream=case_label):
                 page = self._content_page_with_body(slug, body)
                 self.assertPageIsRenderable(page)
@@ -126,4 +199,15 @@ class PublicationRecentEntriesBlockAvailabilityTestCase(WagtailPageTestCase):
                 self.assertIsNotNone(block)
                 self.assertIn(title, block.get_text())
 
-    # TODO test that the block picker offers the registered block (e2e test)
+    def test_can_render_page_with_download_tile_in_nested_streams(self):
+        for case_label, slug, body, title in self._download_tile_nested_cases():
+            with self.subTest(stream=case_label):
+                page = self._content_page_with_body(slug, body)
+                self.assertPageIsRenderable(page)
+
+                response = self.client.get(page.url)
+                self.assertContains(response, title)
+                self.assertContains(response, self.document.title)
+                self.assertContains(response, self.document.url)
+
+    # TODO test that the block picker offers the registered blocks (e2e test)

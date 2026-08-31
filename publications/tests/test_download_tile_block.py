@@ -1,10 +1,9 @@
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import RequestFactory, SimpleTestCase, TestCase
+from django.test import RequestFactory, TestCase
 from django.utils.translation import gettext, override
 from wagtail.documents import get_document_model
 
-from publications.blocks.download_tile import DOWNLOAD_TILE_BLOCK, DownloadTileBlock
-from sites_conformes.core.models import ContentPage
+from publications.blocks.download_tile import DownloadTileBlock
 
 Document = get_document_model()
 
@@ -53,10 +52,3 @@ class DownloadTileBlockTestCase(TestCase):
         document_placeholder = gettext("Your document will appear here")
         self.assertIn(document_placeholder, html)
         self.assertIn(f"<em>{document_placeholder}</em>", html)
-
-
-class DownloadTileBlockRegistrationTestCase(SimpleTestCase):
-    def test_block_is_registered_on_content_page_body(self):
-        block_names = ContentPage._meta.get_field("body").stream_block.child_blocks
-        self.assertIn(DOWNLOAD_TILE_BLOCK, block_names)
-        self.assertEqual(block_names[DOWNLOAD_TILE_BLOCK].meta.group, "Agreste")
