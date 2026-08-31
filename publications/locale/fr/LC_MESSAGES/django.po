@@ -110,10 +110,8 @@ msgstr "Bouton « Voir toutes les publications »"
 msgid "Documents to download"
 msgstr "Documents à télécharger"
 
-#, fuzzy
-#| msgid "Download publication"
 msgid "Standard publication"
-msgstr "Télécharger la publication"
+msgstr "Publication standard"
 
 msgid "Collection"
 msgstr "Collection"
