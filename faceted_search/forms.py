@@ -25,7 +25,7 @@ class RankByForm(DsfrBaseForm):
             (RANK_BY_DATE, _("Date")),
         ),
         widget=InlineRadioSelect(attrs={"onchange": "this.form.submit()"}),
-        required=False,
+        required=True,
     )
 
     def __init__(self, *args, query_dict: QueryDict | None = None, **kwargs):
