@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-31 16:21+0200\n"
+"POT-Creation-Date: 2026-08-31 17:10+0200\n"
 "PO-Revision-Date: 2026-06-08 15:16+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -107,10 +107,8 @@ msgstr "Publications récentes"
 msgid "“See all publications” button"
 msgstr "Bouton « Voir toutes les publications »"
 
-#, fuzzy
-#| msgid "Download tile"
-msgid "Download tiles"
-msgstr "Tuile de téléchargement"
+msgid "Documents to download"
+msgstr "Documents à télécharger"
 
 #, fuzzy
 #| msgid "Download publication"
