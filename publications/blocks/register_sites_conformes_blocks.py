@@ -3,11 +3,12 @@ Inject publications StreamField blocks into Sites Conformes at Django startup.
 
 The ``publications`` app extends page editors without editing ``sites_conformes``
 or generating migrations there. On startup (``publications.apps.PublicationsConfig.ready``),
-``register_sites_conformes_blocks()`` adds two blocks wherever ``blog_recent_entries``
+``register_sites_conformes_blocks()`` adds three blocks wherever ``blog_recent_entries``
 is already available:
 
 - ``publication_recent_entries`` — same picker group as ``blog_recent_entries``
 - ``download_tile`` — always in the "Agreste" group (from ``DownloadTileBlock.Meta``)
+- ``publication_subtitle`` — always in the "Agreste" group (from ``PublicationSubtitleBlock.Meta``)
 
 That includes the top-level ``body`` stream on every ``SitesFacilesBasePage``, and
 nested streams inside layout blocks (multicolumns, item grid, tabs, etc.).
@@ -33,6 +34,10 @@ from wagtail.blocks import StreamBlock
 from wagtail.fields import StreamField
 
 from publications.blocks.download_tile import DOWNLOAD_TILE_BLOCK, DownloadTileBlock
+from publications.blocks.publication_subtitle import (
+    PUBLICATION_SUBTITLE_BLOCK,
+    PublicationSubtitleBlock,
+)
 from publications.blocks.recent_entries import (
     PUBLICATION_RECENT_ENTRIES_BLOCK,
     PublicationRecentEntriesBlock,
@@ -61,6 +66,12 @@ def _make_download_tile_block() -> DownloadTileBlock:
     return block
 
 
+def _make_publication_subtitle_block() -> PublicationSubtitleBlock:
+    block = PublicationSubtitleBlock()
+    block.set_name(PUBLICATION_SUBTITLE_BLOCK)
+    return block
+
+
 def _add_publications_blocks_to_mapping(blocks_mapping: dict) -> bool:
     """Add publications blocks next to ``blog_recent_entries`` in a block mapping."""
     if BLOG_RECENT_ENTRIES_BLOCK not in blocks_mapping:
@@ -77,6 +88,10 @@ def _add_publications_blocks_to_mapping(blocks_mapping: dict) -> bool:
 
     if DOWNLOAD_TILE_BLOCK not in blocks_mapping:
         blocks_mapping[DOWNLOAD_TILE_BLOCK] = _make_download_tile_block()
+        added = True
+
+    if PUBLICATION_SUBTITLE_BLOCK not in blocks_mapping:
+        blocks_mapping[PUBLICATION_SUBTITLE_BLOCK] = _make_publication_subtitle_block()
         added = True
 
     return added

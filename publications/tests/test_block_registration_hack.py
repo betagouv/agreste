@@ -8,6 +8,7 @@ from wagtail.models import Page
 from wagtail.test.utils import WagtailPageTestCase
 
 from publications.blocks.download_tile import DOWNLOAD_TILE_BLOCK
+from publications.blocks.publication_subtitle import PUBLICATION_SUBTITLE_BLOCK
 from publications.blocks.recent_entries import PUBLICATION_RECENT_ENTRIES_BLOCK
 from publications.blocks.register_sites_conformes_blocks import BLOG_RECENT_ENTRIES_BLOCK
 from publications.models import PublicationIndexPage
@@ -29,6 +30,9 @@ class PublicationsBlockRegistrationTestCase(SimpleTestCase):
 
         self.assertIn(DOWNLOAD_TILE_BLOCK, child_blocks)
         self.assertEqual(child_blocks[DOWNLOAD_TILE_BLOCK].meta.group, "Agreste")
+
+        self.assertIn(PUBLICATION_SUBTITLE_BLOCK, child_blocks)
+        self.assertEqual(child_blocks[PUBLICATION_SUBTITLE_BLOCK].meta.group, "Agreste")
 
 
 class PublicationsBlockAvailabilityTestCase(WagtailPageTestCase):
@@ -63,6 +67,7 @@ class PublicationsBlockAvailabilityTestCase(WagtailPageTestCase):
         stream_block = self._body_stream_block() if not path else self._stream_block_at(*path)
         self.assertIn(PUBLICATION_RECENT_ENTRIES_BLOCK, stream_block.child_blocks)
         self.assertIn(DOWNLOAD_TILE_BLOCK, stream_block.child_blocks)
+        self.assertIn(PUBLICATION_SUBTITLE_BLOCK, stream_block.child_blocks)
 
     def _publication_block_value(self, **overrides):
         return {
