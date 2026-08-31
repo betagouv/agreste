@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-31 15:53+0200\n"
+"POT-Creation-Date: 2026-08-31 16:03+0200\n"
 "PO-Revision-Date: 2026-06-08 15:16+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -48,6 +48,12 @@ msgstr "Sous-titre"
 
 msgid "Publication subtitle"
 msgstr "Sous-titre de la publication"
+
+msgid "Summary"
+msgstr "Chapeau"
+
+msgid "Publication summary"
+msgstr "Chapeau de la publication"
 
 msgid "See all publications"
 msgstr "Voir toutes les publications"
