@@ -3,3 +3,14 @@
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+
+/* DSFR sets .fr-grid-row .fr-tile { height: 100% } for side-by-side tile grids. */
+.cmsfr-block-standard-publication__tiles {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cmsfr-block-standard-publication__tiles .fr-tile {
+  height: auto;
+}

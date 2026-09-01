@@ -3,11 +3,14 @@ Inject publications StreamField blocks into Sites Conformes at Django startup.
 
 The ``publications`` app extends page editors without editing ``sites_conformes``
 or generating migrations there. On startup (``publications.apps.PublicationsConfig.ready``),
-``register_sites_conformes_blocks()`` adds two blocks wherever ``blog_recent_entries``
+``register_sites_conformes_blocks()`` adds five blocks wherever ``blog_recent_entries``
 is already available:
 
 - ``publication_recent_entries`` — same picker group as ``blog_recent_entries``
-- ``download_tile`` — always in the "Agreste" group (from ``DownloadTileBlock.Meta``)
+- ``downloadable_document`` — always in the "Agreste" group (from ``DownloadableDocumentBlock.Meta``)
+- ``publication_subtitle`` — always in the "Agreste" group (from ``PublicationSubtitleBlock.Meta``)
+- ``publication_summary`` — always in the "Agreste" group (from ``PublicationSummaryBlock.Meta``)
+- ``standard_publication`` — always in the "Agreste" group (from ``StandardPublicationBlock.Meta``)
 
 That includes the top-level ``body`` stream on every ``SitesFacilesBasePage``, and
 nested streams inside layout blocks (multicolumns, item grid, tabs, etc.).
@@ -32,10 +35,25 @@ from wagtail import blocks
 from wagtail.blocks import StreamBlock
 from wagtail.fields import StreamField
 
-from publications.blocks.download_tile import DOWNLOAD_TILE_BLOCK, DownloadTileBlock
+from publications.blocks.downloadable_document import (
+    DOWNLOADABLE_DOCUMENT_BLOCK,
+    DownloadableDocumentBlock,
+)
+from publications.blocks.publication_subtitle import (
+    PUBLICATION_SUBTITLE_BLOCK,
+    PublicationSubtitleBlock,
+)
+from publications.blocks.publication_summary import (
+    PUBLICATION_SUMMARY_BLOCK,
+    PublicationSummaryBlock,
+)
 from publications.blocks.recent_entries import (
     PUBLICATION_RECENT_ENTRIES_BLOCK,
     PublicationRecentEntriesBlock,
+)
+from publications.blocks.standard_publication import (
+    STANDARD_PUBLICATION_BLOCK,
+    StandardPublicationBlock,
 )
 from sites_conformes.core.abstract import SitesFacilesBasePage
 
@@ -55,9 +73,27 @@ def _make_publication_recent_entries_block(group) -> PublicationRecentEntriesBlo
     return block
 
 
-def _make_download_tile_block() -> DownloadTileBlock:
-    block = DownloadTileBlock()
-    block.set_name(DOWNLOAD_TILE_BLOCK)
+def _make_downloadable_document_block() -> DownloadableDocumentBlock:
+    block = DownloadableDocumentBlock()
+    block.set_name(DOWNLOADABLE_DOCUMENT_BLOCK)
+    return block
+
+
+def _make_publication_subtitle_block() -> PublicationSubtitleBlock:
+    block = PublicationSubtitleBlock()
+    block.set_name(PUBLICATION_SUBTITLE_BLOCK)
+    return block
+
+
+def _make_publication_summary_block() -> PublicationSummaryBlock:
+    block = PublicationSummaryBlock()
+    block.set_name(PUBLICATION_SUMMARY_BLOCK)
+    return block
+
+
+def _make_standard_publication_block() -> StandardPublicationBlock:
+    block = StandardPublicationBlock()
+    block.set_name(STANDARD_PUBLICATION_BLOCK)
     return block
 
 
@@ -75,8 +111,20 @@ def _add_publications_blocks_to_mapping(blocks_mapping: dict) -> bool:
         )
         added = True
 
-    if DOWNLOAD_TILE_BLOCK not in blocks_mapping:
-        blocks_mapping[DOWNLOAD_TILE_BLOCK] = _make_download_tile_block()
+    if DOWNLOADABLE_DOCUMENT_BLOCK not in blocks_mapping:
+        blocks_mapping[DOWNLOADABLE_DOCUMENT_BLOCK] = _make_downloadable_document_block()
+        added = True
+
+    if PUBLICATION_SUBTITLE_BLOCK not in blocks_mapping:
+        blocks_mapping[PUBLICATION_SUBTITLE_BLOCK] = _make_publication_subtitle_block()
+        added = True
+
+    if PUBLICATION_SUMMARY_BLOCK not in blocks_mapping:
+        blocks_mapping[PUBLICATION_SUMMARY_BLOCK] = _make_publication_summary_block()
+        added = True
+
+    if STANDARD_PUBLICATION_BLOCK not in blocks_mapping:
+        blocks_mapping[STANDARD_PUBLICATION_BLOCK] = _make_standard_publication_block()
         added = True
 
     return added
