@@ -39,6 +39,7 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
             title="Post with taxonomies",
             date=datetime(2024, 1, 1, 12, 0, 0, tzinfo=self.paris_tz),
             owner=self.admin,
+            disaron_id="disaron-taxonomies",
         )
         self.index.add_child(instance=self.post)
         self.post.collections.add(self.collection)
