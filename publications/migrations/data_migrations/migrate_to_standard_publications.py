@@ -254,7 +254,7 @@ def run_migration(
             log_file.write(line + "\n")
             log_file.flush()
 
-    log("=== migrate_multicolumns_to_standard_publication ===")
+    log("=== migrate_to_standard_publications ===")
     log(f"dry_run: {dry_run}")
 
     page_iter = pages.iterator() if hasattr(pages, "iterator") else iter(pages)

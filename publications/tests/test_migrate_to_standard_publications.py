@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase, TestCase
 
-from publications.migrations.data_migrations.multicolumns_to_standard_publication import (
+from publications.migrations.data_migrations.migrate_to_standard_publications import (
     EXAMPLES_DIR,
     MULTICOLUMNS_BLOCK,
     STANDARD_PUBLICATION_BLOCK,
@@ -145,8 +145,8 @@ class RunMigrationTest(TestCase):
         self.assertEqual(summary.blocks_skipped, 1)
 
 
-class MigrateMulticolumnsToStandardPublicationCommandTest(TestCase):
-    @patch("publications.management.commands.migrate_multicolumns_to_standard_publication.run_migration")
+class MigrateToStandardPublicationsCommandTest(TestCase):
+    @patch("publications.management.commands.migrate_to_standard_publications.run_migration")
     def test_command_calls_run_migration_with_dry_run(self, run_migration_mock):
         from django.core.management import call_command
 
@@ -157,7 +157,7 @@ class MigrateMulticolumnsToStandardPublicationCommandTest(TestCase):
         run_migration_mock.return_value.page_results = []
 
         call_command(
-            "migrate_multicolumns_to_standard_publication",
+            "migrate_to_standard_publications",
             "--dry-run",
             "--no-input",
             "--no-log-file",

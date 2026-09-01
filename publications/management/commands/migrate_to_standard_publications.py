@@ -3,14 +3,14 @@ Migrate matching ``multicolumns`` blocks on ``PublicationPage`` to ``standard_pu
 
 Run on staging first::
 
-    python manage.py migrate_multicolumns_to_standard_publication --dry-run
-    python manage.py migrate_multicolumns_to_standard_publication
+    python manage.py migrate_to_standard_publications --dry-run
+    python manage.py migrate_to_standard_publications
 """
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from publications.migrations.data_migrations.multicolumns_to_standard_publication import (
+from publications.migrations.data_migrations.migrate_to_standard_publications import (
     migration_log_path,
     run_migration,
 )
