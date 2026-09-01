@@ -45,3 +45,13 @@ class StandardPublicationBlockTestCase(TestCase):
         self.assertIn(gettext("Download publication"), html)
         self.assertIn("Publication PDF", html)
         self.assertIn(self.document.url, html)
+
+    def test_renders_without_subtitle_or_summary(self):
+        html = self._render_block(subtitle="", summary="")
+
+        self.assertIn("cmsfr-block-standard-publication", html)
+        self.assertNotIn("<h2>", html)
+        self.assertNotIn("Publication summary text.", html)
+        self.assertIn("fr-tile--download", html)
+        self.assertIn("Publication PDF", html)
+        self.assertIn(self.document.url, html)
