@@ -18,7 +18,6 @@ dependencies = [
     "django-dsfr>=2.4.0",
     "django<6.1,>=6.0",
     "wagtail>=7.2.0",
-    "modelsearch>=1.3.2",
     "psycopg2-binary>=2.9.10",
     "python-dotenv>=1.1.0",
     "dj-database-url>=3.0.0",
@@ -170,6 +169,16 @@ ignore = ["E203", "E266"]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
+
+# Dependency cooldown: ignore PyPI releases newer than this window so CVEs and
+# supply-chain advisories have time to surface before we adopt a version.
+# Re-run `uv lock` after changing this value.
+[tool.uv]
+exclude-newer = "7 days"
+
+# Per-package opt-out: set a package to false to bypass the cooldown for an
+# urgent security fix published inside the window. Example:
+# exclude-newer-package = { wagtail = false }
 
 # Blocks installation of known malware (typosquatting, deliberately malicious packages)
 [tool.uv.audit]

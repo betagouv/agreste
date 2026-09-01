@@ -119,6 +119,20 @@ sync-tarteaucitron:
     {{docker_cmd}} npm ci
     cd scripts && bash sync_tarteaucitron.sh
 
+# During a merge: keep our deletion for "deleted by us" (DU) conflicts under path.
+# Example: just accept-deleted-by-us sites_conformes/static/lib/tarteaucitronjs
+#          just accept-deleted-by-us demo
+[group('Git')]
+accept-deleted-by-us path:
+    bash scripts/accept_deleted_by_us.sh "{{path}}"
+
+# Merge Sites Conformes tag v<version> into a fresh branch from main-agreste.
+# Resolves known Agreste paths (deleted demo/tarteaucitron, ours package.json, uv.lock).
+# Example: just merge-sc-tag 4.2.0-rc1
+[group('Git')]
+merge-sc-tag version:
+    bash scripts/merge_sc_tag.sh "{{version}}"
+
 test app="":
     {{docker_cmd}} {{uv_run}} python manage.py test {{app}} --buffer --parallel --settings config.settings_test
 

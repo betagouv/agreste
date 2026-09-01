@@ -1,0 +1,205 @@
+[
+  {
+    "id": "00000000-0000-4000-8000-000000000031",
+    "type": "tags_list",
+    "value": [
+      {
+        "id": "00000000-0000-4000-8000-000000000032",
+        "type": "tag",
+        "value": {
+          "link": {
+            "page": 1001,
+            "anchor": "",
+            "document": null,
+            "link_type": "page",
+            "external_url": "",
+            "query_string": "?category=bovins-ovins-caprins-lait"
+          },
+          "color": "orange-terre-battue",
+          "label": "Bovins, ovins, caprins, lait",
+          "is_small": false,
+          "icon_class": ""
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000033",
+        "type": "tag",
+        "value": {
+          "link": {
+            "page": 1001,
+            "anchor": "",
+            "document": null,
+            "link_type": "page",
+            "external_url": "",
+            "query_string": "?category=infos-rapides"
+          },
+          "color": "",
+          "label": "Infos rapides",
+          "is_small": false,
+          "icon_class": ""
+        }
+      },
+      {
+        "id": "00000000-0000-4000-8000-000000000034",
+        "type": "tag",
+        "value": {
+          "link": {
+            "page": 1001,
+            "anchor": "",
+            "document": null,
+            "link_type": "page",
+            "external_url": "",
+            "query_string": "?category=infos-rapides-animaux-de-boucherie"
+          },
+          "color": "brown-cafe-creme",
+          "label": "Infos rapides - Animaux de boucherie",
+          "is_small": false,
+          "icon_class": ""
+        }
+      }
+    ]
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000035",
+    "type": "multicolumns",
+    "value": {
+      "title": "",
+      "columns": [
+        {
+          "id": "00000000-0000-4000-8000-000000000036",
+          "type": "column",
+          "value": {
+            "width": "8",
+            "content": [
+              {
+                "id": "00000000-0000-4000-8000-000000000037",
+                "type": "text",
+                "value": "<p>En décembre 2025, les abattages d’agneaux se replient sur un an. Le cours moyen de l’agneau est en baisse.</p><p>En novembre 2025, le prix des intrants est toujours en baisse sur un an. Les importations d’agneaux vivants chutent et les exportations progressent. La consommation de viande ovine recule, et le déficit commercial se réduit.</p><h2><b>Décembre 2025 : repli des abattages d’ovins</b></h2><p>En décembre, les abattages d’ovins se replient, inférieurs de 1,6 % au niveau de décembre 2024 et de 14,6 % à la moyenne quinquennale 2020-2024.</p>"
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000038",
+                "type": "html",
+                "value": "<div class=\"fr-card fr-card--no-border\"><div class=\"fr-card__body\"><h3 class=\"fr-card__title\">Graphique 1 - Abattages d'agneaux (Millier de têtes)</h3><canvas id=\"chartG1\"></canvas></div></div>"
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000039",
+                "type": "html",
+                "value": "<div class=\"fr-card fr-card--no-border\"><div class=\"fr-card__body\"><h3 class=\"fr-card__title\">Tableau 1 - Abattages d'ovins (Décembre 2025)</h3><div class=\"fr-table\"><table><thead><tr><th scope=\"col\">Type</th><th scope=\"col\">Millier de têtes</th></tr></thead><tbody><tr><td>Agneaux</td><td>206,2</td></tr></tbody></table></div></div></div>"
+              },
+              {
+                "id": "00000000-0000-4000-8000-00000000003a",
+                "type": "callout",
+                "value": {
+                  "text": "<p>Cette publication est disponible à parution sur le site Internet de la statistique agricole. Toutes les <i>Infos Rapides</i> sont présentes dans la rubrique <a linktype=\"page\" id=\"1002\">Infos rapides</a>.</p>",
+                  "color": "",
+                  "title": "Pour en savoir plus",
+                  "button": {
+                    "page": null,
+                    "text": "",
+                    "anchor": "",
+                    "document": null,
+                    "icon_side": "",
+                    "link_type": "",
+                    "icon_class": "",
+                    "button_type": "",
+                    "external_url": "",
+                    "query_string": ""
+                  },
+                  "icon_class": "",
+                  "heading_tag": "h3"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "00000000-0000-4000-8000-00000000003b",
+          "type": "column",
+          "value": {
+            "width": "4",
+            "content": [
+              {
+                "id": "00000000-0000-4000-8000-00000000003c",
+                "type": "tile",
+                "value": {
+                  "link": {
+                    "page": null,
+                    "anchor": "",
+                    "document": 105,
+                    "link_type": "document",
+                    "external_url": "",
+                    "query_string": ""
+                  },
+                  "image": null,
+                  "title": "Télécharger la publication",
+                  "shadow": false,
+                  "is_small": false,
+                  "no_border": false,
+                  "description": "<p>example-publication.pdf</p>",
+                  "detail_text": "",
+                  "heading_tag": "h3",
+                  "is_horizontal": false,
+                  "no_background": false,
+                  "grey_background": false,
+                  "top_detail_badges_tags": []
+                }
+              },
+              {
+                "id": "00000000-0000-4000-8000-00000000003d",
+                "type": "tile",
+                "value": {
+                  "link": {
+                    "page": null,
+                    "anchor": "",
+                    "document": 106,
+                    "link_type": "document",
+                    "external_url": "",
+                    "query_string": ""
+                  },
+                  "image": null,
+                  "title": "Télécharger les données",
+                  "shadow": false,
+                  "is_small": false,
+                  "no_border": false,
+                  "description": "<p>example-data.xlsx</p>",
+                  "detail_text": "",
+                  "heading_tag": "h3",
+                  "is_horizontal": false,
+                  "no_background": false,
+                  "grey_background": false,
+                  "top_detail_badges_tags": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "bg_image": null,
+      "top_margin": 0,
+      "heading_tag": "h2",
+      "bottom_margin": 0,
+      "bg_color_class": "",
+      "vertical_align": ""
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-00000000003e",
+    "type": "html",
+    "value": "<div id=\"disaron-nom\">PUB-EXAMPLE-04</div>"
+  },
+  {
+    "id": "00000000-0000-4000-8000-00000000003f",
+    "type": "blog_recent_entries",
+    "value": {
+      "blog": 1001,
+      "title": "Les dernières infos rapides",
+      "tag_filter": null,
+      "heading_tag": "h2",
+      "show_filters": false,
+      "author_filter": null,
+      "entries_count": 4,
+      "source_filter": null,
+      "category_filter": 10
+    }
+  }
+]

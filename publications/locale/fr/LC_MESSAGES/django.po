@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 09:40+0200\n"
+"POT-Creation-Date: 2026-08-31 17:23+0200\n"
 "PO-Revision-Date: 2026-06-08 15:16+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -15,6 +15,45 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "Publication"
+msgstr "Publication"
+
+msgid "Data"
+msgstr "Données"
+
+msgid "Download publication"
+msgstr "Télécharger la publication"
+
+msgid "Download data"
+msgstr "Télécharger les données"
+
+msgid "Your document will appear here"
+msgstr "Votre document apparaîtra ici"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Document"
+msgstr "Document"
+
+msgid "Downloadable document"
+msgstr "Document à télécharger"
+
+msgid "Agreste"
+msgstr "Agreste"
+
+msgid "Subtitle"
+msgstr "Sous-titre"
+
+msgid "Publication subtitle"
+msgstr "Sous-titre de la publication"
+
+msgid "Summary"
+msgstr "Chapeau"
+
+msgid "Publication summary"
+msgstr "Chapeau de la publication"
 
 msgid "See all publications"
 msgstr "Voir toutes les publications"
@@ -67,6 +106,15 @@ msgstr "Publications récentes"
 
 msgid "“See all publications” button"
 msgstr "Bouton « Voir toutes les publications »"
+
+msgid "Document to download"
+msgstr "Document à télécharger"
+
+msgid "Documents to download"
+msgstr "Documents à télécharger"
+
+msgid "Standard publication"
+msgstr "Publication standard"
 
 msgid "Collection"
 msgstr "Collection"
@@ -135,6 +183,9 @@ msgstr "Le/La %(type)s ne peut être sa propre catégorie parente."
 
 msgid "Cannot have circular Parents."
 msgstr "Le parent du parent ne peut pas être l'élément lui-même."
+
+msgid "Opens a new window"
+msgstr ""
 
 msgid "Published on"
 msgstr "Publié le"
