@@ -8,10 +8,11 @@ STANDARD_PUBLICATION_BLOCK = "standard_publication"
 
 
 class StandardPublicationBlock(blocks.StructBlock):
-    subtitle = blocks.CharBlock(label=_("Subtitle"))
+    subtitle = blocks.CharBlock(label=_("Subtitle"), required=False)
     summary = blocks.RichTextBlock(
         label=_("Summary"),
         features=LIMITED_RICHTEXTFIELD_FEATURES,
+        required=False,
     )
     downloadable_documents = blocks.ListBlock(
         DownloadableDocumentBlock(label=_("Document to download")),
