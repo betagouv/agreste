@@ -218,7 +218,7 @@ class PublicationsBlockAvailabilityTestCase(WagtailPageTestCase):
         return {
             "subtitle": "Standard publication subtitle",
             "summary": "<p>Standard publication summary.</p>",
-            "download_tiles": [
+            "downloadable_documents": [
                 {
                     "download_type": "publication",
                     "document": self.document,

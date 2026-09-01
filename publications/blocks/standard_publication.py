@@ -13,7 +13,7 @@ class StandardPublicationBlock(blocks.StructBlock):
         label=_("Summary"),
         features=LIMITED_RICHTEXTFIELD_FEATURES,
     )
-    download_tiles = blocks.ListBlock(
+    downloadable_documents = blocks.ListBlock(
         DownloadableDocumentBlock(label=_("Document to download")),
         label=_("Documents to download"),
     )

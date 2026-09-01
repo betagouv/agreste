@@ -22,7 +22,7 @@ class StandardPublicationBlockTestCase(TestCase):
             {
                 "subtitle": "Section title",
                 "summary": "<p>Publication summary text.</p>",
-                "download_tiles": [
+                "downloadable_documents": [
                     {
                         "download_type": "publication",
                         "document": self.document,
@@ -33,7 +33,7 @@ class StandardPublicationBlockTestCase(TestCase):
         )
         return block.render(value, context={"request": RequestFactory().get("/")})
 
-    def test_renders_subtitle_summary_and_download_tiles_in_two_columns(self):
+    def test_renders_subtitle_summary_and_downloadable_documents_in_two_columns(self):
         html = self._render_block()
 
         self.assertIn("cmsfr-block-standard-publication", html)

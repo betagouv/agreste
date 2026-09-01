@@ -6,8 +6,8 @@
       {{ value.summary|richtext }}
     </div>
     <div class="fr-col-12 fr-col-md-4 cmsfr-block-standard-publication__tiles">
-      {% for tile in value.download_tiles.bound_blocks %}
-        {% include_block tile %}
+      {% for downloadable_document in value.downloadable_documents.bound_blocks %}
+        {% include_block downloadable_document %}
       {% endfor %}
     </div>
   </div>
