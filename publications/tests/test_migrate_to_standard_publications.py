@@ -37,17 +37,11 @@ class FakePublishedRevision:
     def publish(self):
         return self
 
-
     def __getitem__(self, index):
         return self._data[index]
 
     def __setitem__(self, index, value):
         self._data[index] = value
-
-
-class FakePublishedRevision:
-    def publish(self):
-        return self
 
 
 class FakePage:
@@ -146,6 +140,7 @@ class MigratePageBodyTest(SimpleTestCase):
         self.assertEqual(list(page.body.raw_data), multicolumns_only)
         self.assertEqual(result.skipped_count, 1)
         self.assertEqual(result.migrated_count, 0)
+
 
 class RunMigrationTest(TestCase):
     def test_run_migration_aggregates_results(self):
