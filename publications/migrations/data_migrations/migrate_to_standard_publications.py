@@ -219,7 +219,7 @@ def _migrate_page_body(page, *, dry_run: bool) -> PageMigrationResult:
         return result
 
     page.body = transformed_stream
-    page.save_revision().publish()
+    page.save_revision(log_action=True).publish()
 
     return result
 

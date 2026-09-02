@@ -1,4 +1,5 @@
 import json
+from unittest.mock import patch
 
 from django.test import SimpleTestCase, TestCase
 
@@ -24,6 +25,18 @@ class FakeStreamField:
     @property
     def raw_data(self):
         return self._data
+
+    def __getitem__(self, index):
+        return self._data[index]
+
+    def __setitem__(self, index, value):
+        self._data[index] = value
+
+
+class FakePublishedRevision:
+    def publish(self):
+        return self
+
 
     def __getitem__(self, index):
         return self._data[index]
