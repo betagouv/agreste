@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -216,27 +215,11 @@ def _migrate_page_body(page, *, dry_run: bool) -> PageMigrationResult:
     transformed_stream, block_results = transform_body_stream(stream_data)
     result = PageMigrationResult(page_id=page.pk, page_url=page.url, block_results=block_results)
 
-    if result.migrated_count == 0:
-        return result
-
-    if dry_run:
+    if result.migrated_count == 0 or dry_run:
         return result
 
     page.body = transformed_stream
-    page.save(update_fields=["body"])
-
-    for revision in page.revisions.all().iterator():
-        content = revision.content
-        body = content.get("body")
-        if not body:
-            continue
-        revision_stream, revision_results = transform_body_stream(body)
-        if not any(item.action == "migrated" for item in revision_results):
-            continue
-        content = copy.copy(content)
-        content["body"] = revision_stream
-        revision.content = content
-        revision.save(update_fields=["content"])
+    page.save_revision(log_action=True).publish()
 
     return result
 
