@@ -1,5 +1,5 @@
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.test import SimpleTestCase, TestCase
 
@@ -26,18 +26,34 @@ class FakeStreamField:
     def raw_data(self):
         return self._data
 
+    def __getitem__(self, index):
+        return self._data[index]
+
+    def __setitem__(self, index, value):
+        self._data[index] = value
+
+
+class FakePublishedRevision:
+    def publish(self):
+        return self
+
+    def __getitem__(self, index):
+        return self._data[index]
+
+    def __setitem__(self, index, value):
+        self._data[index] = value
+
 
 class FakePage:
     def __init__(self, stream_data: list, *, pk: int = 1, url: str = "/publications/test/"):
         self.pk = pk
         self.url = url
         self.body = FakeStreamField(stream_data)
-        self.saved = False
-        self.revisions = MagicMock()
-        self.revisions.all.return_value.iterator.return_value = []
+        self.save_revision_called = False
 
-    def save(self, update_fields=None):
-        self.saved = True
+    def save_revision(self, **kwargs):
+        self.save_revision_called = True
+        return FakePublishedRevision()
 
 
 class MulticolumnsToStandardPublicationTransformTest(SimpleTestCase):
@@ -101,7 +117,7 @@ class MigratePageBodyTest(SimpleTestCase):
         page = FakePage(_load_example("should_migrate.json"))
         result = _migrate_page_body(page, dry_run=True)
 
-        self.assertFalse(page.saved)
+        self.assertFalse(page.save_revision_called)
         self.assertEqual(list(page.body.raw_data)[0]["type"], MULTICOLUMNS_BLOCK)
         self.assertEqual(result.migrated_count, 1)
 
@@ -109,7 +125,7 @@ class MigratePageBodyTest(SimpleTestCase):
         page = FakePage(_load_example("should_migrate.json"))
         result = _migrate_page_body(page, dry_run=False)
 
-        self.assertTrue(page.saved)
+        self.assertTrue(page.save_revision_called)
         self.assertEqual(page.body[0]["type"], STANDARD_PUBLICATION_BLOCK)
         self.assertEqual(page.body[0]["value"]["subtitle"], "Veille technologique")
         self.assertEqual(result.migrated_count, 1)
@@ -120,7 +136,7 @@ class MigratePageBodyTest(SimpleTestCase):
         page = FakePage(multicolumns_only)
         result = _migrate_page_body(page, dry_run=False)
 
-        self.assertFalse(page.saved)
+        self.assertFalse(page.save_revision_called)
         self.assertEqual(list(page.body.raw_data), multicolumns_only)
         self.assertEqual(result.skipped_count, 1)
         self.assertEqual(result.migrated_count, 0)
