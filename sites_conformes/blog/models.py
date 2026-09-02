@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -7,7 +6,6 @@ from django.db.models import BooleanField, Count, QuerySet
 from django.db.models.expressions import F
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
-from django.template.defaultfilters import slugify
 from django.utils import feedgenerator, timezone
 from django.utils.translation import gettext_lazy as _
 from modelcluster.fields import ParentalKey, ParentalManyToManyField
@@ -19,16 +17,13 @@ from wagtail.admin.panels import FieldPanel, FieldRowPanel, MultiFieldPanel, Tit
 from wagtail.admin.widgets.slug import SlugInput
 from wagtail.api import APIField
 from wagtail.contrib.routable_page.models import RoutablePageMixin, path
-from wagtail.fields import RichTextField, StreamField
 from wagtail.models import Orderable
-from wagtail.models.i18n import TranslatableMixin
-from wagtail.search import index
 from wagtail.snippets.models import register_snippet
 
-from sites_conformes.blog.blocks import COLOPHON_BLOCKS
+from sites_conformes.blog.abstract_taxonomy import AbstractTaxonomy
 from sites_conformes.blog.managers import CategoryManager
+from sites_conformes.blog.taxonomy_registration import get_taxonomy_types, get_taxonomy_values, list_taxonomy_values
 from sites_conformes.core.abstract import SitesFacilesBasePage
-from sites_conformes.core.constants import LIMITED_RICHTEXTFIELD_FEATURES
 from sites_conformes.core.models import Tag
 
 User = get_user_model()
@@ -103,75 +98,13 @@ class PersonSerializer(serializers.ModelSerializer):
 
 
 @register_snippet
-class Category(TranslatableMixin, index.Indexed, Orderable):
+class Category(AbstractTaxonomy):
     name = models.CharField(max_length=80, unique=True, verbose_name=_("Category name"))
-    slug = models.SlugField(unique=True, max_length=80)
-    parent = models.ForeignKey(
-        "self",
-        blank=True,
-        null=True,
-        related_name="children",
-        verbose_name=_("Parent category"),
-        on_delete=models.SET_NULL,
-    )
-    description = RichTextField(
-        max_length=500,
-        features=LIMITED_RICHTEXTFIELD_FEATURES,
-        blank=True,
-        verbose_name=_("Description"),
-        help_text=_("Displayed on the top of the category page"),
-    )  # type: ignore
-    colophon = StreamField(
-        COLOPHON_BLOCKS,
-        blank=True,
-        use_json_field=True,
-        help_text=_("Text displayed at the end of every page in the category"),
-    )
     objects = CategoryManager()
 
-    panels = [
-        TitleFieldPanel("name"),
-        FieldPanel("slug", widget=SlugInput),
-        FieldPanel("description"),
-        FieldPanel("colophon"),
-        FieldPanel("parent"),
-    ]
-
-    api_fields = [
-        APIField("name"),
-        APIField("slug"),
-        APIField("description"),
-        APIField("colophon"),
-        APIField("parent"),
-    ]
-
-    def __str__(self):
-        return self.name
-
-    def clean(self):
-        if self.parent:
-            parent = self.parent
-            if self.parent == self:
-                raise ValidationError(_("Parent category cannot be self."))
-            if parent.parent and parent.parent == self:
-                raise ValidationError(_("Cannot have circular Parents."))
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        return super(Category, self).save(*args, **kwargs)
-
-    class Meta:
-        ordering = ["name"]
+    class Meta(AbstractTaxonomy.Meta):
         verbose_name = _("Category")
         verbose_name_plural = _("Categories")
-        unique_together = [
-            ("translation_key", "locale"),
-            ("name", "locale"),
-            ("slug", "locale"),
-        ]
-
-    search_fields = [index.SearchField("name")]
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -234,13 +167,19 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
     class Meta:
         verbose_name = _("Blog index")
 
+    def get_entry_page_class(self):
+        """Extract the class object for the subpage_types (which is a string)."""
+        from django.apps import apps
+
+        app_label, model_name = self.subpage_types[0].split(".")
+        return apps.get_model(app_label, model_name)
+
     @property
     def posts(self):
-        # Get list of blog pages that are descendants of this page
-        posts = BlogEntryPage.objects.descendant_of(self).live()
-        posts = (
-            posts.order_by("-date").select_related("owner").prefetch_related("tags", "blog_categories", "date__year")
-        )
+        entry_page_class = self.get_entry_page_class()
+        posts = entry_page_class.objects.descendant_of(self).live()
+        m2m_fields = [taxonomy.m2m_field for taxonomy in get_taxonomy_types(entry_page_class)]
+        posts = posts.order_by("-date").select_related("owner").prefetch_related("tags", "date__year", *m2m_fields)
         return posts
 
     def get_context(self, request, *args, **kwargs):
@@ -266,22 +205,26 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
             }
             extra_title = _("Posts tagged with %(tag)s") % {"tag": tag}
 
-        category = request.GET.get("category")
-        if category:
-            category = get_object_or_404(Category, slug=category, locale=self.locale)
-            posts = posts.filter(blog_categories=category)
-
+        taxonomies = get_taxonomy_types(self.get_entry_page_class())
+        current_taxonomies = {taxonomy.current_context_key: None for taxonomy in taxonomies}
+        for taxonomy in taxonomies:
+            slug_value = request.GET.get(taxonomy.slug)
+            if not slug_value:
+                continue
+            current = get_object_or_404(taxonomy.model, slug=slug_value, locale=self.locale)
+            posts = posts.filter(**{taxonomy.m2m_field: current})
             extra_breadcrumbs = {
                 "links": [
                     {"url": self.get_url(), "title": self.title},
                     {
-                        "url": f"{self.get_url()}{self.reverse_subpage('categories_list')}",
-                        "title": _("Categories"),
+                        "url": f"{self.get_url()}{self.reverse_subpage(taxonomy.list_route_name)}",
+                        "title": taxonomy.list_label_plural,
                     },
                 ],
-                "current": category.name,
+                "current": current.name,
             }
-            extra_title = _("Posts in category %(category)s") % {"category": category.name}
+            extra_title = taxonomy.format_filtered_title(current.name)
+            current_taxonomies[taxonomy.current_context_key] = current
 
         source = request.GET.get("source")
         if source:
@@ -321,7 +264,6 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
         posts = paginator.get_page(page_number)
 
         context["posts"] = posts
-        context["current_category"] = category
         context["current_tag"] = tag
         context["current_source"] = source
         context["current_author"] = author
@@ -329,8 +271,10 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
         context["paginator"] = paginator
         context["extra_title"] = extra_title
 
-        # Filters
-        context["categories"] = self.get_categories()
+        for taxonomy in taxonomies:
+            context[taxonomy.plural] = get_taxonomy_values(self, taxonomy)
+            context[taxonomy.current_context_key] = current_taxonomies[taxonomy.current_context_key]
+
         context["authors"] = self.get_authors()
         context["sources"] = self.get_sources()
         context["tags"] = self.get_tags()
@@ -345,8 +289,9 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
         return Person.objects.filter(id__in=ids).order_by("name")
 
     def get_categories(self) -> QuerySet:
-        ids = self.posts.specific().values_list("blog_categories", flat=True)
-        return Category.objects.filter(id__in=ids).order_by("name")
+        from sites_conformes.blog.taxonomies import CATEGORY
+
+        return get_taxonomy_values(self, CATEGORY)
 
     def get_sources(self) -> QuerySet:
         ids = self.posts.specific().values_list("authors__organization", flat=True)
@@ -357,16 +302,9 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
         return Tag.objects.filter(id__in=ids).order_by("name")
 
     def list_categories(self) -> list:
-        posts = self.posts.specific()
-        return (
-            posts.values(
-                cat_slug=F("blog_categories__slug"),
-                cat_name=F("blog_categories__name"),
-            )
-            .annotate(cat_count=Count("cat_slug"))
-            .filter(cat_count__gte=1)
-            .order_by("-cat_count")
-        )
+        from sites_conformes.blog.taxonomies import CATEGORY
+
+        return list_taxonomy_values(self, CATEGORY)
 
     def list_tags(self, min_count: int = 1) -> list:
         posts = self.posts.specific()
@@ -379,7 +317,9 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
 
     @property
     def show_filters(self) -> bool | BooleanField:
-        return self.filter_by_category or self.filter_by_tag or self.filter_by_author or self.filter_by_source
+        taxonomies = get_taxonomy_types(self.get_entry_page_class())
+        taxonomy_filters = any(getattr(self, taxonomy.index_page_filter_display_switch) for taxonomy in taxonomies)
+        return taxonomy_filters or self.filter_by_tag or self.filter_by_author or self.filter_by_source
 
     def feed_posts(self, feed, request):
         """
@@ -387,10 +327,11 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
         """
         posts = self.posts
 
-        category = request.GET.get("category")
-        if category:
-            category = get_object_or_404(Category, slug=category, locale=self.locale)
-            posts = posts.filter(blog_categories=category)
+        for taxonomy in get_taxonomy_types(self.get_entry_page_class()):
+            slug_value = request.GET.get(taxonomy.slug)
+            if slug_value:
+                taxonomy_obj = get_object_or_404(taxonomy.model, slug=slug_value, locale=self.locale)
+                posts = posts.filter(**{taxonomy.m2m_field: taxonomy_obj})
 
         limit = int(request.GET.get("limit", self.feed_posts_limit))
         posts = posts[:limit]
@@ -451,28 +392,29 @@ class BlogIndexPage(RoutablePageMixin, SitesFacilesBasePage):
         response = HttpResponse(feed.writeString("UTF-8"), content_type="application/xml")
         return response
 
-    @path("categories/", name="categories_list")
-    def categories_list(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        extra_title = _("Categories")
-        categories = self.list_categories()
-
+    def render_taxonomy_list(self, request, taxonomy):
         extra_breadcrumbs = {
             "links": [
                 {"url": self.get_url(), "title": self.title},
             ],
-            "current": _("Categories"),
+            "current": taxonomy.list_label_plural,
         }
-
         return self.render(
             request,
             context_overrides={
-                "categories": categories,
+                taxonomy.plural: list_taxonomy_values(self, taxonomy),
                 "page": self,
-                "extra_title": extra_title,
+                "extra_title": taxonomy.list_label_plural,
                 "extra_breadcrumbs": extra_breadcrumbs,
             },
-            template="sites_conformes_blog/categories_list_page.html",
+            template=taxonomy.list_template,
         )
+
+    @path("categories/", name="categories_list")
+    def categories_list(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        from sites_conformes.blog.taxonomies import CATEGORY
+
+        return self.render_taxonomy_list(request, CATEGORY)
 
     @path("tags/", name="tags_list")
     def tags_list(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
