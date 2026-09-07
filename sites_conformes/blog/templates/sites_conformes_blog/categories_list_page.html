@@ -38,9 +38,9 @@
     {% include "sites_conformes_core/blocks/messages.html" %}
 
     <ul>
-      {% for category in categories|dictsort:"cat_name" %}
+      {% for category in categories|dictsort:"category_name" %}
         <li>
-          <a href="{% pageurl page %}?category={{ category.cat_slug }}"><strong>{{ category.cat_name }}</strong> ({{ category.cat_count }})</a>
+          <a href="{% pageurl page %}?category={{ category.category_slug }}"><strong>{{ category.category_name }}</strong> ({{ category.category_count }})</a>
         </li>
       {% endfor %}
     </ul>
