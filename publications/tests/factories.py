@@ -16,6 +16,7 @@ class PublicationIndexPageFactory(PublishedPageFactory):
 class PublicationPageFactory(PublishedPageFactory):
     title = factory.Sequence(lambda n: f"Post {n}")
     date = DEFAULT_POST_DATE
+    disaron_id = factory.Sequence(lambda n: f"disaron-{n}")
 
     class Meta:
         model = PublicationPage

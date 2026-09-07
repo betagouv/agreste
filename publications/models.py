@@ -56,6 +56,12 @@ class ThemePublication(Orderable):
 
 
 class PublicationPage(BlogEntryPage):
+    disaron_id = models.CharField(
+        _("Disaron identifier"),
+        max_length=255,
+        unique=True,
+        help_text=_("The identifier of the publication in the old Agreste website"),
+    )
     collections = ParentalManyToManyField(
         "Collection",
         through="CollectionPublication",
@@ -73,7 +79,7 @@ class PublicationPage(BlogEntryPage):
     subpage_types = []
     template = "publications/publication_page.html"
 
-    settings_panels = BlogEntryPage.settings_panels[:]
+    settings_panels = [FieldPanel("disaron_id")] + BlogEntryPage.settings_panels[:]
     _tags_panel_index = next(
         i for i, panel in enumerate(settings_panels) if getattr(panel, "heading", None) == _("Tags and Categories")
     )
