@@ -383,8 +383,7 @@ def get_facet_context(
     - ``selected_years``: ``list[str]`` selected via ``?year=`` (valid YYYY only).
       There is no year option list in the sidebar yet; years are only applied
       as selected facet values when present in the URL.
-    - ``show_search_facets``: ``bool``, true when at least one enabled facet
-      has options to display.
+    - ``show_search_facets``: ``bool``, true when at least one facet is enabled.
 
     Present only when the matching ``enabled_facets`` flag is true
     --------------------------------------------------------------
@@ -527,16 +526,4 @@ def get_facet_context(
 
 def _show_search_facets(context: dict) -> bool:
     enabled = context.get("enabled_facets") or {}
-    if enabled.get("category") and context.get("categories"):
-        return True
-    if enabled.get("collection") and context.get("collection_tree"):
-        return True
-    if enabled.get("theme") and context.get("theme_tree"):
-        return True
-    if enabled.get("tag") and context.get("tags"):
-        return True
-    if enabled.get("author") and context.get("authors"):
-        return True
-    if enabled.get("source") and context.get("sources"):
-        return True
-    return False
+    return any(name != "year" and on for name, on in enabled.items())

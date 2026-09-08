@@ -212,6 +212,21 @@ class FacetedSearchContextTest(FacetedSearchTestBase):
         )
         self.assertFalse(context["show_search_facets"])
 
+        # Enabled sidebar facet with no values still shows the sidebar.
+        enabled_flags = {**_all_facets_disabled(), "category": True}
+        context = get_facet_context(
+            request, selection=FacetSelection(), rank_by=RANK_BY_RELEVANCE, enabled_facets=enabled_flags
+        )
+        self.assertEqual(context["categories"], [])
+        self.assertTrue(context["show_search_facets"])
+
+        # Year is enabled by default in ENABLED_FACETS but has no sidebar section.
+        enabled_flags = {**_all_facets_disabled(), "year": True}
+        context = get_facet_context(
+            request, selection=FacetSelection(), rank_by=RANK_BY_RELEVANCE, enabled_facets=enabled_flags
+        )
+        self.assertFalse(context["show_search_facets"])
+
 
 class FacetedSearchQueryTest(FacetedSearchTestBase):
     """Full-text search combined with facet filters (``facet_before_search``).
