@@ -60,6 +60,7 @@
 .agr-facet-tree {
     --agr-toggle: 1.5rem;
     --agr-toggle-gap: 0.25rem;
+    margin-left: -1rem;
 }
 
 .agr-facet-tree__row {
