@@ -1,10 +1,44 @@
-/* Accordion bodies are meant for prose, so DSFR gives them bullets and an indent
-   (`.fr-accordion .fr-collapse` sets --ul-type: disc). The facet lists are rows of
-   checkboxes, not prose, so they opt back out. */
+/* Accordion bodies are meant for prose, so DSFR gives them bullets, an indent,
+   and vertical list spacing (`.fr-accordion .fr-collapse` sets --ul-type: disc,
+   --xl-block, --li-bottom). The facet lists are rows of checkboxes, not prose,
+   so they opt back out. */
 .agr-facet-list,
 .agr-search-results {
     list-style: none;
     padding-left: 0;
+}
+
+.agr-facet-list {
+    --xl-block: 0;
+    --li-bottom: 0;
+    margin: 0;
+}
+
+/* DSFR `.fr-sidemenu .fr-collapse` also matches accordion panels nested in the
+   filter sidebar (1v padding/margin). Restore the accordion collapse box model
+   from DSFR 1.14 so grouped filters share borders with no extra gap. */
+.fr-sidemenu .fr-accordion > .fr-collapse {
+    margin: 0;
+    padding: 0;
+}
+
+.fr-sidemenu .fr-accordion > .fr-collapse--expanded {
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
+}
+
+@media (min-width: 48em) {
+    .fr-sidemenu .fr-accordion > .fr-collapse {
+        margin: 0 -0.25rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+/* Same leak on nested theme/collection collapses: they are not sidemenu items. */
+.fr-sidemenu .agr-facet-tree .fr-collapse {
+    margin: 0;
+    padding: 0;
 }
 
 /* Backport of DSFR 1.15 #1361 (indeterminate checkbox dash). django-dsfr still
