@@ -1,10 +1,13 @@
 (function () {
     function checkboxOf(li) {
-        return li.querySelector(":scope > .fr-checkbox-group > input[type=checkbox]");
+        return li.querySelector(
+            ":scope > .fr-checkbox-group > input[type=checkbox], "
+                + ":scope > .agr-facet-tree__row > .fr-checkbox-group > input[type=checkbox]"
+        );
     }
 
     function descendantCheckboxes(li) {
-        const nested = li.querySelector(":scope > ul");
+        const nested = li.querySelector(":scope > ul, :scope > .fr-collapse > ul");
         if (!nested) {
             return [];
         }

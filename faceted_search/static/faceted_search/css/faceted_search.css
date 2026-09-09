@@ -22,3 +22,18 @@
     --data-uri-svg: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000091' d='M5 11h14v2H5v-2Z'/%3E%3C/svg%3E");
 }
 /* end backport */
+
+.agr-facet-tree__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.agr-facet-tree__row .fr-checkbox-group {
+    flex: 1;
+}
+
+.agr-facet-tree__toggle[aria-expanded="true"]::before,
+.agr-facet-tree__toggle[aria-expanded="true"]::after {
+    transform: rotate(180deg);
+}

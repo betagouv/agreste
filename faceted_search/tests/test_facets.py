@@ -781,6 +781,62 @@ class FacetedSearchTreeCheckboxTest(FacetedSearchTestBase):
         self.assertTrue(child_a_input.has_attr("checked"))
         self.assertFalse(child_b_input.has_attr("checked"))
 
+    def _toggle(self, soup, slug):
+        return soup.select_one(f'[aria-controls="facet-theme-{slug}-children"]')
+
+    def _panel(self, soup, slug):
+        return soup.select_one(f"#facet-theme-{slug}-children")
+
+    def test_parent_starts_collapsed_when_nothing_selected(self):
+        parent, _, _ = self._theme_tree_fixtures()
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        toggle = self._toggle(soup, parent.slug)
+        panel = self._panel(soup, parent.slug)
+        self.assertIsNotNone(toggle)
+        self.assertEqual(toggle["aria-expanded"], "false")
+        self.assertNotIn("fr-collapse--expanded", panel.get("class", []))
+
+    def test_parent_starts_open_when_child_selected(self):
+        parent, child_a, _child_b = self._theme_tree_fixtures()
+        other_parent = ThemeFactory(locale=self.index.locale, name="Other parent theme", slug="other-parent-theme")
+        other_child = ThemeFactory(
+            locale=self.index.locale, name="Other child theme", slug="other-child-theme", parent=other_parent
+        )
+        self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post with other child theme",
+            slug="post-with-other-child-theme",
+            themes=[other_child],
+        )
+        response = self.client.get(self.search_url(theme=child_a.slug))
+        soup = BeautifulSoup(response.content, "html.parser")
+        toggle = self._toggle(soup, parent.slug)
+        panel = self._panel(soup, parent.slug)
+        self.assertEqual(toggle["aria-expanded"], "true")
+        self.assertIn("fr-collapse--expanded", panel["class"])
+        other_toggle = self._toggle(soup, other_parent.slug)
+        other_panel = self._panel(soup, other_parent.slug)
+        self.assertEqual(other_toggle["aria-expanded"], "false")
+        self.assertNotIn("fr-collapse--expanded", other_panel.get("class", []))
+
+    def test_parent_starts_open_when_parent_selected(self):
+        parent, _, _ = self._theme_tree_fixtures()
+        response = self.client.get(self.search_url(theme=parent.slug))
+        soup = BeautifulSoup(response.content, "html.parser")
+        toggle = self._toggle(soup, parent.slug)
+        panel = self._panel(soup, parent.slug)
+        self.assertEqual(toggle["aria-expanded"], "true")
+        self.assertIn("fr-collapse--expanded", panel["class"])
+
+    def test_leaf_has_no_collapse_button(self):
+        _parent, child_a, _child_b = self._theme_tree_fixtures()
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        self.assertIsNone(self._toggle(soup, child_a.slug))
+        self.assertIsNone(self._panel(soup, child_a.slug))
+
 
 class FacetedSearchDsfrCheckboxBackportTest(SimpleTestCase):
     """Fail when django-dsfr ships DSFR 1.15+ so the CSS backport can be deleted."""
