@@ -77,14 +77,14 @@ class FacetedSearchEmptyFacetTest(FacetedSearchPaginationTestBase):
         response = self.client.get(self.search_url())
         self.assertEqual(response.status_code, 200)
         soup = BeautifulSoup(response.content, "html.parser")
-        empty_message = gettext("No values available")
-        for accordion_id in (
-            "filter-theme",
-            "filter-collection",
-            "filter-tag",
-            "filter-author",
-            "filter-source",
-        ):
+        empty_messages = {
+            "filter-theme": gettext("No themes corresponding to this search"),
+            "filter-collection": gettext("No collections corresponding to this search"),
+            "filter-tag": gettext("No tags corresponding to this search"),
+            "filter-author": gettext("No authors corresponding to this search"),
+            "filter-source": gettext("No organizations corresponding to this search"),
+        }
+        for accordion_id, empty_message in empty_messages.items():
             with self.subTest(accordion_id=accordion_id):
                 panel = soup.select_one(f"#{accordion_id}")
                 self.assertIsNotNone(panel)

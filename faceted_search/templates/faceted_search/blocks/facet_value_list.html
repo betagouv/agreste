@@ -1,4 +1,4 @@
-{% load i18n faceted_search_tags %}
+{% load faceted_search_tags %}
 
 {% if items %}
   <ul class="agr-facet-list">
@@ -19,5 +19,5 @@
     {% endfor %}
   </ul>
 {% else %}
-  <p class="fr-hint-text">{% translate "No values available" %}</p>
+  <p class="fr-hint-text">{{ empty_message }}</p>
 {% endif %}

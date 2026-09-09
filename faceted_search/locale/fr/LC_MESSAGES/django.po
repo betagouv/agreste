@@ -27,9 +27,6 @@ msgstr "Pertinence"
 msgid "Date"
 msgstr "Date"
 
-msgid "No values available"
-msgstr "Aucune valeur disponible"
-
 msgid "Filter by theme"
 msgstr "Filtrer par thématique"
 
@@ -47,6 +44,24 @@ msgstr "Filtrer par auteur"
 
 msgid "Filter by organization"
 msgstr "Filtrer par organisation"
+
+msgid "No themes corresponding to this search"
+msgstr "Aucune thématique ne correspond à cette recherche"
+
+msgid "No collections corresponding to this search"
+msgstr "Aucune collection ne correspond à cette recherche"
+
+msgid "No categories corresponding to this search"
+msgstr "Aucune catégorie ne correspond à cette recherche"
+
+msgid "No tags corresponding to this search"
+msgstr "Aucune étiquette ne correspond à cette recherche"
+
+msgid "No authors corresponding to this search"
+msgstr "Aucun auteur ne correspond à cette recherche"
+
+msgid "No organizations corresponding to this search"
+msgstr "Aucune organisation ne correspond à cette recherche"
 
 msgid "Search results"
 msgstr "Résultats de recherche"
