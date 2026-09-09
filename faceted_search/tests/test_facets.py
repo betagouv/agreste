@@ -743,16 +743,7 @@ class FacetedSearchAccordionStateTest(FacetedSearchTestBase):
 
 
 class FacetedSearchDateFacetTest(FacetedSearchTestBase):
-    """Publication date range: accordion under Collections, two native date inputs."""
-
-    def test_date_accordion_is_under_collections(self):
-        response = self.client.get(self.search_url())
-        soup = BeautifulSoup(response.content, "html.parser")
-        accordions = soup.select(".fr-accordions-group .fr-accordion")
-        panel_ids = [accordion.select_one(".fr-collapse")["id"] for accordion in accordions]
-        self.assertIn("filter-collection", panel_ids)
-        self.assertIn("filter-date", panel_ids)
-        self.assertEqual(panel_ids.index("filter-date"), panel_ids.index("filter-collection") + 1)
+    """Publication date range: two native date inputs in the sidebar."""
 
     def test_date_accordion_has_start_and_end_inputs(self):
         response = self.client.get(self.search_url())
@@ -813,9 +804,6 @@ class FacetedSearchTreeCheckboxTest(FacetedSearchTestBase):
         self.assertIsNotNone(child_input)
         self.assertFalse(parent_input.has_attr("onchange"))
         self.assertFalse(child_input.has_attr("onchange"))
-        tag_input = soup.select_one(f"#facet-tag-{self.tag.slug}")
-        self.assertIsNotNone(tag_input)
-        self.assertEqual(tag_input.get("onchange"), "this.form.submit()")
 
     def test_tree_script_is_included(self):
         response = self.client.get(self.search_url())

@@ -22,9 +22,9 @@ ENABLED_FACETS: dict[str, bool] = {
     "category": False,
     "collection": True,
     "theme": True,
-    "tag": True,
-    "author": True,
-    "source": True,
+    "tag": False,
+    "author": False,
+    "source": False,
     "date": True,
 }
 
