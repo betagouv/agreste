@@ -83,7 +83,7 @@ def facet_selection_for(request, site) -> FacetSelection:
 def get_post_titles_in_response(response) -> list[str]:
     return [
         link.get_text(strip=True)
-        for link in BeautifulSoup(response.content, "html.parser").select("#search-results ol a")
+        for link in BeautifulSoup(response.content, "html.parser").select("#search-results .agr-search-results a")
     ]
 
 

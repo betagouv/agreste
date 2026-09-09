@@ -1,7 +1,8 @@
 /* Accordion bodies are meant for prose, so DSFR gives them bullets and an indent
    (`.fr-accordion .fr-collapse` sets --ul-type: disc). The facet lists are rows of
    checkboxes, not prose, so they opt back out. */
-.agr-facet-list {
+.agr-facet-list,
+.agr-search-results {
     list-style: none;
     padding-left: 0;
 }
@@ -21,9 +22,3 @@
     --data-uri-svg: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000091' d='M5 11h14v2H5v-2Z'/%3E%3C/svg%3E");
 }
 /* end backport */
-
-/* DSFR resets ordered-list counters, so the HTML start attribute is ignored.
-   Use a CSS variable so the counter starts from the page's first result number. */
-#search-results ol {
-    counter-reset: li-counter calc(var(--list-start, 1) - 1);
-}
