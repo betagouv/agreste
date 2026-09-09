@@ -26,7 +26,22 @@
 .agr-facet-tree__row {
     display: flex;
     align-items: flex-start;
-    gap: 0.25rem;
+    gap: 0.5rem;
+}
+
+/* Match the sm checkbox row (1rem box + 0.25rem offset) so the chevron
+   sits on the same midline as the label, not in a taller 2rem button. */
+.agr-facet-tree__toggle {
+    flex: 0 0 1.5rem;
+    min-width: 1.5rem;
+    max-width: 1.5rem;
+    min-height: 1.5rem;
+    max-height: 1.5rem;
+    padding: 0.25rem;
+}
+
+.agr-facet-tree__toggle::before {
+    margin: 0;
 }
 
 .agr-facet-tree__row .fr-checkbox-group {
@@ -36,4 +51,10 @@
 .agr-facet-tree__toggle[aria-expanded="true"]::before,
 .agr-facet-tree__toggle[aria-expanded="true"]::after {
     transform: rotate(180deg);
+}
+
+/* Nested trees: indent past the parent chevron (1.5rem) and checkbox (1.5rem)
+   so the child box sits under the parent label, not on the parent box. */
+.agr-facet-tree .agr-facet-tree {
+    margin-left: 3rem;
 }

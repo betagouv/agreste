@@ -1,7 +1,7 @@
 {% load i18n faceted_search_tags %}
 
 {% if nodes %}
-  <ul class="agr-facet-list agr-facet-tree{% if depth %} fr-ml-3w{% endif %}">
+  <ul class="agr-facet-list agr-facet-tree">
     {% for node in nodes %}
       <li>
         {% if node.children %}
@@ -27,7 +27,7 @@
             </div>
             <div class="fr-collapse{% if expanded %} fr-collapse--expanded{% endif %}"
                  id="facet-{{ facet }}-{{ node.value.slug }}-children">
-              {% include "faceted_search/blocks/facet_value_tree.html" with nodes=node.children facet=facet selected_values=selected_values depth=True %}
+              {% include "faceted_search/blocks/facet_value_tree.html" with nodes=node.children facet=facet selected_values=selected_values %}
             </div>
           {% endwith %}
         {% else %}
