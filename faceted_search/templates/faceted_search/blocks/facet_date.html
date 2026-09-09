@@ -1,0 +1,14 @@
+<div class="fr-input-group">
+  <label class="fr-label" for="{{ form.date_from.id_for_label }}">{{ form.date_from.label }}</label>
+  {{ form.date_from }}
+  <div class="fr-messages-group"
+       id="{{ form.date_from.id_for_label }}-messages"
+       aria-live="polite"></div>
+</div>
+<div class="fr-input-group fr-mb-3w">
+  <label class="fr-label" for="{{ form.date_to.id_for_label }}">{{ form.date_to.label }}</label>
+  {{ form.date_to }}
+  <div class="fr-messages-group"
+       id="{{ form.date_to.id_for_label }}-messages"
+       aria-live="polite"></div>
+</div>

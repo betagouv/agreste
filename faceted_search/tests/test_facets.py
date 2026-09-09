@@ -222,12 +222,12 @@ class FacetedSearchContextTest(FacetedSearchTestBase):
         self.assertEqual(context["categories"], [])
         self.assertTrue(context["show_search_facets"])
 
-        # Year is enabled by default in ENABLED_FACETS but has no sidebar section.
-        enabled_flags = {**_all_facets_disabled(), "year": True}
+        # Date is a real sidebar section, so enabling it alone shows the filters.
+        enabled_flags = {**_all_facets_disabled(), "date": True}
         context = get_facet_context(
             request, selection=FacetSelection(), rank_by=RANK_BY_RELEVANCE, enabled_facets=enabled_flags
         )
-        self.assertFalse(context["show_search_facets"])
+        self.assertTrue(context["show_search_facets"])
 
 
 class FacetedSearchQueryTest(FacetedSearchTestBase):
@@ -334,27 +334,52 @@ class FacetedSearchQueryTest(FacetedSearchTestBase):
         response = self.client.get(self.search_url(author="not-an-id"))
         self.assertEqual(response.status_code, 404)
 
-    def test_invalid_year_is_ignored(self):
-        response = self.client.get(self.search_url(year="not-a-year"))
-        self.assertEqual(response.status_code, 200)
-        post_titles = get_post_titles_in_response(response)
-        self.assertIn(self.post_with_collection.title, post_titles)
-        self.assertIn(self.post_with_theme.title, post_titles)
-
-    def test_year_filter_filters_by_year(self):
-        post_from_other_year = self.entry_page_factory(
+    def _dated_post(self, title, slug, year, month=1, day=1):
+        return self.entry_page_factory(
             parent=self.index,
             owner=self.admin,
-            title="Post from 2023",
-            slug="post-from-2023",
-            date=datetime(2023, 1, 1, 12, 0, 0, tzinfo=zoneinfo.ZoneInfo("Europe/Paris")),
+            title=title,
+            slug=slug,
+            date=datetime(year, month, day, 12, 0, 0, tzinfo=zoneinfo.ZoneInfo("Europe/Paris")),
         )
-        response = self.client.get(self.search_url(year=2024))
+
+    def test_invalid_date_returns_404(self):
+        response = self.client.get(self.search_url(date_from="not-a-date"))
+        self.assertEqual(response.status_code, 404)
+
+    def test_date_from_filters_inclusive(self):
+        older = self._dated_post("Post from 2023", "post-from-2023", 2023)
+        response = self.client.get(self.search_url(date_from="2024-01-01"))
         self.assertEqual(response.status_code, 200)
         post_titles = get_post_titles_in_response(response)
         self.assertIn(self.post_with_collection.title, post_titles)
-        self.assertIn(self.post_with_theme.title, post_titles)
-        self.assertNotIn(post_from_other_year.title, post_titles)
+        self.assertNotIn(older.title, post_titles)
+
+    def test_date_to_filters_inclusive(self):
+        older = self._dated_post("Post from 2023", "post-from-2023", 2023)
+        response = self.client.get(self.search_url(date_to="2023-12-31"))
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(older.title, post_titles)
+        self.assertNotIn(self.post_with_collection.title, post_titles)
+
+    def test_date_range_filters_both_bounds(self):
+        older = self._dated_post("Post from 2023", "post-from-2023", 2023)
+        newer = self._dated_post("Post from 2025", "post-from-2025", 2025)
+        mid = self._dated_post("Post from June 2024", "post-from-june-2024", 2024, 6, 15)
+        response = self.client.get(self.search_url(date_from="2024-01-01", date_to="2024-12-31"))
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_collection.title, post_titles)
+        self.assertIn(mid.title, post_titles)
+        self.assertNotIn(older.title, post_titles)
+        self.assertNotIn(newer.title, post_titles)
+
+    def test_date_range_same_day_is_inclusive(self):
+        response = self.client.get(self.search_url(date_from="2024-01-01", date_to="2024-01-01"))
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_collection.title, post_titles)
 
     def test_uses_OR_within_filter(self):
         """Test that multiple values within a single filter use OR semantics."""
@@ -490,11 +515,11 @@ class FacetedSearchGetFacetSelectionTest(FacetedSearchTestBase):
         with self.assertRaises(Http404):
             facet_selection_for(request, site)
 
-    def test_get_facet_selection_from_request__invalid_year_is_ignored(self):
-        request = RequestFactory().get("/", {"year": ["2024", "not-a-year", "23"]})
+    def test_get_facet_selection_from_request__invalid_date_raises_404(self):
+        request = RequestFactory().get("/", {"date_from": "not-a-date"})
         site = Site.objects.get(is_default_site=True)
-        selection = facet_selection_for(request, site)
-        self.assertEqual(selection.years, ["2024"])
+        with self.assertRaises(Http404):
+            facet_selection_for(request, site)
 
 
 def _tree_taxonomies(nodes):
@@ -715,6 +740,44 @@ class FacetedSearchAccordionStateTest(FacetedSearchTestBase):
                 # The modifier keeps the panel open before (and without) DSFR's JS.
                 panel = accordion.select_one(f"#{button['aria-controls']}")
                 self.assertIn("fr-collapse--expanded", panel["class"])
+
+
+class FacetedSearchDateFacetTest(FacetedSearchTestBase):
+    """Publication date range: accordion under Collections, two native date inputs."""
+
+    def test_date_accordion_is_under_collections(self):
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        accordions = soup.select(".fr-accordions-group .fr-accordion")
+        panel_ids = [accordion.select_one(".fr-collapse")["id"] for accordion in accordions]
+        self.assertIn("filter-collection", panel_ids)
+        self.assertIn("filter-date", panel_ids)
+        self.assertEqual(panel_ids.index("filter-date"), panel_ids.index("filter-collection") + 1)
+
+    def test_date_accordion_has_start_and_end_inputs(self):
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        panel = soup.select_one("#filter-date")
+        self.assertIsNotNone(panel)
+        title = panel.find_parent("section").select_one(".fr-accordion__btn")
+        self.assertEqual(title.get_text(strip=True), gettext("Publication date"))
+        date_from = panel.select_one("#id_date_from")
+        date_to = panel.select_one("#id_date_to")
+        self.assertEqual(date_from["type"], "date")
+        self.assertEqual(date_to["type"], "date")
+        self.assertEqual(date_from["form"], "faceted-search-form")
+        self.assertEqual(date_to["form"], "faceted-search-form")
+        self.assertEqual(date_from["onchange"], "this.form.submit()")
+        self.assertEqual(date_to["onchange"], "this.form.submit()")
+        self.assertIn(gettext("Start date"), panel.get_text())
+        self.assertIn(gettext("End date"), panel.get_text())
+        self.assertEqual(panel.select(".fr-hint-text"), [])
+
+    def test_selected_dates_are_prefilled(self):
+        response = self.client.get(self.search_url(date_from="2024-01-15", date_to="2024-06-30"))
+        soup = BeautifulSoup(response.content, "html.parser")
+        self.assertEqual(soup.select_one("#id_date_from")["value"], "2024-01-15")
+        self.assertEqual(soup.select_one("#id_date_to")["value"], "2024-06-30")
 
 
 class FacetedSearchTreeCheckboxTest(FacetedSearchTestBase):

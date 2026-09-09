@@ -5,6 +5,8 @@ through the view. Facet fields are covered in ``test_facets`` since they need
 taxonomy fixtures.
 """
 
+from datetime import date
+
 from django.http import QueryDict
 from django.test import SimpleTestCase
 
@@ -49,14 +51,32 @@ class QueryFieldTest(SimpleTestCase):
         self.assertEqual(form.cleaned_data["q"], "")
 
 
-class YearFieldTest(SimpleTestCase):
-    """``year`` has no sidebar UI: it round-trips through hidden inputs."""
+class DateRangeFieldTest(SimpleTestCase):
+    """``date_from`` / ``date_to`` bind ISO dates; invalid values fail validation."""
 
-    def test_drops_invalid_years(self):
-        form = FacetedSearchForm(QueryDict("q=Report&year=2024&year=nope"))
+    def test_parses_iso_dates(self):
+        form = FacetedSearchForm(QueryDict("date_from=2024-01-15&date_to=2024-06-30"))
         self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data["year"], ["2024"])
+        self.assertEqual(form.cleaned_data["date_from"], date(2024, 1, 15))
+        self.assertEqual(form.cleaned_data["date_to"], date(2024, 6, 30))
 
-    def test_renders_selected_years_as_hidden_inputs(self):
-        form = FacetedSearchForm(QueryDict("q=Report&year=2024"))
-        self.assertInHTML('<input type="hidden" name="year" value="2024" id="id_year_0">', str(form["year"]))
+    def test_invalid_dates_fail_validation(self):
+        form = FacetedSearchForm(QueryDict("q=Report&date_from=not-a-date&date_to=2024-13-40"))
+        self.assertFalse(form.is_valid())
+        self.assertIn("date_from", form.errors)
+        self.assertIn("date_to", form.errors)
+
+    def test_empty_dates_are_none(self):
+        form = FacetedSearchForm(QueryDict(""))
+        self.assertTrue(form.is_valid())
+        self.assertIsNone(form.cleaned_data["date_from"])
+        self.assertIsNone(form.cleaned_data["date_to"])
+
+    def test_renders_native_date_inputs(self):
+        form = FacetedSearchForm(QueryDict("date_from=2024-01-15"))
+        rendered = str(form["date_from"])
+        self.assertIn('type="date"', rendered)
+        self.assertIn('form="faceted-search-form"', rendered)
+        self.assertIn('onchange="this.form.submit()"', rendered)
+        self.assertIn('value="2024-01-15"', rendered)
+        self.assertIn("fr-input", rendered)
