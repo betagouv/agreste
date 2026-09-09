@@ -21,6 +21,7 @@ from django.http import Http404
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
 from django.utils.formats import date_format
+from django.utils.translation import gettext
 from wagtail.models import Page, Site
 from wagtail.rich_text import RichText
 from wagtail.test.utils import WagtailPageTestCase
@@ -823,6 +824,7 @@ class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
         detail = result_li.select_one(".fr-card__detail")
         self.assertIsNotNone(detail)
         self.assertIn(self.collection.name, detail.get_text())
+        self.assertIn(" | ", detail.get_text())
         self.assertEqual(result_li.select(".fr-tag"), [])
 
     def test_search_results_show_themes_as_tags(self):
@@ -857,6 +859,24 @@ class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
         detail_text = result_li.select_one(".fr-card__detail").get_text()
         self.assertIn(child.name, detail_text)
         self.assertNotIn(parent.name, detail_text)
+
+    def test_search_results_separate_multiple_collections_with_a_bar(self):
+        post = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post with two collections",
+            slug="post-with-two-collections",
+            collections=[self.collection, self.other_collection],
+        )
+        detail_text = " ".join(self._result_item(post.title).select_one(".fr-card__detail").get_text().split())
+        self.assertIn(self.collection.name, detail_text)
+        self.assertIn(self.other_collection.name, detail_text)
+        self.assertTrue(
+            f"{self.collection.name} | {self.other_collection.name}" in detail_text
+            or f"{self.other_collection.name} | {self.collection.name}" in detail_text
+        )
+        published = f"{gettext('Published on')} {date_format(post.date, 'j F Y')}"
+        self.assertIn(f"{published} | ", detail_text)
 
     def test_search_results_truncate_themes_when_more_than_four(self):
         extra_themes = [ThemeFactory(locale=self.index.locale) for _ in range(4)]

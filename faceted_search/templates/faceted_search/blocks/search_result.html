@@ -29,11 +29,10 @@
           {% if post.date or collections %}
             <div class="fr-card__end">
               <p class="fr-card__detail{% if post.date %} fr-icon-calendar-line{% endif %}">
-                {% if post.date %}
-                  {% translate "Published on" %} {{ post.date|date:"j F Y" }}
-                {% endif %}
+                {% if post.date %}{% translate "Published on" %} {{ post.date|date:"j F Y" }}{% endif %}
+                {% if post.date and collections %} | {% endif %}
                 {% for collection in collections %}
-                  {{ collection.name }}
+                  {{ collection.name }}{% if not forloop.last %} | {% endif %}
                 {% endfor %}
               </p>
             </div>
