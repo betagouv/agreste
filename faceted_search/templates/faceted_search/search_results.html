@@ -1,6 +1,6 @@
 {# Forked from sites_conformes_core/search_results.html: adds a sidebar for search facets. #}
 {% extends "sites_conformes_core/search_results.html" %}
-{% load i18n static dsfr_tags wagtailcore_tags wagtail_dsfr_tags %}
+{% load i18n static dsfr_tags %}
 
 {% block title %}
   <title>
@@ -32,7 +32,6 @@
            aria-live="polite"></div>
       <button class="fr-btn" type="submit" title="{{ search_label }}">{{ search_label }}</button>
     </div>
-    {{ form.year }}
   </form>
 {% endblock search_heading %}
 
@@ -103,10 +102,7 @@
       <div class="fr-my-7w fr-mt-md-12w fr-mb-md-10w fr-grid-row fr-grid-row--gutters fr-grid-row--middle fr-grid-row--center">
         <div class="fr-py-0 fr-col-12 fr-col-md-6">
           <h2 class="fr-mb-3w">{% translate "We did not find any content matching your search." %}</h2>
-          <p>{% translate "To continue your visit, you can consult our home page." %}</p>
-          <div class="fr-btns-group fr-btns-group--inline-md">
-            <a class="fr-btn" href="{% root_url %}">{% translate "Back to home page" %}</a>
-          </div>
+          <p>{% translate "Try other search words, or select different filters in the sidebar." %}</p>
         </div>
         <div class="fr-col-12 fr-col-md-3 fr-col-offset-md-1 fr-px-6w fr-px-md-0 fr-py-0">
           <img src="{% static 'dsfr/dist/artwork/pictograms/digital/search.svg' %}"

@@ -5,6 +5,7 @@ Result-count semantics for the sidebar are documented in ``faceted_search/result
 
 from collections import Counter
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 
 from django.db.models import Count
@@ -21,10 +22,10 @@ ENABLED_FACETS: dict[str, bool] = {
     "category": False,
     "collection": True,
     "theme": True,
-    "tag": True,
-    "author": True,
-    "source": True,
-    "year": True,
+    "tag": False,
+    "author": False,
+    "source": False,
+    "date": True,
 }
 
 
@@ -36,7 +37,8 @@ class FacetSelection:
     tags: list[Tag] = field(default_factory=list)
     sources: list[Organization] = field(default_factory=list)
     authors: list[Person] = field(default_factory=list)
-    years: list[str] = field(default_factory=list)
+    date_from: date | None = None
+    date_to: date | None = None
 
 
 @dataclass
@@ -75,7 +77,8 @@ def get_facet_selection_from_form(form) -> FacetSelection:
         tags=list(data["tag"]),
         sources=list(data["source"]),
         authors=list(data["author"]),
-        years=data["year"],
+        date_from=data["date_from"],
+        date_to=data["date_to"],
     )
 
 
@@ -141,12 +144,14 @@ def apply_facet_selection(queryset, site, selection: FacetSelection, *, exclude_
         )
         queryset = queryset.filter(pk__in=matching_page_ids)
 
-    if selection.years and exclude_facet != "year":
+    if exclude_facet != "date" and (selection.date_from or selection.date_to):
+        date_filters = {}
+        if selection.date_from:
+            date_filters["date__date__gte"] = selection.date_from
+        if selection.date_to:
+            date_filters["date__date__lte"] = selection.date_to
         matching_page_ids = (
-            BlogEntryPage.objects.descendant_of(root)
-            .live()
-            .filter(date__year__in=selection.years)
-            .values_list("pk", flat=True)
+            BlogEntryPage.objects.descendant_of(root).live().filter(**date_filters).values_list("pk", flat=True)
         )
         queryset = queryset.filter(pk__in=matching_page_ids)
 
@@ -380,9 +385,6 @@ def get_facet_context(
     --------------
     - ``enabled_facets``: ``dict[str, bool]`` of which facets are enabled.
     - ``selected_*``: ``list[T]`` for each selected facet value.
-    - ``selected_years``: ``list[str]`` selected via ``?year=`` (valid YYYY only).
-      There is no year option list in the sidebar yet; years are only applied
-      as selected facet values when present in the URL.
     - ``show_search_facets``: ``bool``, true when at least one facet is enabled.
 
     Present only when the matching ``enabled_facets`` flag is true
@@ -444,7 +446,6 @@ def get_facet_context(
 
     context = {
         "enabled_facets": enabled_facets,
-        "selected_years": selection.years,
     }
 
     root = site.root_page.localized
@@ -526,4 +527,4 @@ def get_facet_context(
 
 def _show_search_facets(context: dict) -> bool:
     enabled = context.get("enabled_facets") or {}
-    return any(name != "year" and on for name, on in enabled.items())
+    return any(enabled.values())

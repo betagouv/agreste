@@ -80,9 +80,6 @@ class FacetedSearchEmptyFacetTest(FacetedSearchPaginationTestBase):
         empty_messages = {
             "filter-theme": gettext("No themes corresponding to this search"),
             "filter-collection": gettext("No collections corresponding to this search"),
-            "filter-tag": gettext("No tags corresponding to this search"),
-            "filter-author": gettext("No authors corresponding to this search"),
-            "filter-source": gettext("No organizations corresponding to this search"),
         }
         for accordion_id, empty_message in empty_messages.items():
             with self.subTest(accordion_id=accordion_id):
@@ -90,7 +87,8 @@ class FacetedSearchEmptyFacetTest(FacetedSearchPaginationTestBase):
                 self.assertIsNotNone(panel)
                 self.assertIn(empty_message, panel.get_text())
                 self.assertEqual(panel.select("input[type=checkbox]"), [])
-        self.assertIsNone(soup.select_one("#filter-category"))
+        for disabled_id in ("filter-category", "filter-tag", "filter-author", "filter-source"):
+            self.assertIsNone(soup.select_one(f"#{disabled_id}"))
 
 
 class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):

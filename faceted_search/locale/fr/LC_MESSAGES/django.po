@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-08 15:18+0200\n"
+"POT-Creation-Date: 2026-09-09 16:00+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,6 +18,12 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+msgid "Start date"
+msgstr "Date de début"
+
+msgid "End date"
+msgstr "Date de fin"
+
 msgid "Rank by:"
 msgstr "Trier par :"
 
@@ -26,6 +32,10 @@ msgstr "Pertinence"
 
 msgid "Date"
 msgstr "Date"
+
+#, python-format
+msgid "Show sub-items of %(name)s"
+msgstr "Afficher les sous-éléments de %(name)s"
 
 msgid "Themes"
 msgstr "Thématiques"
@@ -45,12 +55,8 @@ msgstr "Auteurs"
 msgid "Organizations"
 msgstr "Organisations"
 
-#, python-format
-msgid "Results for \"%(query)s\""
-msgstr "Résultats pour \"%(query)s\""
-
-msgid "Search"
-msgstr "Rechercher"
+msgid "Publication date"
+msgstr "Date de publication"
 
 msgid "No themes corresponding to this search"
 msgstr "Aucune thématique ne correspond à cette recherche"
@@ -70,8 +76,18 @@ msgstr "Aucun auteur ne correspond à cette recherche"
 msgid "No organizations corresponding to this search"
 msgstr "Aucune organisation ne correspond à cette recherche"
 
-msgid "Search results"
-msgstr "Résultats de recherche"
+msgid "Reset filters"
+msgstr "Réinitialiser les filtres"
+
+msgid "Published on"
+msgstr "Publié le"
+
+#, python-format
+msgid "Results for \"%(query)s\""
+msgstr "Résultats pour \"%(query)s\""
+
+msgid "Search"
+msgstr "Rechercher"
 
 msgid "Filters"
 msgstr "Filtres"
@@ -85,16 +101,7 @@ msgstr[1] "%(count)s résultats"
 msgid "We did not find any content matching your search."
 msgstr "Nous n’avons trouvé aucun contenu correspondant à votre recherche."
 
-msgid "To continue your visit, you can consult our home page."
+msgid "Try other search words, or select different filters in the sidebar."
 msgstr ""
-"Pour continuer votre visite, vous pouvez consulter notre page d’accueil."
-
-msgid "Back to home page"
-msgstr "Retourner à l’accueil"
-
-msgid "Published on"
-msgstr "Publiée le"
-
-#, python-format
-msgid "Show sub-items of %(name)s"
-msgstr "Afficher les sous-éléments de %(name)s"
+"Essayez d’autres mots à chercher, ou sélectionnez des filtres différents "
+"dans la barre latérale."

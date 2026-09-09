@@ -12,11 +12,6 @@ from sites_conformes.core.models import Tag
 _LOCALIZED_FACETS = ("category", "collection", "theme")
 
 
-def _is_valid_year(value: str) -> bool:
-    """Return True if the value is a four-digit year string."""
-    return isinstance(value, str) and value.isdigit() and len(value) == 4
-
-
 def _facet_field(queryset, to_field_name: str | None = "slug") -> forms.ModelMultipleChoiceField:
     """Checkbox field for one facet, selected by ``to_field_name`` (slug, or pk when None)."""
     return forms.ModelMultipleChoiceField(
@@ -40,13 +35,23 @@ class RankBySelect(forms.Select):
         return value if value in dict(self.choices) else RANK_BY_RELEVANCE
 
 
-class YearField(forms.Field):
-    """Multi-valued year field; silently drops values that are not four-digit years."""
+class DateInput(forms.DateInput):
+    """Native date picker bound to the search form.
 
-    widget = forms.MultipleHiddenInput
+    ``format`` is ISO so the ``value`` attribute matches ``type="date"``.
+    """
 
-    def clean(self, value):
-        return [year for year in (value or []) if _is_valid_year(year)]
+    def __init__(self, attrs=None):
+        super().__init__(
+            format="%Y-%m-%d",
+            attrs={
+                "type": "date",
+                "form": "faceted-search-form",
+                "onchange": "this.form.submit()",
+                "class": "fr-input",
+                **(attrs or {}),
+            },
+        )
 
 
 class FacetedSearchForm(DsfrBaseForm):
@@ -68,7 +73,18 @@ class FacetedSearchForm(DsfrBaseForm):
     tag = _facet_field(Tag.objects.all())
     source = _facet_field(Organization.objects.all())
     author = _facet_field(Person.objects.all(), to_field_name=None)
-    year = YearField(required=False)
+    date_from = forms.DateField(
+        label=_("Start date"),
+        required=False,
+        input_formats=["%Y-%m-%d", "%d/%m/%Y"],
+        widget=DateInput(attrs={"aria-describedby": "id_date_from-messages"}),
+    )
+    date_to = forms.DateField(
+        label=_("End date"),
+        required=False,
+        input_formats=["%Y-%m-%d", "%d/%m/%Y"],
+        widget=DateInput(attrs={"aria-describedby": "id_date_to-messages"}),
+    )
 
     rank_by = forms.ChoiceField(
         label=_("Rank by:"),

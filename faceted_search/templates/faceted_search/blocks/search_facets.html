@@ -6,6 +6,7 @@
 {% translate "Tags" as tag_title %}
 {% translate "Authors" as author_title %}
 {% translate "Organizations" as source_title %}
+{% translate "Publication date" as date_title %}
 
 {% translate "No themes corresponding to this search" as theme_empty %}
 {% translate "No collections corresponding to this search" as collection_empty %}
@@ -19,6 +20,11 @@
   filter can stay open at once.
 {% endcomment %}
 <div class="fr-accordions-group" data-fr-group="false">
+  {% if enabled_facets.date %}
+    {% render_to_string "faceted_search/blocks/facet_date.html" as date_content %}
+    {% include "faceted_search/blocks/facet_accordion.html" with id="filter-date" title=date_title content=date_content only %}
+  {% endif %}
+
   {% if enabled_facets.theme %}
     {% render_to_string "faceted_search/blocks/facet_value_tree.html" nodes=theme_tree facet="theme" selected_values=selected_themes empty_message=theme_empty as theme_content %}
     {% include "faceted_search/blocks/facet_accordion.html" with id="filter-theme" title=theme_title content=theme_content only %}
@@ -49,3 +55,9 @@
     {% include "faceted_search/blocks/facet_accordion.html" with id="filter-source" title=source_title content=source_content only %}
   {% endif %}
 </div>
+<ul class="fr-btns-group fr-mt-4w">
+  <li>
+    <a class="fr-btn fr-btn--secondary"
+       href="{% url 'cms_search' %}?q={{ form.q.value|default_if_none:''|urlencode }}">{% translate "Reset filters" %}</a>
+  </li>
+</ul>
