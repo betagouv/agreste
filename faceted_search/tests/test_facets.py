@@ -11,7 +11,7 @@ import zoneinfo
 from datetime import datetime
 from itertools import combinations
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import dsfr
 from bs4 import BeautifulSoup
@@ -769,6 +769,22 @@ class FacetedSearchDateFacetTest(FacetedSearchTestBase):
         soup = BeautifulSoup(response.content, "html.parser")
         self.assertEqual(soup.select_one("#id_date_from")["value"], "2024-01-15")
         self.assertEqual(soup.select_one("#id_date_to")["value"], "2024-06-30")
+
+
+class FacetedSearchResetFiltersTest(FacetedSearchTestBase):
+    """Sidebar reset drops facets and keeps the text query."""
+
+    def test_reset_link_keeps_query_and_drops_facets(self):
+        response = self.client.get(
+            self.search_url(theme=self.theme.slug, collection=self.collection.slug, date_from="2024-01-01")
+        )
+        soup = BeautifulSoup(response.content, "html.parser")
+        link = soup.find("a", string=gettext("Reset filters"))
+        self.assertIsNotNone(link)
+        self.assertIn("fr-btn--secondary", link["class"])
+        parsed = urlparse(link["href"])
+        self.assertEqual(parsed.path, reverse("cms_search"))
+        self.assertEqual(parse_qs(parsed.query), {"q": [self.search_query]})
 
 
 class FacetedSearchTreeCheckboxTest(FacetedSearchTestBase):

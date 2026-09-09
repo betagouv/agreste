@@ -55,3 +55,9 @@
     {% include "faceted_search/blocks/facet_accordion.html" with id="filter-source" title=source_title content=source_content only %}
   {% endif %}
 </div>
+<ul class="fr-btns-group fr-mt-4w">
+  <li>
+    <a class="fr-btn fr-btn--secondary"
+       href="{% url 'cms_search' %}?q={{ form.q.value|default_if_none:''|urlencode }}">{% translate "Reset filters" %}</a>
+  </li>
+</ul>
