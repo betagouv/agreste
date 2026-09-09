@@ -36,6 +36,16 @@ def result_collections(page):
     return children if children else collections
 
 
+@register.filter
+def facet_tree_expanded(node, selected_values):
+    """True when this node or any descendant is in ``selected_values``."""
+
+    def walk(current):
+        return current.value in selected_values or any(walk(child) for child in current.children)
+
+    return walk(node)
+
+
 @register.simple_tag(takes_context=True)
 def render_to_string(context, template_name, **kwargs):
     """Render a template to a string so it can be passed to inclusion tags."""

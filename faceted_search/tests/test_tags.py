@@ -1,6 +1,11 @@
 from django.test import SimpleTestCase
 
-from faceted_search.templatetags.faceted_search_tags import facet_label, facet_value, result_collections
+from faceted_search.templatetags.faceted_search_tags import (
+    facet_label,
+    facet_tree_expanded,
+    facet_value,
+    result_collections,
+)
 
 
 class FacetLabelTest(SimpleTestCase):
@@ -61,3 +66,30 @@ class ResultCollectionsTest(SimpleTestCase):
     def test_returns_children_when_all_are_children(self):
         children = [_Collection(parent_id=1), _Collection(parent_id=2)]
         self.assertEqual(result_collections(_Page(children)), children)
+
+
+class _Node:
+    def __init__(self, value, children=None):
+        self.value = value
+        self.children = children or []
+
+
+class FacetTreeExpandedTest(SimpleTestCase):
+    def test_false_when_nothing_selected(self):
+        child = _Node("child")
+        parent = _Node("parent", [child])
+        self.assertFalse(facet_tree_expanded(parent, []))
+
+    def test_true_when_node_is_selected(self):
+        child = _Node("child")
+        parent = _Node("parent", [child])
+        self.assertTrue(facet_tree_expanded(parent, ["parent"]))
+        self.assertFalse(facet_tree_expanded(parent, ["other"]))
+
+    def test_true_when_descendant_is_selected(self):
+        grandchild = _Node("grandchild")
+        child = _Node("child", [grandchild])
+        parent = _Node("parent", [child])
+        self.assertTrue(facet_tree_expanded(parent, ["grandchild"]))
+        self.assertTrue(facet_tree_expanded(child, ["grandchild"]))
+        self.assertFalse(facet_tree_expanded(grandchild, ["parent"]))

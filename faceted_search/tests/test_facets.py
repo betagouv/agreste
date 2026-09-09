@@ -21,6 +21,7 @@ from django.http import Http404
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
 from django.utils.formats import date_format
+from django.utils.translation import gettext
 from wagtail.models import Page, Site
 from wagtail.rich_text import RichText
 from wagtail.test.utils import WagtailPageTestCase
@@ -82,7 +83,7 @@ def facet_selection_for(request, site) -> FacetSelection:
 def get_post_titles_in_response(response) -> list[str]:
     return [
         link.get_text(strip=True)
-        for link in BeautifulSoup(response.content, "html.parser").select("#search-results ol a")
+        for link in BeautifulSoup(response.content, "html.parser").select("#search-results .agr-search-results a")
     ]
 
 
@@ -780,6 +781,62 @@ class FacetedSearchTreeCheckboxTest(FacetedSearchTestBase):
         self.assertTrue(child_a_input.has_attr("checked"))
         self.assertFalse(child_b_input.has_attr("checked"))
 
+    def _toggle(self, soup, slug):
+        return soup.select_one(f'[aria-controls="facet-theme-{slug}-children"]')
+
+    def _panel(self, soup, slug):
+        return soup.select_one(f"#facet-theme-{slug}-children")
+
+    def test_parent_starts_collapsed_when_nothing_selected(self):
+        parent, _, _ = self._theme_tree_fixtures()
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        toggle = self._toggle(soup, parent.slug)
+        panel = self._panel(soup, parent.slug)
+        self.assertIsNotNone(toggle)
+        self.assertEqual(toggle["aria-expanded"], "false")
+        self.assertNotIn("fr-collapse--expanded", panel.get("class", []))
+
+    def test_parent_starts_open_when_child_selected(self):
+        parent, child_a, _child_b = self._theme_tree_fixtures()
+        other_parent = ThemeFactory(locale=self.index.locale, name="Other parent theme", slug="other-parent-theme")
+        other_child = ThemeFactory(
+            locale=self.index.locale, name="Other child theme", slug="other-child-theme", parent=other_parent
+        )
+        self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post with other child theme",
+            slug="post-with-other-child-theme",
+            themes=[other_child],
+        )
+        response = self.client.get(self.search_url(theme=child_a.slug))
+        soup = BeautifulSoup(response.content, "html.parser")
+        toggle = self._toggle(soup, parent.slug)
+        panel = self._panel(soup, parent.slug)
+        self.assertEqual(toggle["aria-expanded"], "true")
+        self.assertIn("fr-collapse--expanded", panel["class"])
+        other_toggle = self._toggle(soup, other_parent.slug)
+        other_panel = self._panel(soup, other_parent.slug)
+        self.assertEqual(other_toggle["aria-expanded"], "false")
+        self.assertNotIn("fr-collapse--expanded", other_panel.get("class", []))
+
+    def test_parent_starts_open_when_parent_selected(self):
+        parent, _, _ = self._theme_tree_fixtures()
+        response = self.client.get(self.search_url(theme=parent.slug))
+        soup = BeautifulSoup(response.content, "html.parser")
+        toggle = self._toggle(soup, parent.slug)
+        panel = self._panel(soup, parent.slug)
+        self.assertEqual(toggle["aria-expanded"], "true")
+        self.assertIn("fr-collapse--expanded", panel["class"])
+
+    def test_leaf_has_no_collapse_button(self):
+        _parent, child_a, _child_b = self._theme_tree_fixtures()
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        self.assertIsNone(self._toggle(soup, child_a.slug))
+        self.assertIsNone(self._panel(soup, child_a.slug))
+
 
 class FacetedSearchDsfrCheckboxBackportTest(SimpleTestCase):
     """Fail when django-dsfr ships DSFR 1.15+ so the CSS backport can be deleted."""
@@ -823,6 +880,7 @@ class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
         detail = result_li.select_one(".fr-card__detail")
         self.assertIsNotNone(detail)
         self.assertIn(self.collection.name, detail.get_text())
+        self.assertIn(" | ", detail.get_text())
         self.assertEqual(result_li.select(".fr-tag"), [])
 
     def test_search_results_show_themes_as_tags(self):
@@ -857,6 +915,24 @@ class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
         detail_text = result_li.select_one(".fr-card__detail").get_text()
         self.assertIn(child.name, detail_text)
         self.assertNotIn(parent.name, detail_text)
+
+    def test_search_results_separate_multiple_collections_with_a_bar(self):
+        post = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post with two collections",
+            slug="post-with-two-collections",
+            collections=[self.collection, self.other_collection],
+        )
+        detail_text = " ".join(self._result_item(post.title).select_one(".fr-card__detail").get_text().split())
+        self.assertIn(self.collection.name, detail_text)
+        self.assertIn(self.other_collection.name, detail_text)
+        self.assertTrue(
+            f"{self.collection.name} | {self.other_collection.name}" in detail_text
+            or f"{self.other_collection.name} | {self.collection.name}" in detail_text
+        )
+        published = f"{gettext('Published on')} {date_format(post.date, 'j F Y')}"
+        self.assertIn(f"{published} | ", detail_text)
 
     def test_search_results_truncate_themes_when_more_than_four(self):
         extra_themes = [ThemeFactory(locale=self.index.locale) for _ in range(4)]

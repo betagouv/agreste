@@ -110,7 +110,7 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
         self.assertTrue(page_obj.has_next())
 
         soup = BeautifulSoup(response.content, "html.parser")
-        result_items = soup.select("#search-results ol > li")
+        result_items = soup.select("#search-results .agr-search-results > li")
         self.assertEqual(len(result_items), 10)
 
     def test_pagination_second_page_shows_remaining_results(self):
@@ -123,7 +123,7 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
         self.assertFalse(page_obj.has_next())
 
         soup = BeautifulSoup(response.content, "html.parser")
-        result_items = soup.select("#search-results ol > li")
+        result_items = soup.select("#search-results .agr-search-results > li")
         self.assertEqual(len(result_items), 5)
 
     def test_pagination_widget_appears_when_multiple_pages(self):
@@ -139,15 +139,6 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
         form = soup.find("form", id="faceted-search-form")
         self.assertIsNotNone(form)
         self.assertEqual(form.select('[name="page"]'), [])
-
-    def test_pagination_result_numbering_continues_across_pages(self):
-        response = self.client.get(self.search_url(page=2))
-        soup = BeautifulSoup(response.content, "html.parser")
-        ol = soup.select_one("#search-results ol")
-        self.assertIsNotNone(ol)
-        self.assertEqual(int(ol["start"]), 11)
-        # DSFR fix : "start" is broken, so we reimplement counters.
-        self.assertIn("--list-start: 11", ol["style"])
 
 
 class AccentInsensitiveSearchTest(FacetedSearchPaginationTestBase):

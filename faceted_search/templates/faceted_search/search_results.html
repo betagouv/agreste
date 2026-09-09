@@ -88,13 +88,11 @@
         </div>
       </div>
     </div>
-    <ol class="fr-mb-2w"
-        start="{{ page_obj.start_index }}"
-        style="--list-start: {{ page_obj.start_index }}">
+    <ul class="agr-search-results fr-mb-2w">
       {% for result in object_list %}
         {% include "faceted_search/blocks/search_result.html" with result=result %}
       {% endfor %}
-    </ol>
+    </ul>
     {% if page_obj.paginator.num_pages > 1 %}
       <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">
         {% dsfr_pagination page_obj %}

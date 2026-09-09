@@ -1,22 +1,47 @@
-{% load faceted_search_tags %}
+{% load i18n faceted_search_tags %}
 
 {% if nodes %}
-  <ul class="agr-facet-list agr-facet-tree{% if depth %} fr-ml-3w{% endif %}">
+  <ul class="agr-facet-list agr-facet-tree">
     {% for node in nodes %}
       <li>
-        <div class="fr-checkbox-group fr-checkbox-group--sm">
-          <input type="checkbox"
-                 form="faceted-search-form"
-                 id="facet-{{ facet }}-{{ node.value.slug }}"
-                 name="{{ facet }}"
-                 value="{{ node.value.slug }}"
-                 {% if node.value in selected_values %}checked{% endif %} />
-          <label class="fr-label" for="facet-{{ facet }}-{{ node.value.slug }}">
-            {% facet_label node.value.name node.value.result_count %}
-          </label>
-        </div>
         {% if node.children %}
-          {% include "faceted_search/blocks/facet_value_tree.html" with nodes=node.children facet=facet selected_values=selected_values depth=True %}
+          {% with expanded=node|facet_tree_expanded:selected_values %}
+            {% blocktranslate with name=node.value.name asvar toggle_label %}Show sub-items of {{ name }}{% endblocktranslate %}
+            <div class="agr-facet-tree__row">
+              <button type="button"
+                      class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-arrow-down-s-line agr-facet-tree__toggle"
+                      aria-expanded="{% if expanded %}true{% else %}false{% endif %}"
+                      aria-controls="facet-{{ facet }}-{{ node.value.slug }}-children"
+                      aria-label="{{ toggle_label }}"></button>
+              <div class="fr-checkbox-group fr-checkbox-group--sm">
+                <input type="checkbox"
+                       form="faceted-search-form"
+                       id="facet-{{ facet }}-{{ node.value.slug }}"
+                       name="{{ facet }}"
+                       value="{{ node.value.slug }}"
+                       {% if node.value in selected_values %}checked{% endif %} />
+                <label class="fr-label" for="facet-{{ facet }}-{{ node.value.slug }}">
+                  {% facet_label node.value.name node.value.result_count %}
+                </label>
+              </div>
+            </div>
+            <div class="fr-collapse{% if expanded %} fr-collapse--expanded{% endif %}"
+                 id="facet-{{ facet }}-{{ node.value.slug }}-children">
+              {% include "faceted_search/blocks/facet_value_tree.html" with nodes=node.children facet=facet selected_values=selected_values %}
+            </div>
+          {% endwith %}
+        {% else %}
+          <div class="fr-checkbox-group fr-checkbox-group--sm">
+            <input type="checkbox"
+                   form="faceted-search-form"
+                   id="facet-{{ facet }}-{{ node.value.slug }}"
+                   name="{{ facet }}"
+                   value="{{ node.value.slug }}"
+                   {% if node.value in selected_values %}checked{% endif %} />
+            <label class="fr-label" for="facet-{{ facet }}-{{ node.value.slug }}">
+              {% facet_label node.value.name node.value.result_count %}
+            </label>
+          </div>
         {% endif %}
       </li>
     {% endfor %}

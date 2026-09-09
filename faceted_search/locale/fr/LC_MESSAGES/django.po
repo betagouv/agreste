@@ -94,3 +94,7 @@ msgstr "Retourner à l’accueil"
 
 msgid "Published on"
 msgstr "Publiée le"
+
+#, python-format
+msgid "Show sub-items of %(name)s"
+msgstr "Afficher les sous-éléments de %(name)s"
