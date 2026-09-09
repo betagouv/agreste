@@ -58,3 +58,9 @@
 .agr-facet-tree .agr-facet-tree {
     margin-left: 3rem;
 }
+
+/* DSFR card detail uses align-items:flex-start with a 1rem icon on 1.25rem
+   text, which sits the calendar a little high. */
+#search-results .fr-card__detail {
+    align-items: center;
+}
