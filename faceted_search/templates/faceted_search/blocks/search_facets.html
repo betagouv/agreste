@@ -7,38 +7,45 @@
 {% translate "Filter by author" as author_title %}
 {% translate "Filter by organization" as source_title %}
 
+{% translate "No themes corresponding to this search" as theme_empty %}
+{% translate "No collections corresponding to this search" as collection_empty %}
+{% translate "No categories corresponding to this search" as category_empty %}
+{% translate "No tags corresponding to this search" as tag_empty %}
+{% translate "No authors corresponding to this search" as author_empty %}
+{% translate "No organizations corresponding to this search" as source_empty %}
+
 {% comment %}
   data-fr-group="false" opts out of the group's one-open-at-a-time behaviour, so every
   filter can stay open at once.
 {% endcomment %}
 <div class="fr-accordions-group" data-fr-group="false">
-  {% if theme_tree and enabled_facets.theme %}
-    {% render_to_string "faceted_search/blocks/facet_value_tree.html" nodes=theme_tree facet="theme" selected_values=selected_themes as theme_content %}
+  {% if enabled_facets.theme %}
+    {% render_to_string "faceted_search/blocks/facet_value_tree.html" nodes=theme_tree facet="theme" selected_values=selected_themes empty_message=theme_empty as theme_content %}
     {% include "faceted_search/blocks/facet_accordion.html" with id="filter-theme" title=theme_title content=theme_content only %}
   {% endif %}
 
-  {% if collection_tree and enabled_facets.collection %}
-    {% render_to_string "faceted_search/blocks/facet_value_tree.html" nodes=collection_tree facet="collection" selected_values=selected_collections as collection_content %}
+  {% if enabled_facets.collection %}
+    {% render_to_string "faceted_search/blocks/facet_value_tree.html" nodes=collection_tree facet="collection" selected_values=selected_collections empty_message=collection_empty as collection_content %}
     {% include "faceted_search/blocks/facet_accordion.html" with id="filter-collection" title=collection_title content=collection_content only %}
   {% endif %}
 
-  {% if categories and enabled_facets.category %}
-    {% render_to_string "faceted_search/blocks/facet_value_list.html" facet="category" items=categories selected_values=selected_categories as category_content %}
+  {% if enabled_facets.category %}
+    {% render_to_string "faceted_search/blocks/facet_value_list.html" facet="category" items=categories selected_values=selected_categories empty_message=category_empty as category_content %}
     {% include "faceted_search/blocks/facet_accordion.html" with id="filter-category" title=category_title content=category_content only %}
   {% endif %}
 
-  {% if tags and enabled_facets.tag %}
-    {% render_to_string "faceted_search/blocks/facet_value_list.html" facet="tag" items=tags selected_values=selected_tags as tag_content %}
+  {% if enabled_facets.tag %}
+    {% render_to_string "faceted_search/blocks/facet_value_list.html" facet="tag" items=tags selected_values=selected_tags empty_message=tag_empty as tag_content %}
     {% include "faceted_search/blocks/facet_accordion.html" with id="filter-tag" title=tag_title content=tag_content only %}
   {% endif %}
 
-  {% if authors and enabled_facets.author %}
-    {% render_to_string "faceted_search/blocks/facet_value_list.html" facet="author" items=authors selected_values=selected_authors as author_content %}
+  {% if enabled_facets.author %}
+    {% render_to_string "faceted_search/blocks/facet_value_list.html" facet="author" items=authors selected_values=selected_authors empty_message=author_empty as author_content %}
     {% include "faceted_search/blocks/facet_accordion.html" with id="filter-author" title=author_title content=author_content only %}
   {% endif %}
 
-  {% if sources and enabled_facets.source %}
-    {% render_to_string "faceted_search/blocks/facet_value_list.html" facet="source" items=sources selected_values=selected_sources as source_content %}
+  {% if enabled_facets.source %}
+    {% render_to_string "faceted_search/blocks/facet_value_list.html" facet="source" items=sources selected_values=selected_sources empty_message=source_empty as source_content %}
     {% include "faceted_search/blocks/facet_accordion.html" with id="filter-source" title=source_title content=source_content only %}
   {% endif %}
 </div>

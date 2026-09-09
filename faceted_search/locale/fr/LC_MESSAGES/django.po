@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-26 14:15+0200\n"
+"POT-Creation-Date: 2026-09-08 15:18+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -44,6 +44,24 @@ msgstr "Filtrer par auteur"
 
 msgid "Filter by organization"
 msgstr "Filtrer par organisation"
+
+msgid "No themes corresponding to this search"
+msgstr "Aucune thématique ne correspond à cette recherche"
+
+msgid "No collections corresponding to this search"
+msgstr "Aucune collection ne correspond à cette recherche"
+
+msgid "No categories corresponding to this search"
+msgstr "Aucune catégorie ne correspond à cette recherche"
+
+msgid "No tags corresponding to this search"
+msgstr "Aucune étiquette ne correspond à cette recherche"
+
+msgid "No authors corresponding to this search"
+msgstr "Aucun auteur ne correspond à cette recherche"
+
+msgid "No organizations corresponding to this search"
+msgstr "Aucune organisation ne correspond à cette recherche"
 
 msgid "Search results"
 msgstr "Résultats de recherche"

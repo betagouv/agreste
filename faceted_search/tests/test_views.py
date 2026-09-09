@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from django.urls import reverse
+from django.utils.translation import gettext
 from wagtail.models import Page, Site
 from wagtail.rich_text import RichText
 from wagtail.test.utils import WagtailPageTestCase
@@ -67,6 +68,29 @@ class FacetedSearchPaginationTestBase(WagtailPageTestCase):
     def search_url(self, query=None, **params):
         query = self.search_query if query is None else query
         return f"{reverse('cms_search')}?{urlencode({'q': query, **params}, doseq=True)}"
+
+
+class FacetedSearchEmptyFacetTest(FacetedSearchPaginationTestBase):
+    """Enabled facets stay in the sidebar even when they have no values."""
+
+    def test_enabled_facets_render_when_empty(self):
+        response = self.client.get(self.search_url())
+        self.assertEqual(response.status_code, 200)
+        soup = BeautifulSoup(response.content, "html.parser")
+        empty_messages = {
+            "filter-theme": gettext("No themes corresponding to this search"),
+            "filter-collection": gettext("No collections corresponding to this search"),
+            "filter-tag": gettext("No tags corresponding to this search"),
+            "filter-author": gettext("No authors corresponding to this search"),
+            "filter-source": gettext("No organizations corresponding to this search"),
+        }
+        for accordion_id, empty_message in empty_messages.items():
+            with self.subTest(accordion_id=accordion_id):
+                panel = soup.select_one(f"#{accordion_id}")
+                self.assertIsNotNone(panel)
+                self.assertIn(empty_message, panel.get_text())
+                self.assertEqual(panel.select("input[type=checkbox]"), [])
+        self.assertIsNone(soup.select_one("#filter-category"))
 
 
 class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
