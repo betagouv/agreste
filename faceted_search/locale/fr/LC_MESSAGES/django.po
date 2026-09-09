@@ -27,23 +27,23 @@ msgstr "Pertinence"
 msgid "Date"
 msgstr "Date"
 
-msgid "Filter by theme"
-msgstr "Filtrer par thématique"
+msgid "Themes"
+msgstr "Thématiques"
 
-msgid "Filter by collection"
-msgstr "Filtrer par collection"
+msgid "Collections"
+msgstr "Collections"
 
-msgid "Filter by category"
-msgstr "Filtrer par catégorie"
+msgid "Categories"
+msgstr "Catégories"
 
-msgid "Filter by tag"
-msgstr "Filtrer par étiquette"
+msgid "Tags"
+msgstr "Étiquettes"
 
-msgid "Filter by author"
-msgstr "Filtrer par auteur"
+msgid "Authors"
+msgstr "Auteurs"
 
-msgid "Filter by organization"
-msgstr "Filtrer par organisation"
+msgid "Organizations"
+msgstr "Organisations"
 
 #, python-format
 msgid "Results for \"%(query)s\""
@@ -51,6 +51,7 @@ msgstr "Résultats pour \"%(query)s\""
 
 msgid "Search"
 msgstr "Rechercher"
+
 msgid "No themes corresponding to this search"
 msgstr "Aucune thématique ne correspond à cette recherche"
 
@@ -90,3 +91,6 @@ msgstr ""
 
 msgid "Back to home page"
 msgstr "Retourner à l’accueil"
+
+msgid "Published on"
+msgstr "Publiée le"

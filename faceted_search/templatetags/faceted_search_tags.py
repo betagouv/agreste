@@ -21,6 +21,21 @@ def facet_value(item, facet):
     return item.pk if facet == "author" else item.slug
 
 
+@register.simple_tag
+def result_collections(page):
+    """Collections to show on a search result.
+
+    Prefer child collections when any are assigned, so a parent+child pair
+    displays only the more specific child. Pages without collections yield [].
+    """
+    manager = getattr(page, "collections", None)
+    if manager is None:
+        return []
+    collections = list(manager.all())
+    children = [collection for collection in collections if collection.parent_id]
+    return children if children else collections
+
+
 @register.simple_tag(takes_context=True)
 def render_to_string(context, template_name, **kwargs):
     """Render a template to a string so it can be passed to inclusion tags."""

@@ -20,6 +20,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.http import Http404
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
+from django.utils.formats import date_format
 from wagtail.models import Page, Site
 from wagtail.rich_text import RichText
 from wagtail.test.utils import WagtailPageTestCase
@@ -808,43 +809,54 @@ class FacetedSearchDsfrCheckboxBackportTest(SimpleTestCase):
 class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
     """Test that search result items display metadata (date, themes, collections)."""
 
+    def _result_item(self, title, **params):
+        response = self.client.get(self.search_url(**params))
+        soup = BeautifulSoup(response.content, "html.parser")
+        return soup.find("a", string=title).find_parent("li")
+
     def test_search_results_show_publication_date(self):
-        response = self.client.get(self.search_url())
-        soup = BeautifulSoup(response.content, "html.parser")
-        result_li = soup.find("a", string=self.post_with_collection.title).find_parent("li")
-        self.assertIn(self.post_with_collection.date.strftime("%d/%m/%Y"), result_li.get_text())
+        result_li = self._result_item(self.post_with_collection.title)
+        self.assertIn(date_format(self.post_with_collection.date, "j F Y"), result_li.get_text())
 
-    def test_search_results_show_collections_and_themes(self):
-        response = self.client.get(self.search_url())
-        soup = BeautifulSoup(response.content, "html.parser")
+    def test_search_results_show_root_collection_in_detail_not_as_tag(self):
+        result_li = self._result_item(self.post_with_collection.title)
+        detail = result_li.select_one(".fr-card__detail")
+        self.assertIsNotNone(detail)
+        self.assertIn(self.collection.name, detail.get_text())
+        self.assertEqual(result_li.select(".fr-tag"), [])
 
-        collection_li = soup.find("a", string=self.post_with_collection.title).find_parent("li")
-        collection_tags = [tag.get_text(strip=True) for tag in collection_li.select(".fr-tag")]
-        self.assertIn(self.collection.name, collection_tags)
-
-        theme_li = soup.find("a", string=self.post_with_theme.title).find_parent("li")
-        theme_tags = [tag.get_text(strip=True) for tag in theme_li.select(".fr-tag")]
+    def test_search_results_show_themes_as_tags(self):
+        result_li = self._result_item(self.post_with_theme.title)
+        theme_tags = [tag.get_text(strip=True) for tag in result_li.select(".fr-tag")]
         self.assertIn(self.theme.name, theme_tags)
 
-    def test_search_results_truncate_collections_when_more_than_four(self):
-        extra_collections = [CollectionFactory(locale=self.index.locale) for _ in range(4)]
+    def test_search_results_show_collection_in_detail_and_theme_as_tag(self):
         post = self.entry_page_factory(
             parent=self.index,
             owner=self.admin,
-            title="Post with many collections",
-            slug="post-with-many-collections",
-            collections=[self.collection, self.other_collection] + extra_collections,
+            title="Post with collection and theme",
+            slug="post-with-collection-and-theme",
+            collections=[self.collection],
+            themes=[self.theme],
         )
-        response = self.client.get(self.search_url())
-        soup = BeautifulSoup(response.content, "html.parser")
-        result_li = soup.find("a", string=post.title).find_parent("li")
-        tags = [tag.get_text(strip=True) for tag in result_li.select(".fr-tag")]
-        all_collection_names = {self.collection.name, self.other_collection.name} | {
-            collection.name for collection in extra_collections
-        }
-        displayed_collections = [tag for tag in tags if tag in all_collection_names]
-        self.assertEqual(len(displayed_collections), 4)
-        self.assertIn("+2", tags)
+        result_li = self._result_item(post.title)
+        self.assertIn(self.collection.name, result_li.select_one(".fr-card__detail").get_text())
+        self.assertEqual([tag.get_text(strip=True) for tag in result_li.select(".fr-tag")], [self.theme.name])
+
+    def test_search_results_show_child_collection_when_parent_also_assigned(self):
+        parent = CollectionFactory(locale=self.index.locale, name="Parent collection")
+        child = CollectionFactory(locale=self.index.locale, name="Child collection", parent=parent)
+        post = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post parent and child collections",
+            slug="post-parent-and-child-collections",
+            collections=[parent, child],
+        )
+        result_li = self._result_item(post.title)
+        detail_text = result_li.select_one(".fr-card__detail").get_text()
+        self.assertIn(child.name, detail_text)
+        self.assertNotIn(parent.name, detail_text)
 
     def test_search_results_truncate_themes_when_more_than_four(self):
         extra_themes = [ThemeFactory(locale=self.index.locale) for _ in range(4)]
@@ -855,14 +867,41 @@ class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
             slug="post-with-many-themes",
             themes=[self.theme, self.other_theme] + extra_themes,
         )
-        response = self.client.get(self.search_url())
-        soup = BeautifulSoup(response.content, "html.parser")
-        result_li = soup.find("a", string=post.title).find_parent("li")
+        result_li = self._result_item(post.title)
         tags = [tag.get_text(strip=True) for tag in result_li.select(".fr-tag")]
         all_theme_names = {self.theme.name, self.other_theme.name} | {theme.name for theme in extra_themes}
         displayed_themes = [tag for tag in tags if tag in all_theme_names]
         self.assertEqual(len(displayed_themes), 4)
         self.assertIn("+2", tags)
+
+    def test_search_description_is_escaped(self):
+        post = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post with html description",
+            slug="post-with-html-description",
+            search_description="<script>alert(1)</script>plain text",
+        )
+        result_li = self._result_item(post.title)
+        self.assertIsNone(result_li.find("script"))
+        self.assertIn("<script>alert(1)</script>plain text", result_li.get_text())
+
+    def test_content_page_result_omits_date_collections_and_tags(self):
+        page = self.home.add_child(
+            instance=ContentPage(
+                title="Post content page",
+                slug="post-content-page-result",
+                body=[("paragraph", RichText("<p>Post content for search.</p>"))],
+                search_description="A plain description",
+                owner=self.admin,
+            )
+        )
+        page.save_revision().publish()
+        result_li = self._result_item(page.title)
+        self.assertIsNotNone(result_li.select_one(".fr-card"))
+        self.assertIsNone(result_li.select_one(".fr-card__detail"))
+        self.assertEqual(result_li.select(".fr-tag"), [])
+        self.assertEqual(result_li.select_one(".fr-card__desc").get_text(strip=True), "A plain description")
 
 
 class FacetCountsWithRankingTest(WagtailPageTestCase):
