@@ -20,6 +20,11 @@
   filter can stay open at once.
 {% endcomment %}
 <div class="fr-accordions-group" data-fr-group="false">
+  {% if enabled_facets.date %}
+    {% render_to_string "faceted_search/blocks/facet_date.html" as date_content %}
+    {% include "faceted_search/blocks/facet_accordion.html" with id="filter-date" title=date_title content=date_content only %}
+  {% endif %}
+
   {% if enabled_facets.theme %}
     {% render_to_string "faceted_search/blocks/facet_value_tree.html" nodes=theme_tree facet="theme" selected_values=selected_themes empty_message=theme_empty as theme_content %}
     {% include "faceted_search/blocks/facet_accordion.html" with id="filter-theme" title=theme_title content=theme_content only %}
@@ -28,11 +33,6 @@
   {% if enabled_facets.collection %}
     {% render_to_string "faceted_search/blocks/facet_value_tree.html" nodes=collection_tree facet="collection" selected_values=selected_collections empty_message=collection_empty as collection_content %}
     {% include "faceted_search/blocks/facet_accordion.html" with id="filter-collection" title=collection_title content=collection_content only %}
-  {% endif %}
-
-  {% if enabled_facets.date %}
-    {% render_to_string "faceted_search/blocks/facet_date.html" as date_content %}
-    {% include "faceted_search/blocks/facet_accordion.html" with id="filter-date" title=date_title content=date_content only %}
   {% endif %}
 
   {% if enabled_facets.category %}
