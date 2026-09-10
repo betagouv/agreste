@@ -57,21 +57,30 @@
 }
 /* end backport */
 
+.agr-facet-tree {
+    --agr-toggle: 1.5rem;
+    --agr-toggle-gap: 0.25rem;
+    margin-left: -1rem;
+}
+
 .agr-facet-tree__row {
     display: flex;
     align-items: flex-start;
-    gap: 0.5rem;
+    gap: var(--agr-toggle-gap);
 }
 
-/* Match the sm checkbox row (1rem box + 0.25rem offset) so the chevron
-   sits on the same midline as the label, not in a taller 2rem button. */
+/* 1rem DSFR icon + 0.25rem padding so the glyph is not clipped by the
+   accordion collapse overflow:hidden. Override fr-btn--sm min-height. */
 .agr-facet-tree__toggle {
-    flex: 0 0 1.5rem;
-    min-width: 1.5rem;
-    max-width: 1.5rem;
-    min-height: 1.5rem;
-    max-height: 1.5rem;
+    flex: 0 0 var(--agr-toggle);
+    width: var(--agr-toggle);
+    height: var(--agr-toggle);
+    min-height: var(--agr-toggle);
+    max-height: var(--agr-toggle);
+    max-width: var(--agr-toggle);
     padding: 0.25rem;
+    margin: 0;
+    overflow: visible;
 }
 
 .agr-facet-tree__toggle::before {
@@ -82,15 +91,15 @@
     flex: 1;
 }
 
-.agr-facet-tree__toggle[aria-expanded="true"]::before,
-.agr-facet-tree__toggle[aria-expanded="true"]::after {
+.agr-facet-tree__toggle[aria-expanded="true"]::before {
     transform: rotate(180deg);
 }
 
-/* Nested trees: indent past the parent chevron (1.5rem) and checkbox (1.5rem)
-   so the child box sits under the parent label, not on the parent box. */
+/* Same gutter for leaf checkboxes and nested trees: child boxes sit under
+   the parent checkbox, not under the label. */
+.agr-facet-tree > li > .fr-checkbox-group,
 .agr-facet-tree .agr-facet-tree {
-    margin-left: 3rem;
+    margin-left: calc(var(--agr-toggle) + var(--agr-toggle-gap));
 }
 
 /* DSFR card detail uses align-items:flex-start with a 1rem icon on 1.25rem
