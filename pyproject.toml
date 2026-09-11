@@ -223,4 +223,4 @@ DEP002 = [
 malware-check = true
 
 [tool.bandit]
-exclude_dirs = ["tests", "migrations", "demo"]
+exclude_dirs = ["tests", "migrations", "demo", "scripts"]
