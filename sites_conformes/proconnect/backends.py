@@ -16,6 +16,7 @@ from mozilla_django_oidc.auth import (
 
 from sites_conformes.proconnect.exceptions import DuplicateEmailError
 from sites_conformes.proconnect.models import UserOIDC
+from sites_conformes.proconnect.oidc_params import PROCONNECT_MFA_ACR_VALUES
 from sites_conformes.proconnect.utils import get_user_by_sub_or_email
 
 logger = logging.getLogger(__name__)
@@ -80,8 +81,26 @@ class OIDCAuthenticationBackend(MozillaOIDCAuthenticationBackend):
 
         return True
 
+    def verify_mfa_acr(self, payload):
+        """Reject the login when ProConnect MFA is required but the id_token acr is not MFA."""
+        if not self.get_settings("PROCONNECT_REQUIRE_MFA", False):
+            return
+
+        acr = payload.get("acr")
+        allowed = self.get_settings("PROCONNECT_MFA_ACR_VALUES", PROCONNECT_MFA_ACR_VALUES)
+        if acr in allowed:
+            return
+
+        message = _(
+            "You cannot access this service without two-factor authentication. "
+            "Please set up an authenticator app and log in again."
+        )
+        messages.add_message(self.request, messages.ERROR, message)
+        raise SuspiciousOperation(message)
+
     def get_or_create_user(self, access_token, id_token, payload):
         """Return a User based on userinfo. Create a new user if no match is found."""
+        self.verify_mfa_acr(payload)
         user_info = self.get_userinfo(access_token, id_token, payload)
 
         if not self.verify_claims(user_info):
