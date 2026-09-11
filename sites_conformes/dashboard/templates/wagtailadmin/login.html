@@ -15,11 +15,12 @@
               <h1>{% translate "Connection" %}</h1>
               {% settings_value "PROCONNECT_ACTIVATED" as use_proconnect %}
               {% settings_value "SF_DISABLE_LOCAL_LOGIN" as disable_local_login %}
+              {% url 'wagtailadmin_home' as home_url %}
               {% if use_proconnect %}
                 <div class="fr-mb-6v">
                   <h2>{% translate "Login with ProConnect" %}</h2>
                   <div class="fr-connect-group">
-                    <a class="fr-connect" href="{% url 'oidc_authentication_init' %}">
+                    <a class="fr-connect" href="{% url 'oidc_authentication_init' %}?next={{ next|default:home_url|urlencode }}">
                       <span class="fr-connect__login">{% translate "Login with" %}</span> <span class="fr-connect__brand">ProConnect</span>
                     </a>
                     <p>
@@ -69,7 +70,6 @@
                       </div>
                       <div class="fr-fieldset__element">
                         {% csrf_token %}
-                        {% url 'wagtailadmin_home' as home_url %}
                         <input type="hidden" name="next" value="{{ next|default:home_url }}" />
                         <div class="fr-input-group">
                           <label class="fr-label" for="id_username">{% translate "Username:" %}</label>
