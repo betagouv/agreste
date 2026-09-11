@@ -9,8 +9,8 @@ from datetime import date
 from typing import Any
 
 from django.db.models import Count
-from modelsearch.backends.base import BaseSearchResults
 from wagtail.models import Site
+from wagtail.search.backends.base import BaseSearchResults
 
 from faceted_search.search import searchable_pages
 from publications.models import Collection, PublicationPage, Theme
