@@ -139,9 +139,12 @@ def write_series_tsv(path, series, human=False):
 
 
 def _request(url: str, *, headers: dict, method: str = "GET", data: bytes | None = None):
+    scheme = urllib.parse.urlparse(url).scheme.lower()
+    if scheme not in ("http", "https"):
+        raise SystemExit(f"Refusing to fetch URL with scheme {scheme!r}: {url}")
     req = urllib.request.Request(url, headers=headers, method=method, data=data)
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310 -- http(s) only, checked above
             body = resp.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", "replace")

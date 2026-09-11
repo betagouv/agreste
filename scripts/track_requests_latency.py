@@ -39,7 +39,7 @@ import datetime as dt
 import os
 import pathlib
 import re
-import subprocess
+import subprocess  # nosec B404 -- developer CLI wrapper; argv list, no shell
 import sys
 
 # Unified output columns for both log sources.
@@ -124,7 +124,9 @@ def line_source(args):
     if args.region:
         cmd += ["--region", args.region]
     cmd += ["--app", args.app, "logs", "--follow", "--lines", str(args.lines)]
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True, bufsize=1)
+    proc = subprocess.Popen(  # nosec B603 -- fixed scalingo argv, no untrusted command / no shell
+        cmd, stdout=subprocess.PIPE, text=True, bufsize=1
+    )
     try:
         yield from proc.stdout
     finally:
