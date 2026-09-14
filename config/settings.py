@@ -21,6 +21,11 @@ from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
 
+from sites_conformes.proconnect.oidc_params import (
+    PROCONNECT_MFA_ACR_VALUES as _PROCONNECT_MFA_ACR_VALUES,
+    oidc_auth_request_extra_params,
+)
+
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -518,7 +523,9 @@ OIDC_OP_TOKEN_ENDPOINT = f"{PROCONNECT_API_ROOT}/token"
 OIDC_OP_USER_ENDPOINT = f"{PROCONNECT_API_ROOT}/userinfo"
 OIDC_OP_LOGOUT_ENDPOINT = f"{PROCONNECT_API_ROOT}/session/end"
 USER_OIDC_ESSENTIAL_CLAIMS = ["email"]
-OIDC_AUTH_REQUEST_EXTRA_PARAMS = {"acr_values": "eidas1"}
+PROCONNECT_REQUIRE_MFA = getenv_bool("PROCONNECT_REQUIRE_MFA", False)
+PROCONNECT_MFA_ACR_VALUES = _PROCONNECT_MFA_ACR_VALUES
+OIDC_AUTH_REQUEST_EXTRA_PARAMS = oidc_auth_request_extra_params(require_mfa=PROCONNECT_REQUIRE_MFA)
 OIDC_REDIRECT_ALLOWED_HOSTS = ALLOWED_HOSTS
 PROCONNECT_USER_CREATION_FILTER = os.getenv("PROCONNECT_USER_CREATION_FILTER", None)
 LASUITE_DOMAINE_API_KEY = os.getenv("LASUITE_DOMAINE_API_KEY", None)
