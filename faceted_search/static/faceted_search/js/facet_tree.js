@@ -87,20 +87,26 @@
                 });
             }
             syncAncestors(li);
-            if (checkbox.form) {
-                checkbox.form.submit();
-            }
         });
     }
 
-    function start() {
-        document.querySelectorAll("ul.agr-facet-tree").forEach(function (ul) {
+    function start(root) {
+        const scope = root && root.querySelectorAll ? root : document;
+        scope.querySelectorAll("ul.agr-facet-tree").forEach(function (ul) {
+            if (ul.dataset.agrFacetTreeInit === "1") {
+                return;
+            }
             if (ul.parentElement && ul.parentElement.closest("ul.agr-facet-tree")) {
                 return;
             }
+            ul.dataset.agrFacetTreeInit = "1";
             initTree(ul);
         });
     }
+
+    document.body.addEventListener("htmx:afterSwap", function (event) {
+        start(event.detail && event.detail.elt);
+    });
 
     // Added for the backport of DSFR 1.15+ to work
     if (document.readyState === "loading") {

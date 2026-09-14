@@ -24,6 +24,7 @@
   {% comment %}
   Fork projects: extend this template to add a sidebar.
   Override search_sidebar and search_results_column_class to adjust column width with/without a sidebar (e.g. fr-col fr-col-md-8 fr-col-12).
+  Override search_layout to wrap the sidebar + results row (e.g. for HTMX).
   {% endcomment %}
   <div class="fr-container fr-my-4w">
     {% block search_heading %}
@@ -37,6 +38,7 @@
       </h1>
     {% endblock search_heading %}
 
+    {% block search_layout %}
     <div class="fr-grid-row fr-grid-row--gutters">
       {% block search_sidebar %}{% endblock search_sidebar %}
 
@@ -77,5 +79,6 @@
         {% endblock search_results %}
       </div>
     </div>
+    {% endblock search_layout %}
   </div>
 {% endblock content %}
