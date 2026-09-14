@@ -106,6 +106,22 @@
         forEachRootTree(initTree);
     }
 
+    // Browsers restore the filters as they were left (history navigation, reload on
+    // Firefox) while the results match the URL: reset them to the server-rendered markup.
+    window.addEventListener("pageshow", function () {
+        const form = document.getElementById("faceted-search-form");
+        if (!form) {
+            return;
+        }
+        form.reset();
+        Array.from(form.elements).forEach(function (element) {
+            if (element.type === "checkbox") {
+                element.indeterminate = false;
+            }
+        });
+        forEachRootTree(restoreTree);
+    });
+
     // Added for the backport of DSFR 1.15+ to work
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", start);
