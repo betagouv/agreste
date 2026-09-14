@@ -93,13 +93,17 @@
         });
     }
 
-    function start() {
+    function forEachRootTree(callback) {
         document.querySelectorAll("ul.agr-facet-tree").forEach(function (ul) {
             if (ul.parentElement && ul.parentElement.closest("ul.agr-facet-tree")) {
                 return;
             }
-            initTree(ul);
+            callback(ul);
         });
+    }
+
+    function start() {
+        forEachRootTree(initTree);
     }
 
     // Added for the backport of DSFR 1.15+ to work
