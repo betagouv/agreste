@@ -43,9 +43,25 @@
 {% endblock extra_css %}
 
 {% block extra_js %}
+  <script src="{% static 'faceted_search/js/htmx.min.js' %}"></script>
   <script src="{% static 'faceted_search/js/facet_tree.js' %}"></script>
   {{ block.super }}
 {% endblock extra_js %}
+
+{% block search_layout %}
+  {# change only: the search box is inside the form (no form=), so it is not a trigger. #}
+  <div id="faceted-search-swap"
+       hx-get="{% url 'cms_search' %}"
+       hx-trigger="change from:[form='faceted-search-form']"
+       hx-include="#faceted-search-form"
+       hx-target="this"
+       hx-select="#faceted-search-swap"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       hx-sync="this:replace">
+    {{ block.super }}
+  </div>
+{% endblock search_layout %}
 
 {% block search_sidebar %}
   {% if show_search_facets %}
@@ -93,7 +109,12 @@
       {% endfor %}
     </ul>
     {% if page_obj.paginator.num_pages > 1 %}
-      <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">
+      <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w"
+           hx-boost="true"
+           hx-target="#faceted-search-swap"
+           hx-select="#faceted-search-swap"
+           hx-swap="outerHTML"
+           hx-push-url="true">
         {% dsfr_pagination page_obj %}
       </div>
     {% endif %}

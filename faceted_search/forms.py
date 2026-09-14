@@ -47,7 +47,6 @@ class DateInput(forms.DateInput):
             attrs={
                 "type": "date",
                 "form": "faceted-search-form",
-                "onchange": "this.form.submit()",
                 "class": "fr-input",
                 **(attrs or {}),
             },
@@ -94,7 +93,6 @@ class FacetedSearchForm(DsfrBaseForm):
         ),
         widget=RankBySelect(
             attrs={
-                "onchange": "this.form.submit()",
                 "form": "faceted-search-form",
                 "class": "fr-select fr-mt-0",
             }

@@ -129,6 +129,12 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
         soup = BeautifulSoup(response.content, "html.parser")
         pagination_nav = soup.select_one("nav.fr-pagination")
         self.assertIsNotNone(pagination_nav)
+        boost = pagination_nav.find_parent(attrs={"hx-boost": "true"})
+        self.assertIsNotNone(boost)
+        self.assertEqual(boost["hx-target"], "#faceted-search-swap")
+        self.assertEqual(boost["hx-select"], "#faceted-search-swap")
+        self.assertEqual(boost["hx-swap"], "outerHTML")
+        self.assertEqual(boost["hx-push-url"], "true")
 
     def test_search_form_carries_no_page_control(self):
         """Submitting the form drops ``page``, so a new search starts at page 1."""
