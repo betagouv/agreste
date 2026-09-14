@@ -1,13 +1,38 @@
 {# Forked from sites_conformes_core/search_results.html: adds a sidebar for search facets. #}
 {% extends "sites_conformes_core/search_results.html" %}
-{% load i18n static dsfr_tags wagtailcore_tags wagtail_dsfr_tags %}
+{% load i18n static dsfr_tags %}
 
 {% block title %}
-  <title>{% translate "Search results" %} — {{ settings.sites_conformes_core.CmsDsfrConfig.site_title }}</title>
+  <title>
+    {% blocktranslate %}Results for "{{ query }}"{% endblocktranslate %} — {{ settings.sites_conformes_core.CmsDsfrConfig.site_title }}
+  </title>
 {% endblock title %}
 
 {% block search_heading %}
-  <h1>{% translate "Search results" %}</h1>
+  <h1>{% blocktranslate %}Results for "{{ query }}"{% endblocktranslate %}</h1>
+  {% comment %}
+    Single GET form for the whole page: the sidebar facet checkboxes and the
+    rank-by select join it through their form="faceted-search-form" attribute.
+  {% endcomment %}
+  {% translate "Search" as search_label %}
+  <form method="get" action="{% url 'cms_search' %}" id="faceted-search-form">
+    <div class="fr-search-bar fr-search-bar--lg fr-mb-2w"
+         id="results-search-bar"
+         role="search">
+      <label class="fr-label" for="results-search-input">{{ search_label }}</label>
+      <input class="fr-input"
+             type="search"
+             id="results-search-input"
+             name="{{ form.q.html_name }}"
+             value="{{ form.q.value|default_if_none:'' }}"
+             placeholder="{{ search_label }}"
+             aria-describedby="results-search-input-messages" />
+      <div class="fr-messages-group"
+           id="results-search-input-messages"
+           aria-live="polite"></div>
+      <button class="fr-btn" type="submit" title="{{ search_label }}">{{ search_label }}</button>
+    </div>
+  </form>
 {% endblock search_heading %}
 
 {% block extra_css %}
@@ -16,6 +41,11 @@
         type="text/css" />
   {{ block.super }}
 {% endblock extra_css %}
+
+{% block extra_js %}
+  <script src="{% static 'faceted_search/js/facet_tree.js' %}"></script>
+  {{ block.super }}
+{% endblock extra_js %}
 
 {% block search_sidebar %}
   {% if show_search_facets %}
@@ -42,22 +72,26 @@
 
 {% block search_results %}
   {% if page_obj.paginator.count %}
-    <h2>
-      {% blocktranslate with per_page=page_obj.paginator.per_page count count=page_obj.paginator.count %}{{ count }} result ({{ per_page }} per page){% plural %}{{ count }} results ({{ per_page }} per page){% endblocktranslate %}
-    </h2>
-    <form method="get" class="search-rank-by fr-mb-2w">
-      {% for key, value in rank_by_form.hidden_params %}
-        <input type="hidden" name="{{ key }}" value="{{ value }}" />
-      {% endfor %}
-      {{ rank_by_form.rank_by.as_field_group }}
-    </form>
-    <ol class="fr-mb-2w"
-        start="{{ page_obj.start_index }}"
-        style="--list-start: {{ page_obj.start_index }}">
+    <div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-2w">
+      <div class="fr-col">
+        <p class="fr-mb-0">
+          {% blocktranslate count count=page_obj.paginator.count %}{{ count }} result{% plural %}{{ count }} results{% endblocktranslate %}
+        </p>
+      </div>
+      <div class="fr-col-auto">
+        <div class="fr-grid-row fr-grid-row--middle">
+          <div class="fr-col-auto">
+            <label class="fr-label" for="{{ form.rank_by.id_for_label }}">{{ form.rank_by.label }}</label>
+          </div>
+          <div class="fr-col-auto fr-ml-2w">{{ form.rank_by }}</div>
+        </div>
+      </div>
+    </div>
+    <ul class="agr-search-results fr-mb-2w">
       {% for result in object_list %}
         {% include "faceted_search/blocks/search_result.html" with result=result %}
       {% endfor %}
-    </ol>
+    </ul>
     {% if page_obj.paginator.num_pages > 1 %}
       <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">
         {% dsfr_pagination page_obj %}
@@ -68,10 +102,7 @@
       <div class="fr-my-7w fr-mt-md-12w fr-mb-md-10w fr-grid-row fr-grid-row--gutters fr-grid-row--middle fr-grid-row--center">
         <div class="fr-py-0 fr-col-12 fr-col-md-6">
           <h2 class="fr-mb-3w">{% translate "We did not find any content matching your search." %}</h2>
-          <p>{% translate "To continue your visit, you can consult our home page." %}</p>
-          <div class="fr-btns-group fr-btns-group--inline-md">
-            <a class="fr-btn" href="{% root_url %}">{% translate "Back to home page" %}</a>
-          </div>
+          <p>{% translate "Try other search words, or select different filters in the sidebar." %}</p>
         </div>
         <div class="fr-col-12 fr-col-md-3 fr-col-offset-md-1 fr-px-6w fr-px-md-0 fr-py-0">
           <img src="{% static 'dsfr/dist/artwork/pictograms/digital/search.svg' %}"

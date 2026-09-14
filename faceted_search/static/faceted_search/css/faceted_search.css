@@ -1,48 +1,109 @@
-.fr-sidemenu .fr-tags-group {
-    flex-direction: column;
-    align-items: flex-start;
+/* Accordion bodies are meant for prose, so DSFR gives them bullets, an indent,
+   and vertical list spacing (`.fr-accordion .fr-collapse` sets --ul-type: disc,
+   --xl-block, --li-bottom). The facet lists are rows of checkboxes, not prose,
+   so they opt back out. */
+.agr-facet-list,
+.agr-search-results {
+    list-style: none;
+    padding-left: 0;
 }
 
-.fr-filter-group {
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 1rem;
+.agr-facet-list {
+    --xl-block: 0;
+    --li-bottom: 0;
+    margin: 0;
 }
 
-.fr-filter-group:has(.fr-accordion__btn[aria-expanded="true"]) .fr-filter-group__selected {
-    display: none;
+/* DSFR `.fr-sidemenu .fr-collapse` also matches accordion panels nested in the
+   filter sidebar (1v padding/margin). Restore the accordion collapse box model
+   from DSFR 1.14 so grouped filters share borders with no extra gap. */
+.fr-sidemenu .fr-accordion > .fr-collapse {
+    margin: 0;
+    padding: 0;
 }
 
-.fr-filter-group__selected {
+.fr-sidemenu .fr-accordion > .fr-collapse--expanded {
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
+}
+
+@media (min-width: 48em) {
+    .fr-sidemenu .fr-accordion > .fr-collapse {
+        margin: 0 -0.25rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+/* Same leak on nested theme/collection collapses: they are not sidemenu items. */
+.fr-sidemenu .agr-facet-tree .fr-collapse {
+    margin: 0;
+    padding: 0;
+}
+
+/* Backport of DSFR 1.15 #1361 (indeterminate checkbox dash). django-dsfr still
+   ships 1.14, whose native input is opacity:0, so without this the dash is invisible.
+   Same structure as 1.14 `:checked` (background-color + background-image with
+   `--data-uri-svg`). Delete when django-dsfr bundles DSFR 1.15+ — CI fails on
+   that upgrade (FacetedSearchDsfrCheckboxBackportTest). */
+.fr-checkbox-group input[type=checkbox]:indeterminate + label::before {
+    --data-uri-svg: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23f5f5fe' d='M5 11h14v2H5v-2Z'/%3E%3C/svg%3E");
+    background-color: var(--background-active-blue-france);
+    background-image: radial-gradient(at 5px 4px, transparent 4px, var(--border-active-blue-france) 4px, var(--border-active-blue-france) 5px, transparent 6px), linear-gradient(var(--border-active-blue-france), var(--border-active-blue-france)), radial-gradient(at calc(100% - 5px) 4px, transparent 4px, var(--border-active-blue-france) 4px, var(--border-active-blue-france) 5px, transparent 6px), linear-gradient(var(--border-active-blue-france), var(--border-active-blue-france)), radial-gradient(at calc(100% - 5px) calc(100% - 4px), transparent 4px, var(--border-active-blue-france) 4px, var(--border-active-blue-france) 5px, transparent 6px), linear-gradient(var(--border-active-blue-france), var(--border-active-blue-france)), radial-gradient(at 5px calc(100% - 4px), transparent 4px, var(--border-active-blue-france) 4px, var(--border-active-blue-france) 5px, transparent 6px), linear-gradient(var(--border-active-blue-france), var(--border-active-blue-france)), var(--data-uri-svg);
+}
+
+:root[data-fr-theme=dark] .fr-checkbox-group input[type=checkbox]:indeterminate + label::before {
+    --data-uri-svg: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000091' d='M5 11h14v2H5v-2Z'/%3E%3C/svg%3E");
+}
+/* end backport */
+
+.agr-facet-tree {
+    --agr-toggle: 1.5rem;
+    --agr-toggle-gap: 0.25rem;
+    margin-left: -1rem;
+}
+
+.agr-facet-tree__row {
     display: flex;
-    flex-direction: column;
     align-items: flex-start;
-    gap: 0.5rem;
-    width: 100%;
-    padding-top: 0.5rem;
+    gap: var(--agr-toggle-gap);
 }
 
-/* DSFR resets ordered-list counters, so the HTML start attribute is ignored.
-   Use a CSS variable so the counter starts from the page's first result number. */
-#search-results ol {
-    counter-reset: li-counter calc(var(--list-start, 1) - 1);
+/* 1rem DSFR icon + 0.25rem padding so the glyph is not clipped by the
+   accordion collapse overflow:hidden. Override fr-btn--sm min-height. */
+.agr-facet-tree__toggle {
+    flex: 0 0 var(--agr-toggle);
+    width: var(--agr-toggle);
+    height: var(--agr-toggle);
+    min-height: var(--agr-toggle);
+    max-height: var(--agr-toggle);
+    max-width: var(--agr-toggle);
+    padding: 0.25rem;
+    margin: 0;
+    overflow: visible;
 }
 
-/* DSFR fix : we use <a> instead of <button>, which doesn't seem to be implemented in django-dsfr. */
-a.fr-tag[aria-pressed="true"] {
-    background-color: transparent;
-    background-image: radial-gradient(circle at 100% 0.25rem, transparent 0.578125rem, var(--background-active-blue-france) 0.625rem);
-    color: var(--text-inverted-blue-france);
+.agr-facet-tree__toggle::before {
+    margin: 0;
 }
 
-a.fr-tag[aria-pressed="true"]:hover {
-    background-image: radial-gradient(circle at 100% 0.25rem, transparent 0.578125rem, var(--background-active-blue-france-hover) 0.625rem);
+.agr-facet-tree__row .fr-checkbox-group {
+    flex: 1;
 }
 
-a.fr-tag[aria-pressed="true"]:active {
-    background-image: radial-gradient(circle at 100% 0.25rem, transparent 0.578125rem, var(--background-active-blue-france-active) 0.625rem);
+.agr-facet-tree__toggle[aria-expanded="true"]::before {
+    transform: rotate(180deg);
 }
 
-a.fr-tag[aria-pressed="true"]::after {
-    color: var(--text-action-high-blue-france);
+/* Same gutter for leaf checkboxes and nested trees: child boxes sit under
+   the parent checkbox, not under the label. */
+.agr-facet-tree > li > .fr-checkbox-group,
+.agr-facet-tree .agr-facet-tree {
+    margin-left: calc(var(--agr-toggle) + var(--agr-toggle-gap));
 }
-/* End of DSFR fix */
+
+/* DSFR card detail uses align-items:flex-start with a 1rem icon on 1.25rem
+   text, which sits the calendar a little high. */
+#search-results .fr-card__detail {
+    align-items: center;
+}

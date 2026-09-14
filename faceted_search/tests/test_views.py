@@ -7,15 +7,13 @@ from urllib.parse import urlencode
 from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
-from django.http import QueryDict
-from django.test import RequestFactory, SimpleTestCase
+from django.test import RequestFactory
 from django.urls import reverse
+from django.utils.translation import gettext
 from wagtail.models import Page, Site
 from wagtail.rich_text import RichText
 from wagtail.test.utils import WagtailPageTestCase
 
-from faceted_search.forms import RankByForm
-from faceted_search.search import RANK_BY_DATE, RANK_BY_RELEVANCE, get_rank_by_from_querystring
 from faceted_search.tests.test_facets import FacetedSearchTestBase, get_post_titles_in_response
 from faceted_search.views import FacetedSearchResultsView
 from publications.tests.factories import PublicationIndexPageFactory, PublicationPageFactory
@@ -72,6 +70,27 @@ class FacetedSearchPaginationTestBase(WagtailPageTestCase):
         return f"{reverse('cms_search')}?{urlencode({'q': query, **params}, doseq=True)}"
 
 
+class FacetedSearchEmptyFacetTest(FacetedSearchPaginationTestBase):
+    """Enabled facets stay in the sidebar even when they have no values."""
+
+    def test_enabled_facets_render_when_empty(self):
+        response = self.client.get(self.search_url())
+        self.assertEqual(response.status_code, 200)
+        soup = BeautifulSoup(response.content, "html.parser")
+        empty_messages = {
+            "filter-theme": gettext("No themes corresponding to this search"),
+            "filter-collection": gettext("No collections corresponding to this search"),
+        }
+        for accordion_id, empty_message in empty_messages.items():
+            with self.subTest(accordion_id=accordion_id):
+                panel = soup.select_one(f"#{accordion_id}")
+                self.assertIsNotNone(panel)
+                self.assertIn(empty_message, panel.get_text())
+                self.assertEqual(panel.select("input[type=checkbox]"), [])
+        for disabled_id in ("filter-category", "filter-tag", "filter-author", "filter-source"):
+            self.assertIsNone(soup.select_one(f"#{disabled_id}"))
+
+
 class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
     @classmethod
     def setUpTestData(cls):
@@ -89,7 +108,7 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
         self.assertTrue(page_obj.has_next())
 
         soup = BeautifulSoup(response.content, "html.parser")
-        result_items = soup.select("#search-results ol > li")
+        result_items = soup.select("#search-results .agr-search-results > li")
         self.assertEqual(len(result_items), 10)
 
     def test_pagination_second_page_shows_remaining_results(self):
@@ -102,7 +121,7 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
         self.assertFalse(page_obj.has_next())
 
         soup = BeautifulSoup(response.content, "html.parser")
-        result_items = soup.select("#search-results ol > li")
+        result_items = soup.select("#search-results .agr-search-results > li")
         self.assertEqual(len(result_items), 5)
 
     def test_pagination_widget_appears_when_multiple_pages(self):
@@ -111,23 +130,13 @@ class FacetedSearchPaginationTest(FacetedSearchPaginationTestBase):
         pagination_nav = soup.select_one("nav.fr-pagination")
         self.assertIsNotNone(pagination_nav)
 
-    def test_pagination_result_count_and_page_size_are_displayed(self):
-        response = self.client.get(self.search_url())
-        soup = BeautifulSoup(response.content, "html.parser")
-        paragraph = soup.select_one("#search-results h2")
-        self.assertIsNotNone(paragraph)
-        text = paragraph.get_text()
-        self.assertIn("15 résultats", text)
-        self.assertIn("10 par page", text)
-
-    def test_pagination_result_numbering_continues_across_pages(self):
+    def test_search_form_carries_no_page_control(self):
+        """Submitting the form drops ``page``, so a new search starts at page 1."""
         response = self.client.get(self.search_url(page=2))
         soup = BeautifulSoup(response.content, "html.parser")
-        ol = soup.select_one("#search-results ol")
-        self.assertIsNotNone(ol)
-        self.assertEqual(int(ol["start"]), 11)
-        # DSFR fix : "start" is broken, so we reimplement counters.
-        self.assertIn("--list-start: 11", ol["style"])
+        form = soup.find("form", id="faceted-search-form")
+        self.assertIsNotNone(form)
+        self.assertEqual(form.select('[name="page"]'), [])
 
 
 class AccentInsensitiveSearchTest(FacetedSearchPaginationTestBase):
@@ -160,43 +169,6 @@ class AccentInsensitiveSearchTest(FacetedSearchPaginationTestBase):
         unaccented = get_post_titles_in_response(self.client.get(self.search_url(query="ble")))
         self.assertEqual(accented, unaccented)
         self.assertIn(self.wheat_page.title, accented)
-
-
-class RankByParamTest(SimpleTestCase):
-    """No DB: ``get_rank_by_from_querystring`` and the ranking form."""
-
-    def test_get_rank_by_from_querystring(self):
-        factory = RequestFactory()
-        # default is relevance
-        self.assertEqual(get_rank_by_from_querystring(factory.get("/search/")), RANK_BY_RELEVANCE)
-        self.assertEqual(
-            get_rank_by_from_querystring(factory.get("/search/", {"rank_by": "relevance"})), RANK_BY_RELEVANCE
-        )
-        self.assertEqual(get_rank_by_from_querystring(factory.get("/search/", {"rank_by": "date"})), RANK_BY_DATE)
-        # invalid values default to relevance
-        self.assertEqual(
-            get_rank_by_from_querystring(factory.get("/search/", {"rank_by": "popularity"})), RANK_BY_RELEVANCE
-        )
-
-    def test_rank_by_form_initial_value(self):
-        # default is relevance
-        self.assertEqual(RankByForm()["rank_by"].value(), RANK_BY_RELEVANCE)
-        self.assertEqual(
-            RankByForm(query_dict=QueryDict("rank_by=date"))["rank_by"].value(),
-            RANK_BY_DATE,
-        )
-        # invalid values default to relevance
-        self.assertEqual(
-            RankByForm(query_dict=QueryDict("rank_by=popularity"))["rank_by"].value(),
-            RANK_BY_RELEVANCE,
-        )
-
-    def test_rank_by_form_preserves_get_params_but_drops_page(self):
-        form = RankByForm(query_dict=QueryDict("q=Report&theme=agriculture&theme=water&page=2&rank_by=date"))
-        # params are preserved as hidden inputs except page
-        self.assertEqual(form.hidden_params, [("q", "Report"), ("theme", "agriculture"), ("theme", "water")])
-        # rank_by is preserved as the selected value
-        self.assertEqual(form["rank_by"].value(), RANK_BY_DATE)
 
 
 class FacetedSearchRankingTest(FacetedSearchPaginationTestBase):
