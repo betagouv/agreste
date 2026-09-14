@@ -1,0 +1,10 @@
+--- a/wagtail_transfer/vendor/wagtail_api_v2/router.py
++++ b/wagtail_transfer/vendor/wagtail_api_v2/router.py
+@@ -24,6 +24,6 @@
+         endpoint is not found.
+         """
+         for name, class_ in self._endpoints.items():
+-            if issubclass(model, class_.model):
++            if hasattr(class_, 'model') and issubclass(model, class_.model):
+                 return name, class_
+ 

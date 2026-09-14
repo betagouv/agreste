@@ -1,0 +1,97 @@
+[
+  {
+    "id": "00000000-0000-4000-8000-000000000021",
+    "type": "multicolumns",
+    "value": {
+      "title": "",
+      "columns": [
+        {
+          "id": "00000000-0000-4000-8000-000000000022",
+          "type": "column",
+          "value": {
+            "width": "8",
+            "content": [
+              {
+                "id": "00000000-0000-4000-8000-000000000023",
+                "type": "html",
+                "value": "<h2 id=\"complement-titre\">Centre-Val de Loire</h2>"
+              }
+            ]
+          }
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000024",
+          "type": "column",
+          "value": {
+            "width": "4",
+            "content": [
+              {
+                "id": "00000000-0000-4000-8000-000000000025",
+                "type": "tile",
+                "value": {
+                  "link": {
+                    "page": null,
+                    "anchor": "",
+                    "document": 103,
+                    "link_type": "document",
+                    "external_url": "",
+                    "query_string": ""
+                  },
+                  "image": null,
+                  "title": "Télécharger la publication",
+                  "shadow": false,
+                  "is_small": false,
+                  "no_border": false,
+                  "description": "<p>example-publication.pdf</p>",
+                  "detail_text": "",
+                  "heading_tag": "h3",
+                  "is_horizontal": false,
+                  "no_background": false,
+                  "grey_background": false,
+                  "top_detail_badges_tags": []
+                }
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000026",
+                "type": "tile",
+                "value": {
+                  "link": {
+                    "page": null,
+                    "anchor": "",
+                    "document": 104,
+                    "link_type": "document",
+                    "external_url": "",
+                    "query_string": ""
+                  },
+                  "image": null,
+                  "title": "Télécharger les données",
+                  "shadow": false,
+                  "is_small": false,
+                  "no_border": false,
+                  "description": "<p>example-data.xlsx</p>",
+                  "detail_text": "",
+                  "heading_tag": "h3",
+                  "is_horizontal": false,
+                  "no_background": false,
+                  "grey_background": false,
+                  "top_detail_badges_tags": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "bg_image": null,
+      "top_margin": 5,
+      "heading_tag": "h2",
+      "bottom_margin": 5,
+      "bg_color_class": "",
+      "vertical_align": ""
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000027",
+    "type": "html",
+    "value": "<div id=\"disaron-nom\">PUB-EXAMPLE-03</div>"
+  }
+]

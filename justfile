@@ -98,8 +98,12 @@ mmi:
 nginx-generate-config-file:
     cd scripts && bash nginx_generate_config_file.sh
 
+patch:
+    {{docker_cmd}} bash patches/apply.sh
+
 alias rs := runserver
 runserver host_url=host_url host_port=host_port:
+    just patch
     {{docker_cmd}} {{uv_run}} python manage.py runserver {{host_url}}:{{host_port}}
 
 alias rg:= run_gunicorn
@@ -114,6 +118,20 @@ shell:
 sync-tarteaucitron:
     {{docker_cmd}} npm ci
     cd scripts && bash sync_tarteaucitron.sh
+
+# During a merge: keep our deletion for "deleted by us" (DU) conflicts under path.
+# Example: just accept-deleted-by-us sites_conformes/static/lib/tarteaucitronjs
+#          just accept-deleted-by-us demo
+[group('Git')]
+accept-deleted-by-us path:
+    bash scripts/accept_deleted_by_us.sh "{{path}}"
+
+# Merge Sites Conformes tag v<version> into a fresh branch from main-agreste.
+# Resolves known Agreste paths (deleted demo/tarteaucitron, ours package.json, uv.lock).
+# Example: just merge-sc-tag 4.2.0-rc1
+[group('Git')]
+merge-sc-tag version:
+    bash scripts/merge_sc_tag.sh "{{version}}"
 
 test app="":
     {{docker_cmd}} {{uv_run}} python manage.py test {{app}} --buffer --parallel --settings config.settings_test
@@ -137,9 +155,14 @@ web-prompt:
 
 #### Production-related recipes
 
-# Commands run by the Scalingo Procfile
+# Commands run by the Scalingo Procfile.
+# Note for review apps : create an admin user when the app is up:
+#   scalingo --app <review-app-name> --region osc-fr1 run python manage.py createsuperuser
+# Then log in at /cms-admin/.
 [group('Production')]
 scalingo-postdeploy:
+    # Review apps skip collectstatic at build; create_starter_pages needs DSFR files in staticfiles/.
+    if [ "${DISABLE_COLLECTSTATIC:-}" = "1" ]; then python manage.py collectstatic --noinput; fi
     python manage.py migrate_from_sites_faciles --no-input
     python manage.py migrate
     python manage.py create_starter_pages
@@ -153,7 +176,7 @@ scalingo-postdeploy:
 check +apps="":
     {{docker_cmd}} {{uv_run}} python manage.py check {{apps}}
 
-# Run a global pre-commit
+# Run a global pre-commit check
 [group('Code audit')]
 quality:
     {{docker_cmd}} {{uv_run}} pre-commit run --all-files

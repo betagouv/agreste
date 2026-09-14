@@ -1,0 +1,117 @@
+{# Forked from sites_conformes_core/search_results.html: adds a sidebar for search facets. #}
+{% extends "sites_conformes_core/search_results.html" %}
+{% load i18n static dsfr_tags %}
+
+{% block title %}
+  <title>
+    {% blocktranslate %}Results for "{{ query }}"{% endblocktranslate %} — {{ settings.sites_conformes_core.CmsDsfrConfig.site_title }}
+  </title>
+{% endblock title %}
+
+{% block search_heading %}
+  <h1>{% blocktranslate %}Results for "{{ query }}"{% endblocktranslate %}</h1>
+  {% comment %}
+    Single GET form for the whole page: the sidebar facet checkboxes and the
+    rank-by select join it through their form="faceted-search-form" attribute.
+  {% endcomment %}
+  {% translate "Search" as search_label %}
+  <form method="get" action="{% url 'cms_search' %}" id="faceted-search-form">
+    <div class="fr-search-bar fr-search-bar--lg fr-mb-2w"
+         id="results-search-bar"
+         role="search">
+      <label class="fr-label" for="results-search-input">{{ search_label }}</label>
+      <input class="fr-input"
+             type="search"
+             id="results-search-input"
+             name="{{ form.q.html_name }}"
+             value="{{ form.q.value|default_if_none:'' }}"
+             placeholder="{{ search_label }}"
+             aria-describedby="results-search-input-messages" />
+      <div class="fr-messages-group"
+           id="results-search-input-messages"
+           aria-live="polite"></div>
+      <button class="fr-btn" type="submit" title="{{ search_label }}">{{ search_label }}</button>
+    </div>
+  </form>
+{% endblock search_heading %}
+
+{% block extra_css %}
+  <link href="{% static 'faceted_search/css/faceted_search.css' %}"
+        rel="stylesheet"
+        type="text/css" />
+  {{ block.super }}
+{% endblock extra_css %}
+
+{% block extra_js %}
+  <script src="{% static 'faceted_search/js/facet_tree.js' %}"></script>
+  {{ block.super }}
+{% endblock extra_js %}
+
+{% block search_sidebar %}
+  {% if show_search_facets %}
+    <div class="fr-col fr-col-md-4 fr-col-12">
+      <nav class="fr-sidemenu fr-sidemenu--sticky-full-height fr-mb-0-5v">
+        <div class="fr-sidemenu__inner">
+          <button class="fr-sidemenu__btn"
+                  hidden
+                  aria-controls="fr-sidemenu-wrapper-search"
+                  aria-expanded="false">{% translate "Filters" %}</button>
+          <div class="fr-collapse" id="fr-sidemenu-wrapper-search">
+            <h2 class="fr-sidemenu__title" id="fr-sidemenu-title-search">{% translate "Filters" %}</h2>
+            {% include "faceted_search/blocks/search_facets.html" %}
+          </div>
+        </div>
+      </nav>
+    </div>
+  {% endif %}
+{% endblock search_sidebar %}
+
+{% block search_results_column_class %}
+  {% if show_search_facets %}fr-col fr-col-md-8 fr-col-12{% else %}fr-col-12{% endif %}
+{% endblock search_results_column_class %}
+
+{% block search_results %}
+  {% if page_obj.paginator.count %}
+    <div class="fr-grid-row fr-grid-row--middle fr-grid-row--gutters fr-mb-2w">
+      <div class="fr-col">
+        <p class="fr-mb-0">
+          {% blocktranslate count count=page_obj.paginator.count %}{{ count }} result{% plural %}{{ count }} results{% endblocktranslate %}
+        </p>
+      </div>
+      <div class="fr-col-auto">
+        <div class="fr-grid-row fr-grid-row--middle">
+          <div class="fr-col-auto">
+            <label class="fr-label" for="{{ form.rank_by.id_for_label }}">{{ form.rank_by.label }}</label>
+          </div>
+          <div class="fr-col-auto fr-ml-2w">{{ form.rank_by }}</div>
+        </div>
+      </div>
+    </div>
+    <ul class="agr-search-results fr-mb-2w">
+      {% for result in object_list %}
+        {% include "faceted_search/blocks/search_result.html" with result=result %}
+      {% endfor %}
+    </ul>
+    {% if page_obj.paginator.num_pages > 1 %}
+      <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">
+        {% dsfr_pagination page_obj %}
+      </div>
+    {% endif %}
+  {% else %}
+    {% block search_no_results %}
+      <div class="fr-my-7w fr-mt-md-12w fr-mb-md-10w fr-grid-row fr-grid-row--gutters fr-grid-row--middle fr-grid-row--center">
+        <div class="fr-py-0 fr-col-12 fr-col-md-6">
+          <h2 class="fr-mb-3w">{% translate "We did not find any content matching your search." %}</h2>
+          <p>{% translate "Try other search words, or select different filters in the sidebar." %}</p>
+        </div>
+        <div class="fr-col-12 fr-col-md-3 fr-col-offset-md-1 fr-px-6w fr-px-md-0 fr-py-0">
+          <img src="{% static 'dsfr/dist/artwork/pictograms/digital/search.svg' %}"
+               class="fr-responsive-img"
+               alt=""
+               width="300"
+               height="300" />
+        </div>
+      </div>
+    {% endblock search_no_results %}
+  {% endif %}
+{% endblock search_results %}

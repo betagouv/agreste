@@ -2,6 +2,10 @@ version = 1
 revision = 3
 requires-python = ">=3.12, <4.0"
 
+[options]
+exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
+exclude-newer-span = "P7D"
+
 [[package]]
 name = "anyascii"
 version = "0.3.3"
@@ -1985,6 +1989,7 @@ dependencies = [
     { name = "wagtail-honeypot" },
     { name = "wagtail-localize" },
     { name = "wagtail-markdown" },
+    { name = "wagtail-transfer" },
     { name = "wagtailmenus" },
     { name = "wand" },
     { name = "whitenoise" },
@@ -2036,6 +2041,7 @@ requires-dist = [
     { name = "wagtail-honeypot", specifier = ">=1.2.1" },
     { name = "wagtail-localize", specifier = ">=1.12.1" },
     { name = "wagtail-markdown", specifier = ">=0.12.1" },
+    { name = "wagtail-transfer", specifier = ">=0.11" },
     { name = "wagtailmenus", specifier = ">=4.0.3" },
     { name = "wand", specifier = ">=0.6.13" },
     { name = "whitenoise", specifier = ">=6.6,<7.0" },
@@ -2334,6 +2340,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/42/63/ccdb5d255d91162b3ac7a3f47db6a9ae55584288670b83e2e03fbe8d238a/wagtail_markdown-0.14.1.tar.gz", hash = "sha256:f8685ca937b15c662be9eb972a477aebdbdd4a9aad60716b2a59f7bed898b165", size = 127197, upload-time = "2026-05-31T18:10:11.376Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fe/54/643065b5ff8ae87b4020a459222ed24026a3048e5a5015ddee615c6a6ec3/wagtail_markdown-0.14.1-py3-none-any.whl", hash = "sha256:1e9c42035c9ab5889006b993980ff1882fd09bedff4269b4002a203aafc9310a", size = 128780, upload-time = "2026-05-31T18:10:09.864Z" },
+]
+
+[[package]]
+name = "wagtail-transfer"
+version = "0.11"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wagtail" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/36/2e/8dce8dccb54375b52d2b9630dad63a82b7e3b3fc1aa79c1d71a5728cefcd/wagtail_transfer-0.11.tar.gz", hash = "sha256:02aea3460e0c536e9fc2159fb44f6e8562b9c5f5488496df74040c2b18cdd67a", size = 254436, upload-time = "2025-10-30T14:16:00.442Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ad/c8/6500a0f3aa78981e00e2d8c34229aa976b029ca07b6d8cfe69ba173c44db/wagtail_transfer-0.11-py3-none-any.whl", hash = "sha256:474520f0464f2dd8409bc202ec330f004d4cb7e1504c56302b13d36c599512da", size = 310577, upload-time = "2025-10-30T14:15:58.968Z" },
 ]
 
 [[package]]

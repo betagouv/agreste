@@ -1,0 +1,40 @@
+name: 🧟 CI - Check deleted code has not come back
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Forbidden paths
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure demo/ and vendored tarteaucitronjs stay empty
+        run: |
+          set -euo pipefail
+          forbidden=(
+            demo
+            sites_conformes/static/lib/tarteaucitronjs
+          )
+          failed=0
+          for path in "${forbidden[@]}"; do
+            # Any regular file under the path is forbidden (dirs alone are fine).
+            mapfile -t files < <(find "$path" -type f 2>/dev/null | sort || true)
+            if [ "${#files[@]}" -gt 0 ]; then
+              echo "::error::Forbidden path contains files: ${path}"
+              printf '  %s\n' "${files[@]}"
+              failed=1
+            else
+              echo "OK: ${path} has no files"
+            fi
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo ""
+            echo "These paths must stay empty in Agreste (removed from the Sites Conformes upstream)."
+            echo "During an SC merge, use: just accept-deleted-by-us <path>"
+            exit 1
+          fi

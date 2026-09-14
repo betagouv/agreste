@@ -1,0 +1,89 @@
+# Two-instance setup for testing wagtail-transfer locally with Docker.
+# See docs/contrib/wagtail-transfer-two-runservers.md for details.
+# Usage: docker compose -f docker-compose.transfer-test.yml up --build
+#
+# Source = port 8001 (content to import FROM)
+# Dest   = port 8002 (content to import INTO)
+
+services:
+  db_source:
+    image: postgres:14.5-alpine
+    environment:
+      POSTGRES_USER: dju
+      POSTGRES_PASSWORD: djpwd
+      POSTGRES_DB: agreste_source
+    volumes:
+      - pg_source:/var/lib/postgresql/data
+
+  db_dest:
+    image: postgres:14.5-alpine
+    environment:
+      POSTGRES_USER: dju
+      POSTGRES_PASSWORD: djpwd
+      POSTGRES_DB: agreste_dest
+    volumes:
+      - pg_dest:/var/lib/postgresql/data
+
+  source:
+    build: ../..
+    user: "1000:1000"
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "source-django-secret"
+      HOST_PROTO: http
+      # Must be resolvable/reachable from the destination container when wagtail-transfer
+      # constructs absolute media URLs (e.g. http://source:8001/medias/...).
+      HOST_URL: "source"
+      HOST_PORT: "8001"
+      CONTAINER_PORT: "8001"
+      ALLOWED_HOSTS: "source,localhost,127.0.0.1,0.0.0.0"
+      DATABASE_URL: "postgres://dju:djpwd@db_source:5432/agreste_source"
+      MEDIA_URL: "/medias/"
+      MEDIA_ROOT: medias
+      S3_HOST: ""
+      SF_USE_DB_STORAGE: "0"
+      WAGTAILTRANSFER_SECRET_KEY: "source-secret"
+      WAGTAILTRANSFER_SOURCES: "{}"
+    ports:
+      - "8001:8001"
+    volumes:
+      - ../..:/app
+      - medias_source:/app/medias
+      - staticfiles_source:/app/staticfiles
+    depends_on:
+      - db_source
+
+  dest:
+    build: ../..
+    user: "1000:1000"
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "dest-django-secret"
+      HOST_PROTO: http
+      # For browser-facing links on the destination side.
+      HOST_URL: "localhost"
+      HOST_PORT: "8002"
+      CONTAINER_PORT: "8002"
+      ALLOWED_HOSTS: "dest,localhost,127.0.0.1,0.0.0.0"
+      DATABASE_URL: "postgres://dju:djpwd@db_dest:5432/agreste_dest"
+      MEDIA_URL: "/medias/"
+      MEDIA_ROOT: medias
+      S3_HOST: ""
+      SF_USE_DB_STORAGE: "0"
+      WAGTAILTRANSFER_SOURCES: '{"source":{"BASE_URL":"http://source:8001/wagtail-transfer/","SECRET_KEY":"source-secret"}}'
+    ports:
+      - "8002:8002"
+    volumes:
+      - ../..:/app
+      - medias_dest:/app/medias
+      - staticfiles_dest:/app/staticfiles
+    depends_on:
+      - db_dest
+
+volumes:
+  pg_source:
+  pg_dest:
+  medias_source:
+  medias_dest:
+  staticfiles_source:
+  staticfiles_dest:

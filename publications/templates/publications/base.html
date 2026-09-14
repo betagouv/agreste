@@ -1,0 +1,9 @@
+{% extends "sites_conformes_core/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+  <link href="{% static 'publications/css/publications.css' %}"
+        rel="stylesheet"
+        type="text/css" />
+  {{ block.super }}
+{% endblock extra_css %}

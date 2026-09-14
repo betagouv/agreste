@@ -1,4 +1,57 @@
-# Sites Conformes
+# Agreste
+
+Forké depuis Sites Conformes (voir ci dessous)
+
+Releases are tagged commits in `production-agreste` branch, with a release
+created on github.
+
+In code, whe agreste version is in agreste_version.txt, while pyproject.toml
+still has SC's version (for now).
+Version format : the first three numbers are the Agreste version, the second
+three are the Sites Conformes version (`${agreste_version}-{SC_version}`).
+Example : 2.8.0-4.1.0
+
+## To upgrade Sites Conformes
+
+- Start the merge from `main-agreste`:
+
+  ```sh
+  just merge-sc-tag 4.2.0-rc1
+  ```
+
+  This will attempt to merge the given tag from SC into main-agreste, and
+  resolve known conflicts (uv.lock and deleted code : demo/, tarteaucitron lib,
+  package.json, uv.lock) and makemigrations.
+
+- Review remaining changes (especially any new migrations), commit, push
+
+- `gh pr create` to open a PR. Pass the CI and merge.
+
+## To create a release
+
+- Update the version number in `agreste_version.txt` :
+
+  ```sh
+  VERSION="2.8.0-4.1.0"; # ${agreste_version}-{SC_version}
+  git checkout main-agreste; git pull; 
+  echo $VERSION > agreste_version.txt; 
+  git add agreste_version.txt; 
+  git commit -m "Bump version to $VERSION"; 
+  git push
+  ```
+
+- Open a PR to merge `main-agreste` into `production-agreste`
+  <!-- markdownlint-disable-next-line MD013 -->
+  - `gh pr create --base production-agreste --head main-agreste --title "v$VERSION" --body ""`
+    The name is the version number ("v2.8.0-4.1.0") and will be picked up
+    automatically to name the version and tag.
+  - Solve any conflicts and merge. This will trigger a github action that will
+  create the release and tag. If the auto-deploy is configured on Scalingo, it
+  will deploy the release.
+
+-----
+
+## Sites Conformes
 
 **Sites Conformes** (anciennement « Sites Faciles ») vise à permettre la
 création simplifiée de **sites dont le domaine se termine par .gouv.fr**.
@@ -16,7 +69,7 @@ Sites Conformes vise à utiliser les dernières versions disponibles de
 
 Les tests automatisés couvrent les versions suivantes :
 
-- Python 3.12 à 3.14 (cf. [versions de Python supportées par Django](https://docs.djangoproject.com/en/6.0/faq/install/))
+- Python 3.10 à 3.14 (cf. [versions de Python supportées par Django](https://docs.djangoproject.com/en/5.2/faq/install/))
 - PostgreSQL 14 à 17 (cf. [versions de PostgreSQL supportées par Django](https://code.djangoproject.com/wiki/SupportedDatabaseVersions))
 
 ## Déploiement
@@ -69,7 +122,7 @@ actions nécessaires pour y mettre un terme.
 
 Voir les [conditions générales d’utilisation](https://github.com/GouvernementFR/dsfr/blob/main/doc/legal/cgu.md).
 
-### ⚠️ Prohibited Use Outside Government Websites
+#### ⚠️ Prohibited Use Outside Government Websites
 
 >This Design System is only meant to be used by official French public services'
 websites and apps. Its main purpose is to make it easy to identify governmental

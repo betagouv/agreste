@@ -1,0 +1,14 @@
+{% load wagtailcore_tags %}
+<div class="cmsfr-block-standard-publication">
+  <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--top">
+    <div class="fr-col-12 fr-col-md-8">
+      {% if value.subtitle %}<h2>{{ value.subtitle }}</h2>{% endif %}
+      {% if value.summary %}{{ value.summary|richtext }}{% endif %}
+    </div>
+    <div class="fr-col-12 fr-col-md-4 cmsfr-block-standard-publication__tiles">
+      {% for downloadable_document in value.downloadable_documents.bound_blocks %}
+        {% include_block downloadable_document %}
+      {% endfor %}
+    </div>
+  </div>
+</div>

@@ -1,0 +1,76 @@
+[
+  {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "type": "multicolumns",
+    "value": {
+      "title": "",
+      "columns": [
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "type": "column",
+          "value": {
+            "width": "8",
+            "content": [
+              {
+                "id": "00000000-0000-4000-8000-000000000003",
+                "type": "html",
+                "value": "<h2 id=\"complement-titre\">Veille technologique</h2>"
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000004",
+                "type": "html",
+                "value": "<div id=\"chapeau\"><p>Cette lettre traite d&#x27;agriculture en environnement contrôlé (serres, fermes verticales...), d&#x27;agrivoltaïsme en France, de méthodes de détection des &quot;nouveaux OGM&quot; dans les aliments, de projets pionniers en robotique agricole, d&#x27;outils numériques pour la transition agro-écologique des filières d&#x27;élevage.</p></div>"
+              }
+            ]
+          }
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000005",
+          "type": "column",
+          "value": {
+            "width": "4",
+            "content": [
+              {
+                "id": "00000000-0000-4000-8000-000000000006",
+                "type": "tile",
+                "value": {
+                  "link": {
+                    "page": null,
+                    "anchor": "",
+                    "document": 101,
+                    "link_type": "document",
+                    "external_url": "",
+                    "query_string": ""
+                  },
+                  "image": null,
+                  "title": "Télécharger la publication",
+                  "shadow": null,
+                  "is_small": null,
+                  "no_border": null,
+                  "description": "<p>example-publication.pdf</p>",
+                  "detail_text": null,
+                  "heading_tag": "h3",
+                  "is_horizontal": null,
+                  "no_background": null,
+                  "grey_background": null,
+                  "top_detail_badges_tags": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "bg_image": null,
+      "top_margin": 5,
+      "heading_tag": "h2",
+      "bottom_margin": 5,
+      "bg_color_class": "",
+      "vertical_align": ""
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000007",
+    "type": "html",
+    "value": "<div id=\"disaron-nom\">PUB-EXAMPLE-01</div>"
+  }
+]

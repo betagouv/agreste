@@ -1,0 +1,82 @@
+"""Tests for ``FacetedSearchForm``, the single GET form of the search results page.
+
+No DB access: these bind the form directly to a ``QueryDict`` instead of going
+through the view. Facet fields are covered in ``test_facets`` since they need
+taxonomy fixtures.
+"""
+
+from datetime import date
+
+from django.http import QueryDict
+from django.test import SimpleTestCase
+
+from faceted_search.forms import FacetedSearchForm
+from faceted_search.search import RANK_BY_DATE, RANK_BY_RELEVANCE
+
+
+class RankByFieldTest(SimpleTestCase):
+    """The form is the only source of the ``rank_by`` value."""
+
+    def test_falls_back_to_relevance(self):
+        for query_string, expected in (
+            ("", RANK_BY_RELEVANCE),
+            ("rank_by=relevance", RANK_BY_RELEVANCE),
+            ("rank_by=date", RANK_BY_DATE),
+            ("rank_by=popularity", RANK_BY_RELEVANCE),
+        ):
+            with self.subTest(query_string=query_string):
+                form = FacetedSearchForm(QueryDict(query_string))
+                self.assertTrue(form.is_valid())
+                self.assertEqual(form.cleaned_data["rank_by"], expected)
+                # The selected option must agree with the value the view ranks by.
+                self.assertEqual(form["rank_by"].value(), expected)
+
+    def test_renders_as_a_dsfr_select(self):
+        rendered = str(FacetedSearchForm(QueryDict(""))["rank_by"])
+        self.assertIn("<select", rendered)
+        self.assertIn("fr-select", rendered)
+        self.assertIn('form="faceted-search-form"', rendered)
+        self.assertEqual(rendered.count("<option"), 2)
+
+
+class QueryFieldTest(SimpleTestCase):
+    def test_binds_query(self):
+        form = FacetedSearchForm(QueryDict("q=Report&rank_by=date"))
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["q"], "Report")
+
+    def test_accepts_an_empty_query(self):
+        form = FacetedSearchForm(QueryDict(""))
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["q"], "")
+
+
+class DateRangeFieldTest(SimpleTestCase):
+    """``date_from`` / ``date_to`` bind ISO dates; invalid values fail validation."""
+
+    def test_parses_iso_dates(self):
+        form = FacetedSearchForm(QueryDict("date_from=2024-01-15&date_to=2024-06-30"))
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data["date_from"], date(2024, 1, 15))
+        self.assertEqual(form.cleaned_data["date_to"], date(2024, 6, 30))
+
+    def test_invalid_dates_fail_validation(self):
+        form = FacetedSearchForm(QueryDict("q=Report&date_from=not-a-date&date_to=2024-13-40"))
+        self.assertFalse(form.is_valid())
+        self.assertIn("date_from", form.errors)
+        self.assertIn("date_to", form.errors)
+
+    def test_empty_dates_are_none(self):
+        form = FacetedSearchForm(QueryDict(""))
+        self.assertTrue(form.is_valid())
+        self.assertIsNone(form.cleaned_data["date_from"])
+        self.assertIsNone(form.cleaned_data["date_to"])
+
+    def test_renders_native_date_inputs(self):
+        form = FacetedSearchForm(QueryDict("date_from=2024-01-15"))
+        rendered = str(form["date_from"])
+        self.assertIn('type="date"', rendered)
+        self.assertIn('form="faceted-search-form"', rendered)
+        self.assertIn('onchange="this.form.submit()"', rendered)
+        self.assertIn('value="2024-01-15"', rendered)
+        self.assertIn("fr-input", rendered)

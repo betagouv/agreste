@@ -1,0 +1,71 @@
+[
+  {
+    "id": "00000000-0000-4000-8000-000000000011",
+    "type": "multicolumns",
+    "value": {
+      "title": "",
+      "columns": [
+        {
+          "id": "00000000-0000-4000-8000-000000000012",
+          "type": "column",
+          "value": {
+            "width": "8",
+            "content": [
+              {
+                "id": "00000000-0000-4000-8000-000000000013",
+                "type": "html",
+                "value": "<div id=\"chapeau\"><p>Au sommaire de ce bulletin, des articles qui traitent de dépendance alimentaire dans les Outre-mer, de risques climatiques et d&#x27;assurance, d&#x27;exposition aux pesticides, de santé animale, d&#x27;alimentation, des protéines comme levier de la transition alimentaire, de travail agricole en circuits courts, de production de nourriture sur terres boisées, des objectifs européens environnementaux et climatiques, de la politique de l&#x27;eau de l&#x27;agence Loire-Bretagne, de l&#x27;International Water Management Institute, etc.</p></div>"
+              }
+            ]
+          }
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000014",
+          "type": "column",
+          "value": {
+            "width": "4",
+            "content": [
+              {
+                "id": "00000000-0000-4000-8000-000000000015",
+                "type": "tile",
+                "value": {
+                  "link": {
+                    "page": null,
+                    "anchor": "",
+                    "document": 102,
+                    "link_type": "document",
+                    "external_url": "",
+                    "query_string": ""
+                  },
+                  "image": null,
+                  "title": "Télécharger la publication",
+                  "shadow": null,
+                  "is_small": null,
+                  "no_border": null,
+                  "description": "<p>example-publication.pdf</p>",
+                  "detail_text": null,
+                  "heading_tag": "h3",
+                  "is_horizontal": null,
+                  "no_background": null,
+                  "grey_background": null,
+                  "top_detail_badges_tags": []
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "bg_image": null,
+      "top_margin": 5,
+      "heading_tag": "h2",
+      "bottom_margin": 5,
+      "bg_color_class": "",
+      "vertical_align": ""
+    }
+  },
+  {
+    "id": "00000000-0000-4000-8000-000000000016",
+    "type": "html",
+    "value": "<div id=\"disaron-nom\">PUB-EXAMPLE-02</div>"
+  }
+]

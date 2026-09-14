@@ -1,0 +1,44 @@
+{% load i18n dsfr_tags wagtailcore_tags faceted_search_tags %}
+
+<li class="fr-mb-2w">
+  <div class="fr-card fr-enlarge-link">
+    <div class="fr-card__body">
+      <div class="fr-card__content">
+        <h2 class="fr-card__title">
+          <a href="{% pageurl result %}">{{ result }}</a>
+        </h2>
+        {% if result.search_description %}<p class="fr-card__desc">{{ result.search_description }}</p>{% endif %}
+        {% with post=result.specific %}
+          {% with themes=post.themes.all %}
+            {% if themes %}
+              <div class="fr-card__start">
+                <ul class="fr-tags-group">
+                  {% for theme in themes|slice:":4" %}
+                    <li>{% dsfr_tag label=theme.name %}</li>
+                  {% endfor %}
+                  {% if themes|length > 4 %}
+                    {% with extra=themes|length|add:"-4"|stringformat:"s" %}
+                      <li>{% dsfr_tag label="+"|add:extra %}</li>
+                    {% endwith %}
+                  {% endif %}
+                </ul>
+              </div>
+            {% endif %}
+          {% endwith %}
+          {% result_collections post as collections %}
+          {% if post.date or collections %}
+            <div class="fr-card__end">
+              <p class="fr-card__detail{% if post.date %} fr-icon-calendar-line{% endif %}">
+                {% if post.date %}{% translate "Published on" %} {{ post.date|date:"j F Y" }}{% endif %}
+                {% if post.date and collections %} | {% endif %}
+                {% for collection in collections %}
+                  {{ collection.name }}{% if not forloop.last %} | {% endif %}
+                {% endfor %}
+              </p>
+            </div>
+          {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+  </div>
+</li>

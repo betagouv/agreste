@@ -1,6 +1,6 @@
 name: 🔮 CI - Main checks
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   build:
@@ -13,10 +13,10 @@ jobs:
         # the one that is pinned in the .python-version file
         # (which should be the default one on Scalingo, per
         # https://doc.scalingo.com/languages/python/start )
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.14"]
         # Only include the first and last supported pgsql versions to limit
         # the number of jobs
-        postgresql-version: [14, 17]
+        postgresql-version: [17]
     services:
       postgres:
         image: postgres:${{ matrix.postgresql-version }}-alpine

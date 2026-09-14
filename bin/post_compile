@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Scalingo Python buildpack hook — runs after uv sync during slug build.
+set -euo pipefail
+bash patches/apply.sh
