@@ -39,9 +39,9 @@
     {% include "sites_conformes_core/blocks/messages.html" %}
 
     <ul>
-      {% for collection in collections|dictsort:"coll_name" %}
+      {% for collection in collections|dictsort:"collection_name" %}
         <li>
-          <a href="{% pageurl page %}?collection={{ collection.coll_slug }}"><strong>{{ collection.coll_name }}</strong> ({{ collection.coll_count }})</a>
+          <a href="{% pageurl page %}?collection={{ collection.collection_slug }}"><strong>{{ collection.collection_name }}</strong> ({{ collection.collection_count }})</a>
         </li>
       {% endfor %}
     </ul>
