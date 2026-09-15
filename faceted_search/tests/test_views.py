@@ -27,8 +27,32 @@ class FacetedSearchResultsTestCase(SearchResultsTestCase):
     """Run the core search scenarios against the faceted search view.
 
     With facets disabled, FacetedSearchResultsView should behave the same as
-    the core SearchResultsView.
+    the core SearchResultsView, except that an empty query lists dated posts
+    instead of showing no results.
     """
+
+    def test_search_no_query(self):
+        index = PublicationIndexPageFactory(parent=self.home_page, owner=self.admin)
+        post = PublicationPageFactory(
+            parent=index,
+            owner=self.admin,
+            title="Published post without query",
+            slug="published-post-without-query",
+        )
+
+        response = self.client.get(reverse("cms_search"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, post.title)
+        self.assertContains(response, gettext("All results"))
+        self.assertNotContains(response, "Page de contenu publique")
+        self.assertNotContains(response, "Page de contenu privée")
+        self.assertNotContains(response, "Page de contenu brouillon")
+
+        soup = BeautifulSoup(response.content, "html.parser")
+        selected = soup.select_one('select[name="rank_by"] option[selected]')
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected["value"], "date")
 
 
 class FacetedSearchResultsViewTest(FacetedSearchTestBase):
@@ -206,7 +230,7 @@ class FacetedSearchRankingTest(FacetedSearchPaginationTestBase):
         )
 
     def _result_titles(self, **params):
-        request = RequestFactory().get("/search/", {"q": self.search_query, **params})
+        request = RequestFactory().get("/search/", params)
         request.user = AnonymousUser()
         view = FacetedSearchResultsView()
         view.request = request
@@ -214,6 +238,18 @@ class FacetedSearchRankingTest(FacetedSearchPaginationTestBase):
         return [page.title for page in view.get_queryset()]
 
     def test_rank_by_date_excludes_content_pages_and_orders_by_date(self):
-        self.assertIn(self.content_page.title, self._result_titles())
-        self.assertIn(self.content_page.title, self._result_titles(rank_by="relevance"))
-        self.assertEqual(self._result_titles(rank_by="date"), [self.newer.title, self.older.title])
+        self.assertIn(self.content_page.title, self._result_titles(q=self.search_query))
+        self.assertIn(self.content_page.title, self._result_titles(q=self.search_query, rank_by="relevance"))
+        self.assertEqual(
+            self._result_titles(q=self.search_query, rank_by="date"), [self.newer.title, self.older.title]
+        )
+
+    def test_empty_query_defaults_to_date_ranking(self):
+        self.assertEqual(self._result_titles(), [self.newer.title, self.older.title])
+        self.assertEqual(self._result_titles(q=""), [self.newer.title, self.older.title])
+
+    def test_empty_query_with_relevance_includes_content_pages(self):
+        titles = self._result_titles(rank_by="relevance")
+        self.assertIn(self.content_page.title, titles)
+        self.assertIn(self.newer.title, titles)
+        self.assertIn(self.older.title, titles)

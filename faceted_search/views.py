@@ -16,7 +16,8 @@ class FacetedSearchResultsView(ListView):
     - ``form``: the bound :class:`~faceted_search.forms.FacetedSearchForm` holding
       every input of the page (search query, facet checkboxes, ranking).
     - ``query``: raw ``?q=`` string (or ``None``).
-    - ``rank_by``: ``relevance`` (default) or ``date``.
+    - ``rank_by``: ``relevance`` (default when ``q`` is set) or ``date``
+      (default when ``q`` is empty).
     - Everything returned by :func:`faceted_search.facets.get_facet_context`
       (see its docstring).
 
@@ -40,17 +41,19 @@ class FacetedSearchResultsView(ListView):
     def get_queryset(self):
         form = self.get_search_form()
         query = form.cleaned_data["q"]
-        if not query:
-            return Page.objects.none()
-
         selection = get_facet_selection_from_form(form)
         rank_by = form.cleaned_data["rank_by"]
         pages = searchable_pages(self.request, self.site, rank_by=rank_by)
         object_list = apply_facet_selection(pages, self.site, selection)
         if rank_by == RANK_BY_DATE:
-            # order_by_relevance=False is needed, from Wagtail docs.
-            return object_list.order_by("-date").search(query, order_by_relevance=False)
-        return object_list.search(query)
+            object_list = object_list.order_by("-date")
+            if query:
+                # order_by_relevance=False is needed, from Wagtail docs.
+                return object_list.search(query, order_by_relevance=False)
+            return object_list
+        if query:
+            return object_list.search(query)
+        return object_list
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
