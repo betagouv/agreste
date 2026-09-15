@@ -35,6 +35,7 @@ class PublicationTestCase(BlogTestCase):
                 title="J’accuse",
                 date=datetime(1898, 6, 13, 6, 0, 0, tzinfo=self.paris_tz),
                 owner=self.admin,
+                disaron_id="disaron-jaccuse",
             )
         )
 
@@ -63,6 +64,7 @@ class PublicationTestCase(BlogTestCase):
                 title="Livres d’aujourd’hui et de demain",
                 date=datetime(1869, 9, 7, 6, 0, 0, tzinfo=self.paris_tz),
                 owner=self.admin,
+                disaron_id="disaron-livres",
             )
         )
         new_blog_post.authors.add(self.emile)
