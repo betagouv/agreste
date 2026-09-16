@@ -1,3 +1,7 @@
+from collections import defaultdict
+from collections.abc import Iterable
+from typing import TypeVar
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Count
@@ -89,6 +93,44 @@ class AbstractTaxonomy(TranslatableMixin, index.Indexed, Orderable):
         if not self.slug:
             self.slug = slugify(self.name)
         return super().save(*args, **kwargs)
+
+
+Taxonomy = TypeVar("Taxonomy", bound="AbstractTaxonomy")
+
+
+def flatten_taxonomy_tree(queryset: Iterable[Taxonomy]) -> list[tuple[Taxonomy, int]]:
+    """Return taxonomies in display order: each parent, then its children.
+
+    Each pair is ``(item, indent_depth)``. Depth ``0`` is a root, ``1`` a child,
+    and so on. Siblings are sorted by name. Items whose parent is missing from
+    ``queryset`` are treated as roots.
+
+    Example::
+
+        [(theme1, 0), (child1A, 1), (child1B, 1), (theme2, 0), (child2A, 1)]
+    """
+    items = list(queryset)
+    ids = {item.pk for item in items}
+    by_parent = defaultdict(list)
+    for item in items:
+        parent_id = item.parent_id if getattr(item, "parent_id", None) in ids else None
+        by_parent[parent_id].append(item)
+    for siblings in by_parent.values():
+        siblings.sort(key=lambda item: item.name)
+
+    result: list[tuple[Taxonomy, int]] = []
+    seen: set[int] = set()
+
+    def walk(parent_id, depth):
+        for item in by_parent.get(parent_id, []):
+            if item.pk in seen:
+                continue
+            seen.add(item.pk)
+            result.append((item, depth))
+            walk(item.pk, depth + 1)
+
+    walk(None, 0)
+    return result
 
 
 def get_taxonomies_for_index(index_page, taxonomy_model, m2m_field: str):

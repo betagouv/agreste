@@ -52,6 +52,17 @@ class ToggleUrlFilterPublicationSpecificTest(ToggleUrlFilterTestBase):
         )
         self.assertEqual(result, "?theme=climate&collection=agriculture")
 
+    def test_filters_dict_with_list_values_keeps_other_dimension_lists(self):
+        collection = type("Collection", (), {"slug": "environment"})()
+        result = toggle_url_filter(
+            self._context("ignored=1"),
+            filters_dict={"theme": ["climate", "health"]},
+            collection=collection,
+        )
+        self.assertIn("theme=climate", result)
+        self.assertIn("theme=health", result)
+        self.assertIn("collection=environment", result)
+
 
 class FiltersQueryTest(SimpleTestCase):
     def test_returns_empty_string_when_no_filters(self):
@@ -61,3 +72,7 @@ class FiltersQueryTest(SimpleTestCase):
     def test_builds_query_string_from_filters_dict(self):
         result = filters_query({"collection": "agriculture", "tag": "news"})
         self.assertEqual(result, "?collection=agriculture&tag=news")
+
+    def test_builds_query_string_from_list_values(self):
+        result = filters_query({"collection": ["agriculture", "environment"]})
+        self.assertEqual(result, "?collection=agriculture&collection=environment")

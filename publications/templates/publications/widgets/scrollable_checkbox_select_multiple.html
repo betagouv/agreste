@@ -1,0 +1,11 @@
+{% with id=widget.attrs.id %}
+<div class="agr-snippet-multi-chooser"{% if id %} id="{{ id }}"{% endif %}>
+  {% for group, options, index in widget.optgroups %}
+    {% for option in options %}
+      <div class="agr-snippet-multi-chooser__option" style="--agr-depth: {{ option.depth|default:0 }}">
+        {% include option.template_name with widget=option %}
+      </div>
+    {% endfor %}
+  {% endfor %}
+</div>
+{% endwith %}
