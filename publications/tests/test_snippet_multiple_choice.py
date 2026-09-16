@@ -1,9 +1,11 @@
 from bs4 import BeautifulSoup
 from django.http import QueryDict
 from django.test import TestCase
+from django.utils.translation import gettext
 from wagtail.models import Locale
 
 from publications.blocks.snippet_multiple_choice import SnippetMultipleChoiceBlock
+from publications.models import Collection
 from publications.tests.factories import CollectionFactory
 
 
@@ -72,3 +74,17 @@ class SnippetMultipleChoiceBlockTest(TestCase):
         )
         checked = soup.select("input[type=checkbox][checked]")
         self.assertEqual([input_el["value"] for input_el in checked], [str(self.theme1.pk)])
+
+
+class SnippetMultipleChoiceBlockEmptyTest(TestCase):
+    def test_widget_shows_message_when_there_are_no_values(self):
+        block = SnippetMultipleChoiceBlock("publications.Collection", hierarchical=True, required=False)
+        html = block.field.widget.render("collection", [])
+        soup = BeautifulSoup(html, "html.parser")
+        empty = soup.select_one(".agr-snippet-multi-chooser__empty")
+        self.assertIsNotNone(empty)
+        self.assertEqual(
+            empty.get_text(strip=True),
+            gettext("No %(name)s found.") % {"name": str(Collection._meta.verbose_name).lower()},
+        )
+        self.assertEqual(soup.select("input[type=checkbox]"), [])

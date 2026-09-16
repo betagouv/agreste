@@ -6,6 +6,8 @@
         {% include option.template_name with widget=option %}
       </div>
     {% endfor %}
+  {% empty %}
+    <p class="agr-snippet-multi-chooser__empty">{{ widget.empty_message }}</p>
   {% endfor %}
 </div>
 {% endwith %}

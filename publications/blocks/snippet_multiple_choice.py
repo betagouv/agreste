@@ -2,6 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Model
 from django.utils.functional import cached_property
+from django.utils.translation import gettext as _
 from wagtail.blocks import FieldBlock
 from wagtail.coreutils import resolve_model_string
 from wagtail.models import Locale
@@ -52,6 +53,14 @@ class ScrollableCheckboxSelectMultiple(forms.CheckboxSelectMultiple):
         if self.hierarchical:
             return flatten_taxonomy_tree(queryset)
         return [(obj, 0) for obj in queryset.order_by("name")]
+
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        model = self.choices.queryset.model
+        context["widget"]["empty_message"] = _("No %(name)s found.") % {
+            "name": str(model._meta.verbose_name).lower(),
+        }
+        return context
 
 
 class SnippetMultipleChoiceBlock(FieldBlock):
