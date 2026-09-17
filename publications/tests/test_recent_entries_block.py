@@ -4,6 +4,7 @@ from itertools import combinations
 
 from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 from django.utils.translation import gettext
 from wagtail.models import Page
 from wagtail.rich_text import RichText
@@ -110,11 +111,11 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
         self.assertIsNotNone(block)
         return block
 
-    def _assert_see_all_link_targets_index_page(self, link, index_page=None):
-        index_page = index_page or self.index_page
+    def _assert_see_all_link_targets_search(self, link):
+        search_url = reverse("cms_search")
         self.assertTrue(
-            link["href"].startswith(index_page.url),
-            f"Expected link to target {index_page.url!r}, got {link['href']!r}",
+            link["href"].startswith(search_url),
+            f"Expected link to target {search_url!r}, got {link['href']!r}",
         )
 
     def test_publication_recent_entries_is_renderable(self):
@@ -140,9 +141,10 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
         response = self.client.get(self.content_page.url)
         block = self._block_soup(response)
         self.assertIn(gettext("Filter by collection"), block.get_text())
-        pressed_filter = block.select_one('a.fr-tag[aria-pressed="true"]')
-        self.assertIsNotNone(pressed_filter)
-        self.assertEqual(pressed_filter.get_text(strip=True), self.collection.name)
+        filter_tag = block.select_one("a.fr-tag")
+        self.assertIsNotNone(filter_tag)
+        self.assertEqual(filter_tag.get_text(strip=True), self.collection.name)
+        self.assertIsNone(filter_tag.get("aria-pressed"))
 
     def test_filters_hidden_when_disabled(self):
         content_page = self._content_page_with_block(
@@ -152,14 +154,23 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
         response = self.client.get(content_page.url)
         block = self._block_soup(response)
         self.assertNotIn(gettext("Filter by collection"), block.get_text())
-        self.assertIsNone(block.select_one("a.fr-tag[aria-pressed]"))
+        self.assertIsNone(block.select_one("a.fr-tag"))
 
-    def test_see_all_publications_link_defaults_to_unfiltered_index(self):
+    def test_filter_tags_link_to_search(self):
+        response = self.client.get(self.content_page.url)
+        block = self._block_soup(response)
+        filter_tag = block.select_one("a.fr-tag")
+        self.assertIsNotNone(filter_tag)
+        self.assertTrue(filter_tag["href"].startswith(reverse("cms_search")))
+        self.assertIn("collection=agriculture", filter_tag["href"])
+        self.assertNotIn(self.index_page.url, filter_tag["href"])
+
+    def test_see_all_publications_link_defaults_to_unfiltered_search(self):
         response = self.client.get(self.content_page.url)
         block = self._block_soup(response)
         link = block.select_one("a.fr-btn")
         self.assertIsNotNone(link)
-        self._assert_see_all_link_targets_index_page(link)
+        self._assert_see_all_link_targets_search(link)
         self.assertNotIn("?", link["href"])
 
     def test_see_all_publications_link_includes_block_filters_when_configured(self):
@@ -172,21 +183,8 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
         block = self._block_soup(response)
         link = block.select_one("a.fr-btn")
         self.assertIsNotNone(link)
-        self._assert_see_all_link_targets_index_page(link)
+        self._assert_see_all_link_targets_search(link)
         self.assertIn("collection=agriculture", link["href"])
-
-    def test_see_all_publications_link_omits_query_when_unfiltered(self):
-        content_page = self._content_page_with_block(
-            slug="publication-recent-block-unfiltered",
-            show_filters=False,
-            collection_filter=None,
-        )
-        response = self.client.get(content_page.url)
-        block = self._block_soup(response)
-        link = block.select_one("a.fr-btn")
-        self.assertIsNotNone(link)
-        self._assert_see_all_link_targets_index_page(link)
-        self.assertNotIn("?", link["href"])
 
     def test_see_all_publications_button_uses_default_text(self):
         response = self.client.get(self.content_page.url)
@@ -330,3 +328,13 @@ class PublicationRecentEntriesBlockFilterTestCase(WagtailPageTestCase):
                     },
                 )
                 self.assertEqual(self._card_titles_in_block(response), [matching_post.title])
+
+    def test_multiple_values_of_one_filter_are_or(self):
+        response = self._render_block_page(
+            slug="recent-filter-two-collections",
+            collection_filter=[self.collection, self.other_collection],
+        )
+        titles = self._card_titles_in_block(response)
+        self.assertIn(self.post_with_collection.title, titles)
+        self.assertIn(self.post_with_other_collection.title, titles)
+        self.assertNotIn(self.post_with_theme.title, titles)

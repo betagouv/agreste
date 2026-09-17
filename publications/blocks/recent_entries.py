@@ -1,8 +1,8 @@
 from django.utils.translation import gettext_lazy as _
 from wagtail import blocks
 from wagtail.blocks import BlockGroup, BooleanBlock
-from wagtail.snippets.blocks import SnippetChooserBlock
 
+from publications.blocks.snippet_multiple_choice import SnippetMultipleChoiceBlock
 from sites_conformes.core.constants import HEADING_CHOICES_2_5
 
 PUBLICATION_RECENT_ENTRIES_BLOCK = "publication_recent_entries"
@@ -22,49 +22,49 @@ class PublicationRecentEntriesStructValue(blocks.StructValue):
 
         collection_filter = self.get("collection_filter")
         if collection_filter:
-            posts = posts.filter(collections=collection_filter)
+            posts = posts.filter(collections__in=collection_filter)
 
         theme_filter = self.get("theme_filter")
         if theme_filter:
-            posts = posts.filter(themes=theme_filter)
+            posts = posts.filter(themes__in=theme_filter)
 
         tag_filter = self.get("tag_filter")
         if tag_filter:
-            posts = posts.filter(tags=tag_filter)
+            posts = posts.filter(tags__in=tag_filter)
 
         author_filter = self.get("author_filter")
         if author_filter:
-            posts = posts.filter(authors=author_filter)
+            posts = posts.filter(authors__in=author_filter)
 
         source_filter = self.get("source_filter")
         if source_filter:
-            posts = posts.filter(authors__organization=source_filter)
+            posts = posts.filter(authors__organization__in=source_filter)
 
         entries_count = self.get("entries_count")
-        return posts[:entries_count]
+        return posts.distinct()[:entries_count]
 
     def current_filters(self) -> dict:
         filters = {}
 
         collection_filter = self.get("collection_filter")
         if collection_filter:
-            filters["collection"] = collection_filter.slug
+            filters["collection"] = [collection.slug for collection in collection_filter]
 
         theme_filter = self.get("theme_filter")
         if theme_filter:
-            filters["theme"] = theme_filter.slug
+            filters["theme"] = [theme.slug for theme in theme_filter]
 
         tag_filter = self.get("tag_filter")
         if tag_filter:
-            filters["tag"] = tag_filter.slug
+            filters["tag"] = [tag.slug for tag in tag_filter]
 
         author_filter = self.get("author_filter")
         if author_filter:
-            filters["author"] = author_filter.id
+            filters["author"] = [author.id for author in author_filter]
 
         source_filter = self.get("source_filter")
         if source_filter:
-            filters["source"] = source_filter.slug
+            filters["source"] = [source.slug for source in source_filter]
 
         return filters
 
@@ -108,19 +108,23 @@ class PublicationRecentEntriesBlock(blocks.StructBlock):
     entries_count = blocks.IntegerBlock(
         label=_("Number of entries"), required=False, min_value=1, max_value=8, default=3
     )
-    collection_filter = SnippetChooserBlock(
+    collection_filter = SnippetMultipleChoiceBlock(
         "publications.Collection",
         label=_("Filter by collection"),
+        hierarchical=True,
         required=False,
     )
-    theme_filter = SnippetChooserBlock(
+    theme_filter = SnippetMultipleChoiceBlock(
         "publications.Theme",
         label=_("Filter by theme"),
+        hierarchical=True,
         required=False,
     )
-    tag_filter = SnippetChooserBlock("sites_conformes_core.Tag", label=_("Filter by tag"), required=False)
-    author_filter = SnippetChooserBlock("sites_conformes_blog.Person", label=_("Filter by author"), required=False)
-    source_filter = SnippetChooserBlock(
+    tag_filter = SnippetMultipleChoiceBlock("sites_conformes_core.Tag", label=_("Filter by tag"), required=False)
+    author_filter = SnippetMultipleChoiceBlock(
+        "sites_conformes_blog.Person", label=_("Filter by author"), required=False
+    )
+    source_filter = SnippetMultipleChoiceBlock(
         "sites_conformes_blog.Organization",
         label=_("Filter by source"),
         help_text=_("The source is the organization of the post author"),
