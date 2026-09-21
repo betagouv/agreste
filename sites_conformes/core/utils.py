@@ -1,5 +1,4 @@
 import re
-from html import unescape
 from io import BytesIO
 
 from bs4 import BeautifulSoup
@@ -79,7 +78,7 @@ def _html_to_text(html: str) -> str:
     if not html:
         return ""
     soup = BeautifulSoup(html, "html.parser")
-    text = unescape(soup.get_text(" "))
+    text = soup.get_text(" ")
     # Collapse spaces, tabs and other non-newline whitespace so HTML gaps
     # (e.g. between tags) become a single space.
     return re.sub(r"[^\S\n]+", " ", text).strip()
