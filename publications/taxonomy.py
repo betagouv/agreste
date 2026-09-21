@@ -90,6 +90,17 @@ class AbstractTaxonomy(TranslatableMixin, index.Indexed, Orderable):
             self.slug = slugify(self.name)
         return super().save(*args, **kwargs)
 
+    def self_and_descendants(self):
+        """Return this taxonomy and all of its descendants."""
+        ids = {self.pk}
+        frontier = {self.pk}
+        model = self.__class__
+        while frontier:
+            child_ids = set(model.objects.filter(parent_id__in=frontier).values_list("pk", flat=True))
+            frontier = child_ids - ids
+            ids.update(frontier)
+        return model.objects.filter(pk__in=ids)
+
 
 def get_taxonomies_for_index(index_page, taxonomy_model, m2m_field: str):
     ids = index_page.posts.specific().values_list(m2m_field, flat=True)
