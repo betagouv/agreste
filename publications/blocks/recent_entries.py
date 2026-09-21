@@ -1,8 +1,12 @@
+from urllib.parse import urlencode
+
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from wagtail import blocks
 from wagtail.blocks import BlockGroup, BooleanBlock
 from wagtail.snippets.blocks import SnippetChooserBlock
 
+from faceted_search.search import RANK_BY_DATE
 from sites_conformes.core.constants import HEADING_CHOICES_2_5
 
 PUBLICATION_RECENT_ENTRIES_BLOCK = "publication_recent_entries"
@@ -22,11 +26,14 @@ class PublicationRecentEntriesStructValue(blocks.StructValue):
 
         collection_filter = self.get("collection_filter")
         if collection_filter:
-            posts = posts.filter(collections=collection_filter)
+            posts = posts.filter(collections__in=collection_filter.self_and_descendants())
 
         theme_filter = self.get("theme_filter")
         if theme_filter:
-            posts = posts.filter(themes=theme_filter)
+            posts = posts.filter(themes__in=theme_filter.self_and_descendants())
+
+        if collection_filter or theme_filter:
+            posts = posts.distinct()
 
         tag_filter = self.get("tag_filter")
         if tag_filter:
@@ -69,9 +76,25 @@ class PublicationRecentEntriesStructValue(blocks.StructValue):
         return filters
 
     def see_all_link_filters(self) -> dict:
-        if self.get("is_see_all_link_filtered", False):
-            return self.current_filters()
-        return {}
+        if not self.get("is_see_all_link_filtered", False):
+            return {}
+
+        filters = self.current_filters()
+
+        collection_filter = self.get("collection_filter")
+        if collection_filter:
+            filters["collection"] = list(collection_filter.self_and_descendants().values_list("slug", flat=True))
+
+        theme_filter = self.get("theme_filter")
+        if theme_filter:
+            filters["theme"] = list(theme_filter.self_and_descendants().values_list("slug", flat=True))
+
+        return filters
+
+    def see_all_url(self):
+        url = reverse("cms_search")
+        query = urlencode({"rank_by": RANK_BY_DATE, **self.see_all_link_filters()}, doseq=True)
+        return f"{url}?{query}"
 
     def see_all_button_label(self):
         from django.utils.translation import gettext
