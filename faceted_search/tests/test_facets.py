@@ -257,6 +257,22 @@ class FacetedSearchQueryTest(FacetedSearchTestBase):
                 self.assertNotIn(other_post_title, post_titles)
                 self.assertNotIn(post_without_search_match.title, post_titles)
 
+    def test_facet_without_query_filters_all_results(self):
+        extra_post = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Annual Report",
+            slug="annual-report-empty-query-theme",
+            themes=[self.theme],
+        )
+        url = f"{reverse('cms_search')}?{urlencode({'theme': self.theme.slug})}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        post_titles = get_post_titles_in_response(response)
+        self.assertIn(self.post_with_theme.title, post_titles)
+        self.assertIn(extra_post.title, post_titles)
+        self.assertNotIn(self.post_with_other_theme.title, post_titles)
+
     def test_single_filter_multiple_values(self):
         for case in self.filter_cases:
             facet = case["name"]

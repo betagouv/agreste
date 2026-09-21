@@ -17,12 +17,17 @@ from faceted_search.search import RANK_BY_DATE, RANK_BY_RELEVANCE
 class RankByFieldTest(SimpleTestCase):
     """The form is the only source of the ``rank_by`` value."""
 
-    def test_falls_back_to_relevance(self):
+    def test_falls_back_depending_on_the_query(self):
         for query_string, expected in (
-            ("", RANK_BY_RELEVANCE),
+            # with q : default to relevance
+            ("q=Report&rank_by=date", RANK_BY_DATE),
+            ("q=Report", RANK_BY_RELEVANCE),
+            ("q=Report&rank_by=popularity", RANK_BY_RELEVANCE),
+            # without q : default to date
+            ("", RANK_BY_DATE),
+            ("rank_by=popularity", RANK_BY_DATE),
             ("rank_by=relevance", RANK_BY_RELEVANCE),
             ("rank_by=date", RANK_BY_DATE),
-            ("rank_by=popularity", RANK_BY_RELEVANCE),
         ):
             with self.subTest(query_string=query_string):
                 form = FacetedSearchForm(QueryDict(query_string))

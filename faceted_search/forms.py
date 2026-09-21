@@ -23,7 +23,10 @@ def _facet_field(queryset, to_field_name: str | None = "slug") -> forms.ModelMul
 
 
 class RankBySelect(forms.Select):
-    """Select widget defaulting to relevance when ``rank_by`` is missing or unknown.
+    """Select widget that fills in ``rank_by`` when it is missing or unknown.
+
+    Defaults to date when the search query is empty (relevance is meaningless
+    without ``q``), and to relevance otherwise.
 
     Django reads a bound value through ``value_from_datadict`` both to render the
     field and to clean it, so the default applies to the selected option and to
@@ -32,7 +35,10 @@ class RankBySelect(forms.Select):
 
     def value_from_datadict(self, data, files, name):
         value = super().value_from_datadict(data, files, name)
-        return value if value in dict(self.choices) else RANK_BY_RELEVANCE
+        if value in dict(self.choices):
+            return value
+        query = data.get("q") if data is not None else None
+        return RANK_BY_DATE if not query else RANK_BY_RELEVANCE
 
 
 class DateInput(forms.DateInput):

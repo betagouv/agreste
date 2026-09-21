@@ -4,12 +4,23 @@
 
 {% block title %}
   <title>
-    {% blocktranslate %}Results for "{{ query }}"{% endblocktranslate %} — {{ settings.sites_conformes_core.CmsDsfrConfig.site_title }}
+    {% if query %}
+      {% blocktranslate %}Results for "{{ query }}"{% endblocktranslate %}
+    {% else %}
+      {% translate "All results" %}
+    {% endif %}
+    — {{ settings.sites_conformes_core.CmsDsfrConfig.site_title }}
   </title>
 {% endblock title %}
 
 {% block search_heading %}
-  <h1>{% blocktranslate %}Results for "{{ query }}"{% endblocktranslate %}</h1>
+  <h1>
+    {% if query %}
+      {% blocktranslate %}Results for "{{ query }}"{% endblocktranslate %}
+    {% else %}
+      {% translate "All results" %}
+    {% endif %}
+  </h1>
   {% comment %}
     Single GET form for the whole page: the sidebar facet checkboxes and the
     rank-by select join it through their form="faceted-search-form" attribute.
