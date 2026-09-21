@@ -7,83 +7,68 @@
   {% endif %}
 
   {% if value.show_filters %}
-    {% if value.collection_filter and value.index_page.get_collections.count %}
+    {% if value.collection_filter %}
       <div class="fr-my-3w">
         <{{ value.sub_heading_tag }} class="fr-h6">{% translate "Filter by collection" %}</{{ value.sub_heading_tag }}>
         <ul class="fr-tags-group">
-          {% for collection in value.index_page.get_collections %}
-            <li>
-              <a class="fr-tag"
-                 href="{% pageurl value.index_page %}{% toggle_url_filter collection=collection filters_dict=value.current_filters %}"
-                 {% if collection == value.collection_filter %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
-                {{ collection.name }}
-              </a>
-            </li>
-          {% endfor %}
+          <li>
+            <a class="fr-tag"
+               href="{% pageurl value.index_page %}{% toggle_url_filter collection=value.collection_filter filters_dict=value.current_filters %}">
+              {{ value.collection_filter.name }}
+            </a>
+          </li>
         </ul>
       </div>
     {% endif %}
 
-    {% if value.theme_filter and value.index_page.get_themes.count %}
+    {% if value.theme_filter %}
       <div class="fr-my-3w">
         <{{ value.sub_heading_tag }} class="fr-h6">{% translate "Filter by theme" %}</{{ value.sub_heading_tag }}>
         <ul class="fr-tags-group">
-          {% for theme in value.index_page.get_themes %}
-            <li>
-              <a class="fr-tag"
-                 href="{% pageurl value.index_page %}{% toggle_url_filter theme=theme filters_dict=value.current_filters %}"
-                 {% if theme == value.theme_filter %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
-                {{ theme.name }}
-              </a>
-            </li>
-          {% endfor %}
+          <li>
+            <a class="fr-tag"
+               href="{% pageurl value.index_page %}{% toggle_url_filter theme=value.theme_filter filters_dict=value.current_filters %}">
+              {{ value.theme_filter.name }}
+            </a>
+          </li>
         </ul>
       </div>
     {% endif %}
 
-    {% if value.tag_filter and value.index_page.get_tags.count %}
+    {% if value.tag_filter %}
       <div class="fr-my-3w">
         <{{ value.sub_heading_tag }} class="fr-h6">{% translate "Filter by tag" %}</{{ value.sub_heading_tag }}>
         <ul class="fr-tags-group">
-          {% for tag in value.index_page.get_tags %}
-            <li>
-              <a class="fr-tag"
-                 href="{% pageurl value.index_page %}{% toggle_url_filter tag=tag filters_dict=value.current_filters %}"
-                 {% if tag == value.tag_filter %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
-                {{ tag }}
-              </a>
-            </li>
-          {% endfor %}
+          <li>
+            <a class="fr-tag"
+               href="{% pageurl value.index_page %}{% toggle_url_filter tag=value.tag_filter filters_dict=value.current_filters %}">
+              {{ value.tag_filter }}
+            </a>
+          </li>
         </ul>
       </div>
     {% endif %}
 
-    {% if value.author_filter and value.index_page.get_authors.count %}
+    {% if value.author_filter %}
       <div class="fr-my-3w">
         <{{ value.sub_heading_tag }} class="fr-h6">{% translate "Filter by author" %}</{{ value.sub_heading_tag }}>
         <ul class="fr-tags-group">
-          {% for author in value.index_page.get_authors %}
-            <li>
-              <a class="fr-tag"
-                 href="{% pageurl value.index_page %}{% toggle_url_filter author=author filters_dict=value.current_filters %}"
-                 {% if author == value.author_filter %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>{{ author.name }}</a>
-            </li>
-          {% endfor %}
+          <li>
+            <a class="fr-tag"
+               href="{% pageurl value.index_page %}{% toggle_url_filter author=value.author_filter filters_dict=value.current_filters %}">{{ value.author_filter.name }}</a>
+          </li>
         </ul>
       </div>
     {% endif %}
 
-    {% if value.source_filter and value.index_page.get_sources.count %}
+    {% if value.source_filter %}
       <div class="fr-my-3w">
         <{{ value.sub_heading_tag }} class="fr-h6">{% translate "Filter by source" %}</{{ value.sub_heading_tag }}>
         <ul class="fr-tags-group">
-          {% for source in value.index_page.get_sources %}
-            <li>
-              <a class="fr-tag"
-                 href="{% pageurl value.index_page %}{% toggle_url_filter source=source filters_dict=value.current_filters %}"
-                 {% if source == value.source_filter %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>{{ source.name }}</a>
-            </li>
-          {% endfor %}
+          <li>
+            <a class="fr-tag"
+               href="{% pageurl value.index_page %}{% toggle_url_filter source=value.source_filter filters_dict=value.current_filters %}">{{ value.source_filter.name }}</a>
+          </li>
         </ul>
       </div>
     {% endif %}

@@ -11,6 +11,7 @@ from wagtail.models import Page
 from wagtail.rich_text import RichText
 from wagtail.test.utils import WagtailPageTestCase
 
+from faceted_search.search import RANK_BY_DATE
 from publications.blocks.recent_entries import PUBLICATION_RECENT_ENTRIES_BLOCK
 from publications.models import Collection, PublicationIndexPage, PublicationPage, Theme
 from sites_conformes.blog.models import Organization, Person
@@ -112,9 +113,15 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
         self.assertIsNotNone(block)
         return block
 
-    def _assert_see_all_link_targets_search(self, link):
+    def _assert_see_all_link_targets_search(self, link, **expected_params):
         parsed = urlparse(link["href"])
         self.assertEqual(parsed.path, reverse("cms_search"))
+        query = parse_qs(parsed.query)
+        self.assertEqual(query.get("rank_by"), [RANK_BY_DATE])
+        expected_keys = set(expected_params)
+        self.assertEqual(set(query) - {"rank_by"}, expected_keys)
+        for key, values in expected_params.items():
+            self.assertCountEqual(query[key], values if isinstance(values, list) else [values])
 
     def test_publication_recent_entries_is_renderable(self):
         self.assertPageIsRenderable(self.content_page)
@@ -139,9 +146,9 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
         response = self.client.get(self.content_page.url)
         block = self._block_soup(response)
         self.assertIn(gettext("Filter by collection"), block.get_text())
-        pressed_filter = block.select_one('a.fr-tag[aria-pressed="true"]')
-        self.assertIsNotNone(pressed_filter)
-        self.assertEqual(pressed_filter.get_text(strip=True), self.collection.name)
+        filter_tag = block.select_one("a.fr-tag")
+        self.assertIsNotNone(filter_tag)
+        self.assertEqual(filter_tag.get_text(strip=True), self.collection.name)
 
     def test_filters_hidden_when_disabled(self):
         content_page = self._content_page_with_block(
@@ -151,7 +158,7 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
         response = self.client.get(content_page.url)
         block = self._block_soup(response)
         self.assertNotIn(gettext("Filter by collection"), block.get_text())
-        self.assertIsNone(block.select_one("a.fr-tag[aria-pressed]"))
+        self.assertIsNone(block.select_one("a.fr-tag"))
 
     def test_see_all_publications_link_defaults_to_unfiltered_search(self):
         response = self.client.get(self.content_page.url)
@@ -159,7 +166,6 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
         link = block.select_one("a.fr-btn")
         self.assertIsNotNone(link)
         self._assert_see_all_link_targets_search(link)
-        self.assertEqual(urlparse(link["href"]).query, "")
 
     def test_see_all_publications_link_includes_block_filters_when_configured(self):
         content_page = self._content_page_with_block(
@@ -171,8 +177,7 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
         block = self._block_soup(response)
         link = block.select_one("a.fr-btn")
         self.assertIsNotNone(link)
-        self._assert_see_all_link_targets_search(link)
-        self.assertEqual(parse_qs(urlparse(link["href"]).query), {"collection": [self.collection.slug]})
+        self._assert_see_all_link_targets_search(link, collection=self.collection.slug)
 
     def test_see_all_publications_link_includes_child_taxonomy_slugs(self):
         child_collection = Collection.objects.create(
@@ -189,13 +194,12 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
         block = self._block_soup(response)
         link = block.select_one("a.fr-btn")
         self.assertIsNotNone(link)
-        self._assert_see_all_link_targets_search(link)
-        self.assertCountEqual(
-            parse_qs(urlparse(link["href"]).query)["collection"],
-            [self.collection.slug, child_collection.slug],
+        self._assert_see_all_link_targets_search(
+            link,
+            collection=[self.collection.slug, child_collection.slug],
         )
 
-    def test_see_all_publications_link_omits_query_when_unfiltered(self):
+    def test_see_all_publications_link_omits_filters_when_unfiltered(self):
         content_page = self._content_page_with_block(
             slug="publication-recent-block-unfiltered",
             show_filters=False,
@@ -206,7 +210,6 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
         link = block.select_one("a.fr-btn")
         self.assertIsNotNone(link)
         self._assert_see_all_link_targets_search(link)
-        self.assertEqual(urlparse(link["href"]).query, "")
 
     def test_see_all_publications_button_uses_default_text(self):
         response = self.client.get(self.content_page.url)
@@ -350,6 +353,21 @@ class PublicationRecentEntriesBlockFilterTestCase(WagtailPageTestCase):
                     },
                 )
                 self.assertEqual(self._card_titles_in_block(response), [matching_post.title])
+
+    def test_show_filters_lists_only_selected_values(self):
+        response = self._render_block_page(
+            slug="recent-show-selected-filters",
+            show_filters=True,
+            collection_filter=self.collection,
+            theme_filter=self.theme,
+        )
+        block = BeautifulSoup(response.content, "html.parser").select_one(
+            ".cmsfr-block-publication-recent-entries",
+        )
+        filter_labels = [tag.get_text(strip=True) for tag in block.select("a.fr-tag")]
+        self.assertCountEqual(filter_labels, [self.collection.name, self.theme.name])
+        self.assertNotIn(self.other_collection.name, filter_labels)
+        self.assertNotIn(self.other_theme.name, filter_labels)
 
     def test_parent_collection_filter_includes_child_publications(self):
         locale = self.index_page.locale
