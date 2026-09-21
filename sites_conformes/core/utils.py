@@ -1,3 +1,4 @@
+import logging
 import re
 from io import BytesIO
 
@@ -7,6 +8,8 @@ from wagtail.blocks import CharBlock, ListBlock, RichTextBlock, StreamBlock, Str
 from wagtail.images import get_image_model
 from wagtail.models import Site
 from wagtailmarkdown.blocks import MarkdownBlock
+
+logger = logging.getLogger(__name__)
 
 Image = get_image_model()
 
@@ -106,41 +109,48 @@ def get_streamblock_raw_text(block) -> str:
     Layout fields (width, alignment, margins, …) are skipped so their labels and
     values do not leak into search_description.
     """
-    inner = getattr(block, "block", None)
-    if inner is None or inner.name in REMOVABLE_BLOCK_NAMES or inner.__class__.__name__ in REMOVABLE_BLOCK_CLASSES:
-        return ""
-
-    value = block.value
-    if value is None or value == "":
-        return ""
-
-    if isinstance(inner, RichTextBlock):
-        html = value.source if hasattr(value, "source") else str(value)
-        return _html_to_text(html)
-
-    if isinstance(inner, MarkdownBlock):
-        return _html_to_text(str(value))
-
-    if isinstance(inner, (CharBlock, TextBlock)):
-        return str(value).strip()
-
-    if isinstance(inner, StructBlock):
-        bound_blocks = getattr(value, "bound_blocks", None)
-        if not bound_blocks:
+    try:
+        inner = getattr(block, "block", None)
+        if inner is None or inner.name in REMOVABLE_BLOCK_NAMES or inner.__class__.__name__ in REMOVABLE_BLOCK_CLASSES:
             return ""
-        return _join_block_texts(bound_blocks.values())
 
-    if isinstance(inner, ListBlock):
-        # ListValue iterates raw child values, not BoundBlocks.
-        children = getattr(value, "bound_blocks", None)
-        if children is None:
+        value = block.value
+        if value is None or value == "":
             return ""
-        return _join_block_texts(children)
 
-    if isinstance(inner, StreamBlock):
-        return _join_block_texts(value)
+        if isinstance(inner, RichTextBlock):
+            html = value.source if hasattr(value, "source") else str(value)
+            return _html_to_text(html)
 
-    return ""
+        if isinstance(inner, MarkdownBlock):
+            return _html_to_text(str(value))
+
+        if isinstance(inner, (CharBlock, TextBlock)):
+            return str(value).strip()
+
+        if isinstance(inner, StructBlock):
+            bound_blocks = getattr(value, "bound_blocks", None)
+            if not bound_blocks:
+                return ""
+            return _join_block_texts(bound_blocks.values())
+
+        if isinstance(inner, ListBlock):
+            # ListValue iterates raw child values, not BoundBlocks.
+            children = getattr(value, "bound_blocks", None)
+            if children is None:
+                return ""
+            return _join_block_texts(children)
+
+        if isinstance(inner, StreamBlock):
+            return _join_block_texts(value)
+
+        return ""
+    except Exception:
+        logger.exception(
+            "Could not extract search description text from block %r",
+            getattr(getattr(block, "block", None), "name", type(block).__name__),
+        )
+        return ""
 
 
 def get_search_description(*streamfields, max_chars: int | None = None) -> str:

@@ -109,6 +109,25 @@ class StreamfieldRawTextTestCase(SimpleTestCase):
 
         self.assertEqual(get_streamblock_raw_text(bound), "Hello. world")
 
+    def test_broken_block_is_skipped(self):
+        class FakeBlock:
+            name = "paragraph"
+
+        class BrokenBlock:
+            block = FakeBlock()
+
+            @property
+            def value(self):
+                raise RuntimeError("cannot read block")
+
+        kept = BoundBlock(CharBlock(), "Kept text")
+        also_kept = BoundBlock(CharBlock(), "Also kept")
+
+        with self.assertLogs("sites_conformes.core.utils", level="ERROR"):
+            result = get_search_description([kept, BrokenBlock(), also_kept])
+
+        self.assertEqual(result, "Kept text. Also kept")
+
     def test_combined_streamfields_keep_order(self):
         first = _body([{"type": "paragraph", "value": "<p>Hero heading</p>"}])
         second = _body([{"type": "paragraph", "value": "<p>Body paragraph.</p>"}])
