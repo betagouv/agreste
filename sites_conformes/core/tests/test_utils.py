@@ -107,7 +107,7 @@ class StreamfieldRawTextTestCase(SimpleTestCase):
         list_block = ListBlock(CharBlock())
         bound = BoundBlock(list_block, list_block.to_python(["Hello", "world"]))
 
-        self.assertEqual(get_streamblock_raw_text(bound), "Hello\nworld")
+        self.assertEqual(get_streamblock_raw_text(bound), "Hello. world")
 
     def test_combined_streamfields_keep_order(self):
         first = _body([{"type": "paragraph", "value": "<p>Hero heading</p>"}])
@@ -115,7 +115,7 @@ class StreamfieldRawTextTestCase(SimpleTestCase):
 
         result = get_search_description(first, second)
 
-        self.assertEqual(result, "Hero heading\nBody paragraph.")
+        self.assertEqual(result, "Hero heading. Body paragraph.")
 
     @patch(
         "sites_conformes.core.blocks.medias.Image.objects.filter",
@@ -146,7 +146,7 @@ class StreamfieldRawTextTestCase(SimpleTestCase):
 
         result = get_search_description(hero)
 
-        self.assertEqual(result, "Hero heading\nHero description of the organisation.")
+        self.assertEqual(result, "Hero heading. Hero description of the organisation.")
         self.assertNotIn("Click this button", result)
 
     @patch(
@@ -180,17 +180,22 @@ class StreamfieldRawTextTestCase(SimpleTestCase):
 
         result = get_search_description(hero, body)
 
-        self.assertEqual(result, "Hero heading\nHero description.\nBody paragraph.")
+        self.assertEqual(result, "Hero heading. Hero description. Body paragraph.")
 
-    def test_paragraphs_are_separated_by_newlines(self):
+    def test_blocks_are_joined_with_punctuation(self):
         body = _body(
             [
                 {"type": "paragraph", "value": "<p>First block.</p>"},
-                {"type": "paragraph", "value": "<p>Second block.</p>"},
+                {"type": "paragraph", "value": "<p>Introduction:</p>"},
+                {"type": "paragraph", "value": "<p>Details below;</p>"},
+                {"type": "paragraph", "value": "<p>More text</p>"},
             ]
         )
 
-        self.assertEqual(get_search_description(body), "First block.\nSecond block.")
+        self.assertEqual(
+            get_search_description(body),
+            "First block. Introduction: Details below; More text",
+        )
 
     def test_button_labels_are_omitted(self):
         body = _body(

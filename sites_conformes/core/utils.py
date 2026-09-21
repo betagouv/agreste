@@ -85,7 +85,19 @@ def _html_to_text(html: str) -> str:
 
 
 def _join_block_texts(children) -> str:
-    return "\n".join(filter(None, (get_streamblock_raw_text(child) for child in children)))
+    parts = list(filter(None, (get_streamblock_raw_text(child) for child in children)))
+    if not parts:
+        return ""
+    result = parts[0].rstrip()
+    for part in parts[1:]:
+        part = part.strip()
+        if not part:
+            continue
+        if result.endswith((".", "!", "?", ":", ";")):
+            result = f"{result} {part}"
+        else:
+            result = f"{result}. {part}"
+    return result
 
 
 def get_streamblock_raw_text(block) -> str:
@@ -139,14 +151,10 @@ def get_search_description(*streamfields, max_chars: int | None = None) -> str:
     if not raw_text:
         return ""
 
-    # Drop blank lines left by skipped blocks (images, buttons, empty fields).
-    raw_text = re.sub(r"\n+", "\n", raw_text).strip()
-
-    # Truncate at the last space or newline before the max_chars limit.
+    # Truncate at the last space before the max_chars limit.
     if max_chars and len(raw_text) > max_chars:
         truncated = raw_text[:max_chars]
-        # Find the position of the last space or newline before the truncation limit.
-        cut = max(truncated.rfind(" "), truncated.rfind("\n"))
+        cut = truncated.rfind(" ")
         if cut > 0:
             truncated = truncated[:cut]
         raw_text = f"{truncated.rstrip()} [...]"
