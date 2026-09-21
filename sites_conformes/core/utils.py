@@ -4,8 +4,10 @@ from io import BytesIO
 
 from bs4 import BeautifulSoup
 from django.core.files.images import ImageFile
+from wagtail.blocks import CharBlock, ListBlock, RichTextBlock, StreamBlock, StructBlock, TextBlock
 from wagtail.images import get_image_model
 from wagtail.models import Site
+from wagtailmarkdown.blocks import MarkdownBlock
 
 Image = get_image_model()
 
@@ -47,47 +49,107 @@ def get_default_site() -> Site:
     return site  # type: ignore
 
 
+REMOVABLE_BLOCK_NAMES = frozenset(
+    {
+        "image",
+        "alert",
+        "video",
+        "stepper",
+        "separator",
+        "html",
+        "iframe",
+        "button",
+        "buttons",
+        "buttons_list",
+        "header_cta_buttons",
+    }
+)
+REMOVABLE_BLOCK_CLASSES = frozenset(
+    {
+        "ButtonBlock",
+        "ButtonsListBlock",
+        "ButtonsHorizontalListBlock",
+        "ButtonsVerticalListBlock",
+    }
+)
+SEARCH_DESCRIPTION_MAX_CHARS = 300
+
+
+def _html_to_text(html: str) -> str:
+    if not html:
+        return ""
+    soup = BeautifulSoup(html, "html.parser")
+    text = unescape(soup.get_text(" "))
+    # Collapse spaces, tabs and other non-newline whitespace so HTML gaps
+    # (e.g. between tags) become a single space.
+    return re.sub(r"[^\S\n]+", " ", text).strip()
+
+
+def _join_block_texts(children) -> str:
+    return "\n".join(filter(None, (get_streamblock_raw_text(child) for child in children)))
+
+
 def get_streamblock_raw_text(block) -> str:
     """
-    Get the raw text of a streamblock.
+    Get the raw text of a streamblock, walking nested values instead of rendering templates.
+    Layout fields (width, alignment, margins, …) are skipped so their labels and
+    values do not leak into search_description.
     """
-
-    # Remove entirely some block types
-    removable_blocks = ["image", "alert", "video", "stepper", "separator", "html", "iframe"]
-
-    raw_text = ""
-    if block.block.name == "imageandtext":
-        raw_text += block.value["text"].source
-    elif block.block.name == "multicolumns":
-        for column in block.value["columns"]:
-            raw_text += get_streamblock_raw_text(column)
-    elif block.block.name not in removable_blocks:
-        raw_text += block.render()
-
-    return raw_text
-
-
-def get_streamfield_raw_text(streamfield, max_words: int | None = None) -> str:
-    """
-    Get the raw text of a streamfield. Used to pre-fill the search description field
-    """
-
-    raw_html = ""
-    raw_text = ""
-    for block in streamfield:
-        raw_html += get_streamblock_raw_text(block)
-
-    if not raw_html:
+    inner = getattr(block, "block", None)
+    if inner is None or inner.name in REMOVABLE_BLOCK_NAMES or inner.__class__.__name__ in REMOVABLE_BLOCK_CLASSES:
         return ""
 
-    soup = BeautifulSoup(raw_html, "html.parser")
-    raw_text += soup.get_text(" ")
+    value = block.value
+    if value is None or value == "":
+        return ""
 
-    raw_text = unescape(raw_text)
-    raw_text = re.sub(r" +", " ", raw_text).strip()
+    if isinstance(inner, RichTextBlock):
+        html = value.source if hasattr(value, "source") else str(value)
+        return _html_to_text(html)
 
-    if max_words:
-        words = raw_text.split()
-        raw_text = " ".join(words[:max_words]) + " […]"
+    if isinstance(inner, MarkdownBlock):
+        return _html_to_text(str(value))
+
+    if isinstance(inner, (CharBlock, TextBlock)):
+        return str(value).strip()
+
+    if isinstance(inner, StructBlock):
+        bound_blocks = getattr(value, "bound_blocks", None)
+        if not bound_blocks:
+            return ""
+        return _join_block_texts(bound_blocks.values())
+
+    if isinstance(inner, ListBlock):
+        # ListValue iterates raw child values, not BoundBlocks.
+        children = getattr(value, "bound_blocks", None)
+        if children is None:
+            return ""
+        return _join_block_texts(children)
+
+    if isinstance(inner, StreamBlock):
+        return _join_block_texts(value)
+
+    return ""
+
+
+def get_search_description(*streamfields, max_chars: int | None = None) -> str:
+    """
+    Get the raw text of one or more streamfields. Used to pre-fill the search description field.
+    """
+    raw_text = _join_block_texts(block for streamfield in streamfields if streamfield for block in streamfield)
+    if not raw_text:
+        return ""
+
+    # Drop blank lines left by skipped blocks (images, buttons, empty fields).
+    raw_text = re.sub(r"\n+", "\n", raw_text).strip()
+
+    # Truncate at the last space or newline before the max_chars limit.
+    if max_chars and len(raw_text) > max_chars:
+        truncated = raw_text[:max_chars]
+        # Find the position of the last space or newline before the truncation limit.
+        cut = max(truncated.rfind(" "), truncated.rfind("\n"))
+        if cut > 0:
+            truncated = truncated[:cut]
+        raw_text = f"{truncated.rstrip()} [...]"
 
     return raw_text

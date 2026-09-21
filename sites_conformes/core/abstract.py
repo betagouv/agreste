@@ -11,7 +11,7 @@ from wagtail.search import index
 
 from sites_conformes.core.blocks.buttons_links import ButtonsHorizontalListBlock
 from sites_conformes.core.blocks.core import HERO_STREAMFIELD_BLOCKS, STREAMFIELD_COMMON_BLOCKS
-from sites_conformes.core.utils import get_streamfield_raw_text
+from sites_conformes.core.utils import SEARCH_DESCRIPTION_MAX_CHARS, get_search_description
 
 
 class SitesFacilesBasePage(Page):
@@ -201,12 +201,21 @@ class SitesFacilesBasePage(Page):
     def get_absolute_url(self):
         return self.url
 
+    def _fill_search_description(self):
+        if self.search_description:
+            return
+        search_description = get_search_description(self.hero, self.body, max_chars=SEARCH_DESCRIPTION_MAX_CHARS)
+        if search_description:
+            self.search_description = search_description
+
     def save(self, *args, **kwargs):
-        if not self.search_description:
-            search_description = get_streamfield_raw_text(self.body, max_words=20)
-            if search_description:
-                self.search_description = search_description
+        self._fill_search_description()
         return super().save(*args, **kwargs)
+
+    def save_revision(self, *args, **kwargs):
+        # Draft saves in the admin write a revision, not a full page save.
+        self._fill_search_description()
+        return super().save_revision(*args, **kwargs)
 
     exclude_fields_in_copy = ["source_url"]
 
