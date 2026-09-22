@@ -4,23 +4,22 @@ from django.test import SimpleTestCase
 from django.utils.translation import gettext
 from wagtail.blocks import BoundBlock, CharBlock, ListBlock
 
-from sites_conformes.core.abstract import SitesFacilesBasePage
-from sites_conformes.core.blocks.related_entries import BlogRecentEntriesBlock
-from sites_conformes.core.models import ContentPage
-from sites_conformes.core.search_description import (
+from publications.models import PublicationPage
+from publications.search_description import (
     SEARCH_DESCRIPTION_MAX_CHARS,
     _html_to_text,
     get_search_description,
     get_streamblock_raw_text,
 )
+from sites_conformes.core.blocks.related_entries import BlogRecentEntriesBlock
 
 
 def _body(data):
-    return ContentPage._meta.get_field("body").to_python(data)
+    return PublicationPage._meta.get_field("body").to_python(data)
 
 
 def _hero(data):
-    return ContentPage._meta.get_field("hero").to_python(data)
+    return PublicationPage._meta.get_field("hero").to_python(data)
 
 
 class SearchDescriptionTestCase(SimpleTestCase):
@@ -114,7 +113,7 @@ class SearchDescriptionTestCase(SimpleTestCase):
         kept = BoundBlock(CharBlock(), "Kept text")
         also_kept = BoundBlock(CharBlock(), "Also kept")
 
-        with self.assertLogs("sites_conformes.core.search_description", level="ERROR"):
+        with self.assertLogs("publications.search_description", level="ERROR"):
             result = get_search_description([kept, BrokenBlock(), also_kept])
 
         self.assertEqual(result, "Kept text. Also kept")
@@ -302,7 +301,7 @@ class SearchDescriptionTestCase(SimpleTestCase):
         page.hero = None
         page.body = _body([{"type": "paragraph", "value": "<p>Hello from the body.</p>"}])
 
-        SitesFacilesBasePage._fill_search_description(page)
+        PublicationPage._fill_search_description(page)
 
         self.assertEqual(page.search_description, "Hello from the body.")
 
@@ -312,6 +311,6 @@ class SearchDescriptionTestCase(SimpleTestCase):
         page.hero = None
         page.body = _body([{"type": "paragraph", "value": "<p>Hello from the body.</p>"}])
 
-        SitesFacilesBasePage._fill_search_description(page)
+        PublicationPage._fill_search_description(page)
 
         self.assertEqual(page.search_description, "Custom description")
