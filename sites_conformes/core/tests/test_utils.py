@@ -165,8 +165,8 @@ class StreamfieldRawTextTestCase(SimpleTestCase):
 
         result = get_search_description(hero)
 
-        self.assertEqual(result, "Hero heading. Hero description of the organisation.")
-        self.assertNotIn("Click this button", result)
+        self.assertEqual(result, "Hero heading. Hero description of the organisation. Click this button")
+        self.assertNotIn("https://example.com", result)
 
     @patch(
         "sites_conformes.core.blocks.medias.Image.objects.filter",
@@ -216,7 +216,7 @@ class StreamfieldRawTextTestCase(SimpleTestCase):
             "First block. Introduction: Details below; More text",
         )
 
-    def test_button_labels_are_omitted(self):
+    def test_button_labels_are_included(self):
         body = _body(
             [
                 {"type": "paragraph", "value": "<p>Intro text.</p>"},
@@ -240,8 +240,8 @@ class StreamfieldRawTextTestCase(SimpleTestCase):
 
         result = get_search_description(body)
 
-        self.assertEqual(result, "Intro text.")
-        self.assertNotIn("Click this button", result)
+        self.assertEqual(result, "Intro text. Click this button")
+        self.assertNotIn("https://example.com", result)
 
     def test_fill_search_description_on_unsaved_page(self):
         page = type("DummyPage", (), {})()

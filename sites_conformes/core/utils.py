@@ -60,18 +60,6 @@ REMOVABLE_BLOCK_NAMES = frozenset(
         "separator",
         "html",
         "iframe",
-        "button",
-        "buttons",
-        "buttons_list",
-        "header_cta_buttons",
-    }
-)
-REMOVABLE_BLOCK_CLASSES = frozenset(
-    {
-        "ButtonBlock",
-        "ButtonsListBlock",
-        "ButtonsHorizontalListBlock",
-        "ButtonsVerticalListBlock",
     }
 )
 SEARCH_DESCRIPTION_MAX_CHARS = 300
@@ -111,7 +99,7 @@ def get_streamblock_raw_text(block) -> str:
     """
     try:
         inner = getattr(block, "block", None)
-        if inner is None or inner.name in REMOVABLE_BLOCK_NAMES or inner.__class__.__name__ in REMOVABLE_BLOCK_CLASSES:
+        if inner is None or inner.name in REMOVABLE_BLOCK_NAMES:
             return ""
 
         value = block.value
