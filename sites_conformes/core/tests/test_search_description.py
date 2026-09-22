@@ -156,7 +156,7 @@ class SearchDescriptionTestCase(SimpleTestCase):
 
         result = get_search_description(hero)
 
-        self.assertEqual(result, "Hero heading Hero description of the organisation. Click this button")
+        self.assertEqual(result, "Hero heading. Hero description of the organisation. Click this button")
         self.assertNotIn("https://example.com", result)
 
     @patch(
@@ -190,7 +190,7 @@ class SearchDescriptionTestCase(SimpleTestCase):
 
         result = get_search_description(hero, body)
 
-        self.assertEqual(result, "Hero heading Hero description. Body paragraph.")
+        self.assertEqual(result, "Hero heading. Hero description. Body paragraph.")
 
     def test_blocks_are_joined_with_punctuation(self):
         body = _body(
@@ -248,6 +248,28 @@ class SearchDescriptionTestCase(SimpleTestCase):
 
         self.assertEqual(_html_to_text(html), "Visible copy.")
 
+    def test_html_to_text_joins_headings_paragraphs_and_standalone_links(self):
+        html = '<h2>Section title</h2><p>A paragraph.</p><a class="fr-btn" href="/go">Click</a>'
+
+        self.assertEqual(_html_to_text(html), "Section title. A paragraph. Click")
+
+    def test_html_to_text_keeps_inline_links_inside_paragraphs(self):
+        html = '<p>See the <a href="/docs">documentation</a> here.</p>'
+
+        self.assertEqual(_html_to_text(html), "See the documentation here.")
+
+    def test_richtext_heading_and_paragraph_are_joined(self):
+        body = _body(
+            [
+                {
+                    "type": "paragraph",
+                    "value": "<h3>Section title</h3><p>Details here.</p>",
+                }
+            ]
+        )
+
+        self.assertEqual(get_search_description(body), "Section title. Details here.")
+
     def test_table_caption_headings_and_cells_are_extracted(self):
         body = _body(
             [
@@ -274,7 +296,7 @@ class SearchDescriptionTestCase(SimpleTestCase):
 
         result = get_search_description(body)
 
-        self.assertEqual(result, "Example table Name Comment Line 1 Example text with formating.")
+        self.assertEqual(result, "Example table. Name. Comment. Line 1. Example text with formating.")
 
     def test_recent_entries_listing_titles_are_omitted(self):
         inner = BlogRecentEntriesBlock()

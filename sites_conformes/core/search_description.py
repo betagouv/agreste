@@ -24,6 +24,73 @@ DO_NOT_RENDER_TEMPLATES = frozenset(
 )
 SEARCH_DESCRIPTION_MAX_CHARS = 300
 _HIDDEN_CONTENT_SELECTOR = ".fr-sr-only, .visually-hidden, [hidden], [aria-hidden='true']"
+_BLOCK_LEVEL_TAGS = frozenset(
+    {
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "p",
+        "li",
+        "td",
+        "th",
+        "caption",
+        "figcaption",
+        "blockquote",
+        "dt",
+        "dd",
+        "button",
+    }
+)
+_SENTENCE_ENDINGS = (".", "!", "?", ":", ";")
+
+
+def _normalize_text_piece(text: str) -> str:
+    # Collapse HTML gaps (newlines, tags) into a single space.
+    text = re.sub(r"\s+", " ", text)
+    # Tags around punctuation (e.g. </b>.) become "word ." with get_text(" ").
+    return re.sub(r"\s+([.,;:!?])", r"\1", text).strip()
+
+
+def _join_text_parts(parts) -> str:
+    filtered = [part.strip() for part in parts if part and str(part).strip()]
+    if not filtered:
+        return ""
+    result = filtered[0].rstrip()
+    for part in filtered[1:]:
+        if result.endswith(_SENTENCE_ENDINGS):
+            result = f"{result} {part}"
+        else:
+            result = f"{result}. {part}"
+    return result
+
+
+def _collect_block_texts(node, parts: list[str]) -> None:
+    # Split rendered HTML into leaf block-level pieces (heading, paragraph, …)
+    # so they can be joined with ". " later. Nested blocks (e.g. p inside td)
+    # are recursed so each leaf is collected once. Standalone <a> (DSFR buttons)
+    # are treated as their own piece; inline links inside a <p> are not.
+    name = getattr(node, "name", None)
+    if not name:
+        return
+    if name in _BLOCK_LEVEL_TAGS:
+        if node.find(_BLOCK_LEVEL_TAGS):
+            for child in node.children:
+                _collect_block_texts(child, parts)
+        else:
+            text = _normalize_text_piece(node.get_text(" "))
+            if text:
+                parts.append(text)
+        return
+    if name == "a" and not node.find_parent(_BLOCK_LEVEL_TAGS):
+        text = _normalize_text_piece(node.get_text(" "))
+        if text:
+            parts.append(text)
+        return
+    for child in getattr(node, "children", []):
+        _collect_block_texts(child, parts)
 
 
 def _html_to_text(html: str) -> str:
@@ -34,10 +101,11 @@ def _html_to_text(html: str) -> str:
         el.decompose()
     for el in soup.select(_HIDDEN_CONTENT_SELECTOR):
         el.decompose()
-    text = soup.get_text(" ")
-    text = re.sub(r"\s+", " ", text)
-    # Tags around punctuation (e.g. </b>.) become "word ." with get_text(" ").
-    return re.sub(r"\s+([.,;:!?])", r"\1", text).strip()
+    parts: list[str] = []
+    _collect_block_texts(soup, parts)
+    if parts:
+        return _join_text_parts(parts)
+    return _normalize_text_piece(soup.get_text(" "))
 
 
 def _render_context(page=None) -> dict:
@@ -56,19 +124,7 @@ def _block_template(inner) -> bool:
 
 
 def _join_block_texts(children, page=None) -> str:
-    parts = list(filter(None, (get_streamblock_raw_text(child, page=page) for child in children)))
-    if not parts:
-        return ""
-    result = parts[0].rstrip()
-    for part in parts[1:]:
-        part = part.strip()
-        if not part:
-            continue
-        if result.endswith((".", "!", "?", ":", ";")):
-            result = f"{result} {part}"
-        else:
-            result = f"{result}. {part}"
-    return result
+    return _join_text_parts(get_streamblock_raw_text(child, page=page) for child in children)
 
 
 def _extract_stored_text(inner, value, page=None) -> str:
