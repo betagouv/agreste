@@ -212,11 +212,6 @@ class SitesFacilesBasePage(Page):
         self._fill_search_description()
         return super().save(*args, **kwargs)
 
-    def save_revision(self, *args, **kwargs):
-        # Draft saves in the admin write a revision, not a full page save.
-        self._fill_search_description()
-        return super().save_revision(*args, **kwargs)
-
     exclude_fields_in_copy = ["source_url"]
 
     class Meta:
