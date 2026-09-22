@@ -11,7 +11,7 @@ from wagtail.search import index
 
 from sites_conformes.core.blocks.buttons_links import ButtonsHorizontalListBlock
 from sites_conformes.core.blocks.core import HERO_STREAMFIELD_BLOCKS, STREAMFIELD_COMMON_BLOCKS
-from sites_conformes.core.utils import SEARCH_DESCRIPTION_MAX_CHARS, get_search_description
+from sites_conformes.core.search_description import SEARCH_DESCRIPTION_MAX_CHARS, get_search_description
 
 
 class SitesFacilesBasePage(Page):
