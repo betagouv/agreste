@@ -204,7 +204,9 @@ class SitesFacilesBasePage(Page):
     def _fill_search_description(self):
         if self.search_description:
             return
-        search_description = get_search_description(self.hero, self.body, max_chars=SEARCH_DESCRIPTION_MAX_CHARS)
+        search_description = get_search_description(
+            self.hero, self.body, max_chars=SEARCH_DESCRIPTION_MAX_CHARS, page=self
+        )
         if search_description:
             self.search_description = search_description
 

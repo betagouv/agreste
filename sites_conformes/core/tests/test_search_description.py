@@ -1,12 +1,15 @@
 from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
+from django.utils.translation import gettext
 from wagtail.blocks import BoundBlock, CharBlock, ListBlock
 
 from sites_conformes.core.abstract import SitesFacilesBasePage
+from sites_conformes.core.blocks.related_entries import BlogRecentEntriesBlock
 from sites_conformes.core.models import ContentPage
 from sites_conformes.core.search_description import (
     SEARCH_DESCRIPTION_MAX_CHARS,
+    _html_to_text,
     get_search_description,
     get_streamblock_raw_text,
 )
@@ -153,7 +156,7 @@ class SearchDescriptionTestCase(SimpleTestCase):
 
         result = get_search_description(hero)
 
-        self.assertEqual(result, "Hero heading. Hero description of the organisation. Click this button")
+        self.assertEqual(result, "Hero heading Hero description of the organisation. Click this button")
         self.assertNotIn("https://example.com", result)
 
     @patch(
@@ -187,7 +190,7 @@ class SearchDescriptionTestCase(SimpleTestCase):
 
         result = get_search_description(hero, body)
 
-        self.assertEqual(result, "Hero heading. Hero description. Body paragraph.")
+        self.assertEqual(result, "Hero heading Hero description. Body paragraph.")
 
     def test_blocks_are_joined_with_punctuation(self):
         body = _body(
@@ -230,6 +233,68 @@ class SearchDescriptionTestCase(SimpleTestCase):
 
         self.assertEqual(result, "Intro text. Click this button")
         self.assertNotIn("https://example.com", result)
+        self.assertNotIn(gettext("Opens a new window"), result)
+
+    def test_html_to_text_strips_hidden_and_script_content(self):
+        html = (
+            "<p>Visible copy.</p>"
+            '<span class="fr-sr-only">Opens a new window</span>'
+            '<span class="visually-hidden">Skip this</span>'
+            "<div hidden>Hidden block</div>"
+            '<span aria-hidden="true">Tooltip</span>'
+            "<script>alert(1)</script>"
+            "<style>p { color: red; }</style>"
+        )
+
+        self.assertEqual(_html_to_text(html), "Visible copy.")
+
+    def test_table_caption_headings_and_cells_are_extracted(self):
+        body = _body(
+            [
+                {
+                    "type": "table",
+                    "value": {
+                        "columns": [
+                            {"type": "text", "heading": "Name"},
+                            {"type": "text", "heading": "Comment"},
+                        ],
+                        "rows": [
+                            {
+                                "values": [
+                                    '<p data-block-key="ab12c">Line 1</p>',
+                                    '<p data-block-key="def34g">Example text with <b>formating</b>.</p>',
+                                ]
+                            },
+                        ],
+                        "caption": "Example table",
+                    },
+                }
+            ]
+        )
+
+        result = get_search_description(body)
+
+        self.assertEqual(result, "Example table Name Comment Line 1 Example text with formating.")
+
+    def test_recent_entries_listing_titles_are_omitted(self):
+        inner = BlogRecentEntriesBlock()
+        inner.set_name("blog_recent_entries")
+        bound = BoundBlock(
+            inner,
+            inner.to_python(
+                {
+                    "title": "Latest news",
+                    "heading_tag": "h2",
+                    "see_all_button_text": "See all posts",
+                }
+            ),
+        )
+
+        with patch.object(bound, "render") as mock_render:
+            result = get_streamblock_raw_text(bound)
+
+        mock_render.assert_not_called()
+        self.assertEqual(result, "Latest news. See all posts")
 
     def test_fill_search_description_on_unsaved_page(self):
         page = type("DummyPage", (), {})()
