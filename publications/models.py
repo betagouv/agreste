@@ -10,7 +10,7 @@ from wagtail.api import APIField
 from wagtail.contrib.routable_page.models import path
 from wagtail.models import Orderable
 
-from publications.search_description import SEARCH_DESCRIPTION_MAX_CHARS, get_search_description
+from publications.search_description import build_page_search_description
 from publications.taxonomy import (
     AbstractTaxonomy,
     get_taxonomies_for_index,
@@ -101,9 +101,7 @@ class PublicationPage(BlogEntryPage):
     def _fill_search_description(self):
         if self.search_description:
             return
-        search_description = get_search_description(
-            self.hero, self.body, max_chars=SEARCH_DESCRIPTION_MAX_CHARS, page=self
-        )
+        search_description = build_page_search_description(self)
         if search_description:
             self.search_description = search_description
 
