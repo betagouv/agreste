@@ -6,9 +6,10 @@ Run on staging first::
     just regenerate_search_descriptions --dry-run
     just regenerate_search_descriptions
 
-Existing descriptions are overwritten. Only live pages without a pending draft
-are republished; other pages are listed at the end of the run so they can be
-fixed by hand.
+Existing descriptions are overwritten. Live pages without a pending draft are
+republished; pages with a pending draft and unpublished pages only get a new
+revision, which an editor has to publish. Both lists are recapped at the end of
+the run.
 """
 
 from django.core.management.base import BaseCommand, CommandError
@@ -58,8 +59,9 @@ class Command(BaseCommand):
 
         if not dry_run and not options["no_input"]:
             prompt = (
-                f"This will overwrite the search description of up to {pages.count()} page(s) "
-                "and publish the live ones. Continue? [y/N]: "
+                f"This will overwrite the search description of up to {pages.count()} page(s), "
+                "publishing the live ones and saving a draft revision for the others. "
+                "Continue? [y/N]: "
             )
             if input(prompt).strip().lower() not in {"y", "yes"}:
                 self.stdout.write("Aborted.")

@@ -1,8 +1,9 @@
 """
 Recompute ``search_description`` from the hero and body of every page.
 
-Only live pages without a pending draft are republished. Anything else is left
-untouched and reported, so it can be fixed by hand.
+Live pages without a pending draft are republished. Pages with a pending draft
+and unpublished pages get a new revision built from their draft content, which
+nobody publishes: an editor has to, for the change to reach the site.
 """
 
 from __future__ import annotations
@@ -23,13 +24,15 @@ logger = logging.getLogger(__name__)
 PROGRESS_EVERY = 25
 
 PUBLISHED = "published"
+DRAFT_SAVED_PENDING = "draft_saved_pending"
+DRAFT_SAVED_NOT_LIVE = "draft_saved_not_live"
 UNCHANGED = "unchanged"
-SKIPPED_NOT_LIVE = "not_live"
-SKIPPED_PENDING_DRAFT = "pending_draft"
 SKIPPED_EMPTY = "empty"
+SKIPPED_ALIAS = "alias"
 FAILED = "failed"
 
-NEEDS_ATTENTION = (SKIPPED_NOT_LIVE, SKIPPED_PENDING_DRAFT, SKIPPED_EMPTY, FAILED)
+DRAFT_SAVED = (DRAFT_SAVED_PENDING, DRAFT_SAVED_NOT_LIVE)
+LEFT_UNTOUCHED = (SKIPPED_EMPTY, SKIPPED_ALIAS, FAILED)
 
 
 @dataclass
@@ -45,7 +48,7 @@ class PageResult:
 
     def describe(self) -> str:
         line = f"pk={self.page_id} title={self.title!r} type={self.page_type} url={self.url}"
-        if self.action in NEEDS_ATTENTION:
+        if self.action in LEFT_UNTOUCHED or self.action in DRAFT_SAVED:
             line = f"{line} reason={self.action}"
         if self.error:
             line = f"{line} error={self.error}"
@@ -62,17 +65,22 @@ class BackfillSummary:
         return sum(1 for result in self.results if result.action == action)
 
     @property
-    def needs_attention(self) -> list[PageResult]:
-        return [result for result in self.results if result.action in NEEDS_ATTENTION]
+    def draft_saved(self) -> list[PageResult]:
+        return [result for result in self.results if result.action in DRAFT_SAVED]
+
+    @property
+    def left_untouched(self) -> list[PageResult]:
+        return [result for result in self.results if result.action in LEFT_UNTOUCHED]
 
     def counters(self) -> str:
         return (
             f"scanned={self.scanned} "
             f"published={self.count(PUBLISHED)} "
+            f"draft_saved_pending={self.count(DRAFT_SAVED_PENDING)} "
+            f"draft_saved_not_live={self.count(DRAFT_SAVED_NOT_LIVE)} "
             f"unchanged={self.count(UNCHANGED)} "
-            f"skipped_not_live={self.count(SKIPPED_NOT_LIVE)} "
-            f"skipped_pending_draft={self.count(SKIPPED_PENDING_DRAFT)} "
             f"skipped_empty={self.count(SKIPPED_EMPTY)} "
+            f"skipped_alias={self.count(SKIPPED_ALIAS)} "
             f"failed={self.count(FAILED)}"
         )
 
@@ -140,34 +148,70 @@ def _publish_description(page, description: str) -> None:
     page.save_revision(log_action=False, clean=False).publish()
 
 
-def regenerate_page(page, *, dry_run: bool) -> PageResult:
-    if not page.live:
-        return _make_result(page, SKIPPED_NOT_LIVE)
-    if page.has_unpublished_changes:
-        # Publishing a revision built from the live content would become the
-        # latest revision and bury the editor's pending draft.
-        return _make_result(page, SKIPPED_PENDING_DRAFT)
+def _save_draft_description(source, description: str) -> None:
+    source.search_description = description
+    # log_action: the History tab lists log entries, so a revision saved
+    # without one would not show up there at all.
+    source.save_revision(log_action=True, clean=False)
+    if not source.live:
+        # Not public, so the row can carry the new value too. update_fields
+        # keeps the rest of the draft out of the row, and makes Wagtail skip
+        # the slug comparison that would otherwise rewrite descendant urls.
+        source.save(update_fields=["search_description"], clean=False)
 
-    old_description = page.search_description
+
+def _draft_source(page):
+    """The page as the editor sees it: its latest revision, or the row if it has none.
+
+    The row holds the published content, so a revision built from it would
+    become the latest one and hide the pending draft from the editor.
+    """
+    latest = page.get_latest_revision()
+    if latest is None:
+        return page
+    return latest.as_object()
+
+
+def _draft_action(source) -> str:
+    return DRAFT_SAVED_PENDING if source.live else DRAFT_SAVED_NOT_LIVE
+
+
+def regenerate_page(page, *, dry_run: bool) -> PageResult:
+    if page.alias_of_id:
+        # An alias mirrors its source page and rejects save_revision().
+        return _make_result(page, SKIPPED_ALIAS)
+
+    publishing = page.live and not page.has_unpublished_changes
+
     try:
-        description = build_page_search_description(page)
+        source = page if publishing else _draft_source(page)
+        description = build_page_search_description(source)
     except Exception as exc:
         logger.exception("Could not build the search description of page %s", page.pk)
-        return _make_result(page, FAILED, old_description=old_description, error=f"{type(exc).__name__}: {exc}")
+        return _make_result(
+            page,
+            FAILED,
+            old_description=page.search_description,
+            error=f"{type(exc).__name__}: {exc}",
+        )
 
+    old_description = source.search_description
     if not description:
         # Never write an empty description: SitesFacilesBasePage.save() would
         # then refill the field with the legacy 20-word extract.
-        return _make_result(page, SKIPPED_EMPTY, old_description=old_description)
+        return _make_result(source, SKIPPED_EMPTY, old_description=old_description)
     if description == old_description:
-        return _make_result(page, UNCHANGED, old_description=old_description, new_description=description)
+        return _make_result(source, UNCHANGED, old_description=old_description, new_description=description)
 
     if not dry_run:
         try:
             with transaction.atomic():
-                _publish_description(page, description)
+                if publishing:
+                    _publish_description(source, description)
+                else:
+                    _save_draft_description(source, description)
         except Exception as exc:
-            logger.exception("Could not publish the search description of page %s", page.pk)
+            logger.exception("Could not save the search description of page %s", page.pk)
             return _make_result(
                 page,
                 FAILED,
@@ -176,7 +220,8 @@ def regenerate_page(page, *, dry_run: bool) -> PageResult:
                 error=f"{type(exc).__name__}: {exc}",
             )
 
-    return _make_result(page, PUBLISHED, old_description=old_description, new_description=description)
+    action = PUBLISHED if publishing else _draft_action(source)
+    return _make_result(source, action, old_description=old_description, new_description=description)
 
 
 def regenerate_search_descriptions(
@@ -211,18 +256,25 @@ def regenerate_search_descriptions(
         result = regenerate_page(page, dry_run=dry_run)
         summary.results.append(result)
 
-        if result.action == PUBLISHED:
+        if result.action == PUBLISHED or result.action in DRAFT_SAVED:
+            label = "PUBLISHED" if result.action == PUBLISHED else "DRAFT SAVED"
             write(
-                f"{prefix}PUBLISHED: {result.describe()} "
+                f"{prefix}{label}: {result.describe()} "
                 f"{_shorten(result.old_description)} -> {_shorten(result.new_description)}"
             )
         if summary.scanned % PROGRESS_EVERY == 0:
             write(f"... {summary.scanned} pages scanned")
 
-    if summary.needs_attention:
+    if summary.draft_saved:
+        write("")
+        write("Revision saved, an editor has to publish the page to apply it:")
+        for result in summary.draft_saved:
+            write(result.describe())
+
+    if summary.left_untouched:
         write("")
         write("Pages left untouched, to fix by hand:")
-        for result in summary.needs_attention:
+        for result in summary.left_untouched:
             write(result.describe())
 
     write("")
