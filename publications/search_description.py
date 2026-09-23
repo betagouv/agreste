@@ -227,3 +227,8 @@ def get_search_description(*streamfields, max_chars: int | None = None, page=Non
         raw_text = f"{truncated.rstrip()} [...]"
 
     return raw_text
+
+
+def build_page_search_description(page) -> str:
+    """Get the search description a page would get from its hero and body."""
+    return get_search_description(page.hero, page.body, max_chars=SEARCH_DESCRIPTION_MAX_CHARS, page=page)
