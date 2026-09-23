@@ -47,6 +47,10 @@ import_domain_whitelist:
 index:
     {{docker_cmd}} {{uv_run}} python manage.py update_index
 
+# Regenerate the search description of every page from its hero and body (pass --dry-run to preview)
+regenerate_search_descriptions +args="":
+    {{docker_cmd}} {{uv_run}} python manage.py regenerate_search_descriptions {{args}}
+
 # Create .env from .env.example with a generated SECRET_KEY (never overwrites an existing .env)
 setup-env:
     #!/usr/bin/env bash

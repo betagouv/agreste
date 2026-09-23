@@ -10,12 +10,14 @@ from wagtail.api import APIField
 from wagtail.contrib.routable_page.models import path
 from wagtail.models import Orderable
 
+from publications.search_description import build_page_search_description
 from publications.taxonomy import (
     AbstractTaxonomy,
     get_taxonomies_for_index,
     list_taxonomies_for_index,
 )
 from sites_conformes.blog.models import BlogEntryPage, BlogIndexPage, Person
+from sites_conformes.core.abstract import SitesFacilesBasePage
 from sites_conformes.core.models import Tag
 
 
@@ -95,6 +97,18 @@ class PublicationPage(BlogEntryPage):
         APIField("collections"),
         APIField("themes"),
     ]
+
+    def _fill_search_description(self):
+        if self.search_description:
+            return
+        search_description = build_page_search_description(self)
+        if search_description:
+            self.search_description = search_description
+
+    def save(self, *args, **kwargs):
+        self._fill_search_description()
+        # Skip SitesFacilesBasePage.save(), which still uses the legacy 20-word extractor.
+        return super(SitesFacilesBasePage, self).save(*args, **kwargs)
 
     class Meta:
         verbose_name = _("Publication page")
