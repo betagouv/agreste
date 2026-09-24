@@ -51,6 +51,10 @@ index:
 regenerate_search_descriptions +args="":
     {{docker_cmd}} {{uv_run}} python manage.py regenerate_search_descriptions {{args}}
 
+# Add each theme's ancestors to every publication page (pass --dry-run to preview)
+add_parent_themes +args="":
+    {{docker_cmd}} {{uv_run}} python manage.py add_parent_themes {{args}}
+
 # Create .env from .env.example with a generated SECRET_KEY (never overwrites an existing .env)
 setup-env:
     #!/usr/bin/env bash
