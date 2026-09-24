@@ -9,12 +9,14 @@ Run on staging first::
 Live pages without a pending draft are republished. Pages with a pending draft
 and unpublished pages only get a new revision, which an editor has to publish.
 Those pages are recapped at the end of the run.
+
+See ``publications/migrations/batch_commands/batch_add_parent_themes.py``.
 """
 
 from django.core.management.base import BaseCommand, CommandError
 
+from publications.migrations.batch_commands.batch_add_parent_themes import FAILED, add_parent_themes
 from publications.models import PublicationPage
-from publications.theme_parents import FAILED, add_parent_themes
 
 
 class Command(BaseCommand):

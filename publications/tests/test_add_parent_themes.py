@@ -130,7 +130,7 @@ class AddParentThemesTest(WagtailPageTestCase):
 
 class MissingAncestorsTest(WagtailPageTestCase):
     def test_locale_mismatch_stops_the_chain(self):
-        from publications.theme_parents import missing_ancestors
+        from publications.migrations.batch_commands.batch_add_parent_themes import missing_ancestors
 
         default = Locale.get_default()
         other = Locale.objects.create(language_code="en")
@@ -141,7 +141,7 @@ class MissingAncestorsTest(WagtailPageTestCase):
         self.assertEqual(missing_ancestors([child]), [parent])
 
     def test_cycle_stops_the_walk(self):
-        from publications.theme_parents import missing_ancestors
+        from publications.migrations.batch_commands.batch_add_parent_themes import missing_ancestors
 
         locale = Locale.get_default()
         parent = ThemeFactory(locale=locale, name="Climate")
