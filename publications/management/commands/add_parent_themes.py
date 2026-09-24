@@ -1,43 +1,32 @@
 """
-Recompute ``search_description`` from the hero and body of every page.
+Tag every publication page with the ancestors of its themes.
 
 Run on staging first::
 
-    just regenerate_search_descriptions --dry-run
-    just regenerate_search_descriptions
+    just add_parent_themes --dry-run
+    just add_parent_themes
 
-Existing descriptions are overwritten. Live pages without a pending draft are
-republished; pages with a pending draft and unpublished pages only get a new
-revision, which an editor has to publish. Both lists are recapped at the end of
-the run.
+Live pages without a pending draft are republished. Pages with a pending draft
+and unpublished pages only get a new revision, which an editor has to publish.
+Those pages are recapped at the end of the run.
 
-See ``publications/migrations/batch_commands/search_description_backfill.py``.
+See ``publications/migrations/batch_commands/batch_add_parent_themes.py``.
 """
 
 from django.core.management.base import BaseCommand, CommandError
 
-from publications.migrations.batch_commands.search_description_backfill import (
-    FAILED,
-    pages_to_process,
-    regenerate_search_descriptions,
-)
+from publications.migrations.batch_commands.batch_add_parent_themes import FAILED, add_parent_themes
+from publications.models import PublicationPage
 
 
 class Command(BaseCommand):
-    help = "Regenerate the search description of every page from its hero and body."
+    help = "Add each theme's ancestors to every publication page."
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Report changes without writing to the database.",
-        )
-        parser.add_argument(
-            "--page-type",
-            action="append",
-            dest="page_types",
-            metavar="app_label.ModelName",
-            help="Limit the run to these page types (repeatable; default: all pages).",
         )
         parser.add_argument(
             "--limit",
@@ -53,15 +42,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
-
-        try:
-            pages = pages_to_process(options["page_types"])
-        except ValueError as exc:
-            raise CommandError(str(exc)) from None
+        pages = PublicationPage.objects.order_by("pk")
 
         if not dry_run and not options["no_input"]:
             prompt = (
-                f"This will overwrite the search description of up to {pages.count()} page(s), "
+                f"This will add missing ancestor themes to up to {pages.count()} publication page(s), "
                 "publishing the live ones and saving a draft revision for the others. "
                 "Continue? [y/N]: "
             )
@@ -69,7 +54,7 @@ class Command(BaseCommand):
                 self.stdout.write("Aborted.")
                 return
 
-        summary = regenerate_search_descriptions(
+        summary = add_parent_themes(
             pages,
             dry_run=dry_run,
             limit=options["limit"],

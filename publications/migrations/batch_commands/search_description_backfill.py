@@ -145,7 +145,8 @@ def _make_result(page, action: str, **kwargs) -> PageResult:
 def _publish_description(page, description: str) -> None:
     page.search_description = description
     # clean=False: full_clean() on legacy pages can fail over unrelated fields.
-    page.save_revision(log_action=False, clean=False).publish()
+    # log_action: History should list the edit as well as the publish entry.
+    page.save_revision(log_action=True, clean=False).publish()
 
 
 def _save_draft_description(source, description: str) -> None:
