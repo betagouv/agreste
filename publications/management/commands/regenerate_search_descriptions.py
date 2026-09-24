@@ -10,11 +10,13 @@ Existing descriptions are overwritten. Live pages without a pending draft are
 republished; pages with a pending draft and unpublished pages only get a new
 revision, which an editor has to publish. Both lists are recapped at the end of
 the run.
+
+See ``publications/migrations/batch_commands/search_description_backfill.py``.
 """
 
 from django.core.management.base import BaseCommand, CommandError
 
-from publications.search_description_backfill import (
+from publications.migrations.batch_commands.search_description_backfill import (
     FAILED,
     pages_to_process,
     regenerate_search_descriptions,
