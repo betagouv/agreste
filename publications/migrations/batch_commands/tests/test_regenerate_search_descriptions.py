@@ -8,8 +8,12 @@ from wagtail.models import Page
 from wagtail.rich_text import RichText
 from wagtail.test.utils import WagtailPageTestCase
 
+from publications.migrations.batch_commands.search_description_backfill import (
+    _iter_pages,
+    _publish_description,
+    pages_to_process,
+)
 from publications.models import PublicationIndexPage, PublicationPage
-from publications.search_description_backfill import _iter_pages, _publish_description, pages_to_process
 from sites_conformes.core.models import ContentPage
 
 User = get_user_model()
@@ -223,10 +227,10 @@ class RegenerateSearchDescriptionsTest(WagtailPageTestCase):
                 raise RuntimeError("boom")
 
         with patch(
-            "publications.search_description_backfill._publish_description",
+            "publications.migrations.batch_commands.search_description_backfill._publish_description",
             side_effect=publish_then_fail,
         ):
-            with self.assertLogs("publications.search_description_backfill", level="ERROR"):
+            with self.assertLogs("publications.migrations.batch_commands.search_description_backfill", level="ERROR"):
                 with self.assertRaises(CommandError):
                     self._run()
 
