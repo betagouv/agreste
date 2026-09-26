@@ -11,6 +11,7 @@ import zoneinfo
 from datetime import datetime
 from itertools import combinations
 from pathlib import Path
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import dsfr
@@ -774,8 +775,8 @@ class FacetedSearchDateFacetTest(FacetedSearchTestBase):
         self.assertEqual(date_to["type"], "date")
         self.assertEqual(date_from["form"], "faceted-search-form")
         self.assertEqual(date_to["form"], "faceted-search-form")
-        self.assertEqual(date_from["onchange"], "this.form.submit()")
-        self.assertEqual(date_to["onchange"], "this.form.submit()")
+        self.assertFalse(date_from.has_attr("onchange"))
+        self.assertFalse(date_to.has_attr("onchange"))
         self.assertIn(gettext("Start date"), panel.get_text())
         self.assertIn(gettext("End date"), panel.get_text())
         self.assertEqual(panel.select(".fr-hint-text"), [])
@@ -801,6 +802,63 @@ class FacetedSearchResetFiltersTest(FacetedSearchTestBase):
         parsed = urlparse(link["href"])
         self.assertEqual(parsed.path, reverse("cms_search"))
         self.assertEqual(parse_qs(parsed.query), {"q": [self.search_query]})
+        self.assertEqual(link["id"], "search-reset-filters")
+        self.assertEqual(link["hx-boost"], "true")
+        self.assertEqual(link["hx-target"], "#faceted-search-swap")
+        self.assertEqual(link["hx-select"], "#faceted-search-swap")
+        self.assertEqual(link["hx-swap"], "outerHTML")
+        self.assertEqual(link["hx-push-url"], "true")
+
+
+class FacetedSearchHtmxTest(FacetedSearchTestBase):
+    """HTMX swaps sidebar + results; the search box stays a native GET submit."""
+
+    def test_htmx_script_and_swap_target(self):
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        scripts = soup.select("script[src]")
+        srcs = [script["src"] for script in scripts]
+        htmx_index = next(i for i, src in enumerate(srcs) if "htmx.min.js" in src)
+        tree_index = next(i for i, src in enumerate(srcs) if "facet_tree.js" in src)
+        self.assertLess(htmx_index, tree_index)
+        swap = soup.select_one("#faceted-search-swap")
+        self.assertIsNotNone(swap)
+        self.assertTrue(swap.has_attr("hx-get"))
+        self.assertEqual(swap["hx-trigger"], "change from:[form='faceted-search-form']")
+        self.assertEqual(swap["hx-include"], "#faceted-search-form")
+        self.assertEqual(swap["hx-target"], "this")
+        self.assertEqual(swap["hx-select"], "#faceted-search-swap")
+        self.assertEqual(swap["hx-swap"], "outerHTML")
+        self.assertEqual(swap["hx-push-url"], "true")
+        self.assertEqual(swap["hx-sync"], "this:replace")
+
+    def test_facet_checkboxes_and_rank_by_have_no_inline_onchange(self):
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        checkboxes = soup.select('input[type=checkbox][form="faceted-search-form"]')
+        self.assertGreater(len(checkboxes), 0)
+        for checkbox in checkboxes:
+            self.assertFalse(checkbox.has_attr("onchange"))
+        rank_by = soup.select_one('select[name="rank_by"]')
+        self.assertIsNotNone(rank_by)
+        self.assertFalse(rank_by.has_attr("onchange"))
+
+    @patch("faceted_search.facets.ENABLED_FACETS", {**ENABLED_FACETS, "tag": True})
+    def test_list_checkboxes_have_no_inline_onchange(self):
+        tag = TagFactory()
+        self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post with list tag",
+            slug="post-with-list-tag",
+            tags=[tag],
+        )
+        response = self.client.get(self.search_url())
+        soup = BeautifulSoup(response.content, "html.parser")
+        checkbox = soup.select_one(f"#facet-tag-{tag.slug}")
+        self.assertIsNotNone(checkbox)
+        self.assertFalse(checkbox.has_attr("onchange"))
+        self.assertEqual(checkbox["form"], "faceted-search-form")
 
 
 class FacetedSearchTreeCheckboxTest(FacetedSearchTestBase):

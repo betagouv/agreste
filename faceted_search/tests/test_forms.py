@@ -82,6 +82,6 @@ class DateRangeFieldTest(SimpleTestCase):
         rendered = str(form["date_from"])
         self.assertIn('type="date"', rendered)
         self.assertIn('form="faceted-search-form"', rendered)
-        self.assertIn('onchange="this.form.submit()"', rendered)
+        self.assertNotIn("onchange", rendered)
         self.assertIn('value="2024-01-15"', rendered)
         self.assertIn("fr-input", rendered)
