@@ -105,6 +105,7 @@ class RegenerateSearchDescriptionsTest(WagtailPageTestCase):
                 owner=self.admin,
                 body=_body(),
                 search_description="Description à remplacer",
+                disaron_id="SearchDesc0001",
             )
         )
         page.save_revision().publish()

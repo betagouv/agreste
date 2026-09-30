@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import BooleanField, QuerySet
@@ -63,8 +64,6 @@ class PublicationPage(BlogEntryPage):
         _("Disaron identifier (former Agreste)"),
         max_length=255,
         unique=True,
-        null=True,
-        blank=True,
         help_text=_("Unique publication identifier. Shown at the bottom of the page."),
     )
     collections = ParentalManyToManyField(
@@ -116,7 +115,9 @@ class PublicationPage(BlogEntryPage):
 
     def clean(self):
         if isinstance(self.disaron_id, str):
-            self.disaron_id = self.disaron_id.strip() or None
+            self.disaron_id = self.disaron_id.strip()
+        if not self.disaron_id:
+            raise ValidationError({"disaron_id": _("This field cannot be blank.")})
         super().clean()
 
     def _fill_search_description(self):

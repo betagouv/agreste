@@ -3,6 +3,7 @@ from datetime import datetime
 
 from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from wagtail.models import Page
 from wagtail.test.utils import WagtailPageTestCase
 
@@ -39,6 +40,7 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
             title="Post with taxonomies",
             date=datetime(2024, 1, 1, 12, 0, 0, tzinfo=self.paris_tz),
             owner=self.admin,
+            disaron_id="PostTaxonomies1",
         )
         self.index.add_child(instance=self.post)
         self.post.collections.add(self.collection)
@@ -59,11 +61,12 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
         self.assertIn("collection=agriculture", collection_link["href"])
         self.assertIn("theme=climate", theme_link["href"])
 
-    def test_clean_strips_disaron_id_and_stores_blank_as_none(self):
+    def test_clean_strips_disaron_id_and_rejects_blank(self):
         self.post.disaron_id = "  TbdCpr2602  "
         self.post.clean()
         self.assertEqual(self.post.disaron_id, "TbdCpr2602")
 
         self.post.disaron_id = "   "
-        self.post.clean()
-        self.assertIsNone(self.post.disaron_id)
+        with self.assertRaises(ValidationError) as caught:
+            self.post.clean()
+        self.assertIn("disaron_id", caught.exception.error_dict)
