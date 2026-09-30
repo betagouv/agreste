@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 from django.utils.translation import gettext
 from wagtail.blocks import BoundBlock, CharBlock, ListBlock
 
@@ -234,6 +234,25 @@ class SearchDescriptionTestCase(SimpleTestCase):
         self.assertEqual(result, "Intro text. Click this button")
         self.assertNotIn("https://example.com", result)
         self.assertNotIn(gettext("Opens a new window"), result)
+
+    @override_settings(ALLOWED_HOSTS=["publications.example"])
+    def test_absolute_link_is_extracted_when_localhost_is_not_an_allowed_host(self):
+        body = _body(
+            [
+                {
+                    "type": "link",
+                    "value": {
+                        "link_type": "external_url",
+                        "text": "Read the report",
+                        "external_url": "https://example.com/report",
+                    },
+                }
+            ]
+        )
+
+        result = get_search_description(body)
+
+        self.assertEqual(result, "Read the report")
 
     def test_html_to_text_strips_hidden_and_script_content(self):
         html = (

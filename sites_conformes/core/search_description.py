@@ -2,6 +2,7 @@ import logging
 import re
 
 from bs4 import BeautifulSoup
+from django.conf import settings
 from django.http import HttpRequest
 from wagtail.blocks import CharBlock, ListBlock, RichTextBlock, StreamBlock, StructBlock, TextBlock
 from wagtailmarkdown.blocks import MarkdownBlock
@@ -108,11 +109,21 @@ def _html_to_text(html: str) -> str:
     return _normalize_text_piece(soup.get_text(" "))
 
 
+def _allowed_http_host() -> str:
+    for host in settings.ALLOWED_HOSTS:
+        if not host or host == "*":
+            continue
+        if host.startswith("."):
+            return host[1:]
+        return host
+    return "localhost"
+
+
 def _render_context(page=None) -> dict:
+    # Make a dummy request for the context. The blocks need it for rendering.
     request = HttpRequest()
     request.method = "GET"
-    request.META["SERVER_NAME"] = "localhost"
-    request.META["SERVER_PORT"] = "80"
+    request.META["HTTP_HOST"] = _allowed_http_host()
     context = {"request": request}
     if page is not None:
         context["page"] = page
