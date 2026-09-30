@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-31 17:23+0200\n"
+"POT-Creation-Date: 2026-09-30 13:48+0200\n"
 "PO-Revision-Date: 2026-06-08 15:16+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -127,6 +127,13 @@ msgstr "Thématique"
 
 msgid "Themes"
 msgstr "Thématiques"
+
+msgid "Disaron identifier (former Agreste)"
+msgstr "Identifiant Disaron (ancien Agreste)"
+
+msgid "Unique publication identifier. Shown at the bottom of the page."
+msgstr ""
+"Identifiant unique de la publication. Affiché en bas de page."
 
 msgid "Tags and Categories"
 msgstr "Étiquettes et Catégories"

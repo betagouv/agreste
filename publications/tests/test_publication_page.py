@@ -58,3 +58,12 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
         self.assertIsNotNone(theme_link)
         self.assertIn("collection=agriculture", collection_link["href"])
         self.assertIn("theme=climate", theme_link["href"])
+
+    def test_clean_strips_disaron_id_and_stores_blank_as_none(self):
+        self.post.disaron_id = "  TbdCpr2602  "
+        self.post.clean()
+        self.assertEqual(self.post.disaron_id, "TbdCpr2602")
+
+        self.post.disaron_id = "   "
+        self.post.clean()
+        self.assertIsNone(self.post.disaron_id)

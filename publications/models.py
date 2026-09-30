@@ -9,6 +9,7 @@ from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.api import APIField
 from wagtail.contrib.routable_page.models import path
 from wagtail.models import Orderable
+from wagtail.search import index
 
 from publications.search_description import build_page_search_description
 from publications.taxonomy import (
@@ -58,6 +59,14 @@ class ThemePublication(Orderable):
 
 
 class PublicationPage(BlogEntryPage):
+    disaron_id = models.CharField(
+        _("Disaron identifier (former Agreste)"),
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text=_("Unique publication identifier. Shown at the bottom of the page."),
+    )
     collections = ParentalManyToManyField(
         "Collection",
         through="CollectionPublication",
@@ -74,6 +83,13 @@ class PublicationPage(BlogEntryPage):
     parent_page_types = ["publications.PublicationIndexPage"]
     subpage_types = []
     template = "publications/publication_page.html"
+
+    content_panels = BlogEntryPage.content_panels + [
+        FieldPanel("disaron_id"),
+    ]
+    search_fields = BlogEntryPage.search_fields + [
+        index.SearchField("disaron_id"),
+    ]
 
     settings_panels = BlogEntryPage.settings_panels[:]
     _tags_panel_index = next(
@@ -97,6 +113,11 @@ class PublicationPage(BlogEntryPage):
         APIField("collections"),
         APIField("themes"),
     ]
+
+    def clean(self):
+        if isinstance(self.disaron_id, str):
+            self.disaron_id = self.disaron_id.strip() or None
+        super().clean()
 
     def _fill_search_description(self):
         if self.search_description:

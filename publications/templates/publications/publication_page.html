@@ -110,4 +110,10 @@
   {% if settings.sites_conformes_core.CmsDsfrConfig.show_share_links and settings.sites_conformes_core.CmsDsfrConfig.share_links_blog_posts %}
     {% include "sites_conformes_core/blocks/share.html" %}
   {% endif %}
+
+  {% if page.disaron_id %}
+    <div class="fr-container fr-mb-4w">
+      <p class="fr-text--sm fr-mb-0">{{ page.disaron_id }}</p>
+    </div>
+  {% endif %}
 {% endblock content %}
