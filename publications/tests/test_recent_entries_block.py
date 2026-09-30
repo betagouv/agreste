@@ -78,6 +78,7 @@ class PublicationRecentEntriesBlockTestCase(WagtailPageTestCase):
                 body=lorem_body,
                 collections=[self.collection],
                 themes=[self.theme],
+                disaron_id="Report0001",
             ),
         )
 
@@ -276,6 +277,7 @@ class PublicationRecentEntriesBlockFilterTestCase(WagtailPageTestCase):
             title=title,
             date=datetime(2024, 1, 1, 12, 0, 0, tzinfo=self.paris_tz),
             owner=self.admin,
+            disaron_id=title,
         )
         self.index_page.add_child(instance=post)
         for collection in collections or []:
