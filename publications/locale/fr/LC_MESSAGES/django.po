@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 13:48+0200\n"
+"POT-Creation-Date: 2026-09-30 17:37+0200\n"
 "PO-Revision-Date: 2026-06-08 15:16+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -132,14 +132,16 @@ msgid "Disaron identifier (former Agreste)"
 msgstr "Identifiant Disaron (ancien Agreste)"
 
 msgid "Unique publication identifier. Shown at the bottom of the page."
-msgstr ""
-"Identifiant unique de la publication. Affiché en bas de page."
+msgstr "Identifiant unique de la publication. Affiché en bas de page."
 
 msgid "Tags and Categories"
 msgstr "Étiquettes et Catégories"
 
 msgid "Tags, collections and themes"
 msgstr "Étiquettes, collections et thématiques"
+
+msgid "This field cannot be blank."
+msgstr "Ce champ ne peut pas être vide."
 
 msgid "Publication page"
 msgstr "Page de publication"
@@ -233,3 +235,6 @@ msgstr "Articles"
 
 msgid "Posted by:"
 msgstr "Écrit par :"
+
+msgid "Disaron identifier"
+msgstr "Identifiant disaron"
