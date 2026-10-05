@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
 # Bump agreste_version.txt on main-agreste and open a PR into production-agreste.
-# Usage: create_release.sh [--repo URL]
+# Usage: create_release.sh [--repo URL] [--dry-run]
 # Default repository: https://github.com/betagouv/agreste
-# Prefer: just create-release [-- --repo URL]
+# Prefer: just create-release [-- --repo URL] [-- --dry-run]
 set -euo pipefail
 
 DEFAULT_REPO_URL="https://github.com/betagouv/agreste"
 
 usage() {
     cat <<EOF
-Usage: create_release.sh [--repo URL]
+Usage: create_release.sh [--repo URL] [--dry-run]
 
 Bump agreste_version.txt on main-agreste and open a pull request into
 production-agreste.
 
   --repo URL   GitHub repository for pull request links and gh commands.
                Default: ${DEFAULT_REPO_URL}
+  --dry-run    Show the release steps and the commands that would run.
+               Do not commit, push, or open a pull request.
 EOF
 }
 
@@ -51,8 +53,13 @@ normalize_repo_url() {
 }
 
 repo_url="$DEFAULT_REPO_URL"
+dry_run=0
 while [ "$#" -gt 0 ]; do
     case "$1" in
+        --dry-run)
+            dry_run=1
+            shift
+            ;;
         --repo)
             if [ "$#" -lt 2 ] || [ -z "${2:-}" ]; then
                 echo "ERROR: --repo requires a URL." >&2
@@ -135,7 +142,9 @@ show_pull_requests() {
     fi
 }
 
-require_clean_worktree
+if [ "$dry_run" -eq 0 ]; then
+    require_clean_worktree
+fi
 
 echo "Fetching origin main-agreste and production-agreste…"
 git fetch origin main-agreste production-agreste --tags
@@ -166,8 +175,8 @@ fi
 
 echo "Current version: ${current}"
 echo "Format: <Agreste X.Y.Z>-<Sites Conformes X.Y.Z>"
-echo "  ${agreste_only}  bumps only Agreste"
-echo "  ${with_sc}  also moves the Sites Conformes version"
+echo "  Example : ${agreste_only}  bumps minor version of Agreste only"
+echo "  Example : ${with_sc}  bumps minor version of Agreste, and specifies a new version of Sites Conformes"
 echo
 
 while true; do
@@ -187,6 +196,19 @@ while true; do
     fi
     break
 done
+
+if [ "$dry_run" -eq 1 ]; then
+    echo
+    echo "Dry run. No changes will be made. Would run:"
+    echo "  git checkout main-agreste"
+    echo "  git pull --ff-only"
+    echo "  write ${version} to agreste_version.txt"
+    echo "  git add agreste_version.txt"
+    echo "  git commit -m \"Bump version to ${version}\""
+    echo "  git push origin main-agreste"
+    echo "  gh pr create --repo ${repo_url} --base production-agreste --head main-agreste --title \"v${version}\" --body \"\""
+    exit 0
+fi
 
 echo
 echo "About to commit \"Bump version to ${version}\" on main-agreste, push, and open a PR into production-agreste."
@@ -216,5 +238,6 @@ git commit -m "Bump version to ${version}"
 git push origin main-agreste
 
 pr_url="$(gh pr create --repo "$repo_url" --base production-agreste --head main-agreste --title "v${version}" --body "")"
-printf '%s\n' "$pr_url"
-echo "Merging this pull request into production-agreste creates the GitHub release and tag."
+echo "PR for the new release is created."
+echo "Next steps : resolve conflicts and merge the PR : ${pr_url}"
+echo "Merging the PR will automatically create the tag and the release. If Scalingo auto-deploy is configured, it will deploy as well."
