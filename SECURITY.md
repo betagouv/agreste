@@ -2,4 +2,4 @@
 
 ## Reporting a Vulnerability
 
-Contact us at contact@agreste.beta.gouv.fr
+Contact us at <contact@agreste.beta.gouv.fr>
