@@ -1,12 +1,15 @@
 import zoneinfo
 from datetime import datetime
+from urllib.parse import parse_qs, urlparse
 
 from bs4 import BeautifulSoup
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 from wagtail.models import Page
 from wagtail.test.utils import WagtailPageTestCase
 
+from faceted_search.search import RANK_BY_DATE
 from publications.models import Collection, PublicationIndexPage, PublicationPage, Theme
 
 User = get_user_model()
@@ -58,8 +61,17 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
         theme_link = meta_paragraph.find("a", string=self.theme.name)
         self.assertIsNotNone(collection_link)
         self.assertIsNotNone(theme_link)
-        self.assertIn("collection=agriculture", collection_link["href"])
-        self.assertIn("theme=climate", theme_link["href"])
+        self._assert_search_link(collection_link, collection=self.collection.slug)
+        self._assert_search_link(theme_link, theme=self.theme.slug)
+
+    def _assert_search_link(self, link, **expected_params):
+        parsed = urlparse(link["href"])
+        self.assertEqual(parsed.path, reverse("cms_search"))
+        query = parse_qs(parsed.query)
+        self.assertEqual(query.get("rank_by"), [RANK_BY_DATE])
+        self.assertEqual(set(query) - {"rank_by"}, set(expected_params))
+        for key, value in expected_params.items():
+            self.assertEqual(query[key], [value])
 
     def test_clean_strips_disaron_id_and_rejects_blank(self):
         self.post.disaron_id = "  TbdCpr2602  "

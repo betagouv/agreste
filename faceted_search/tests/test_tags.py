@@ -1,10 +1,12 @@
 from django.test import SimpleTestCase
+from django.urls import reverse
 
 from faceted_search.templatetags.faceted_search_tags import (
     facet_label,
     facet_tree_expanded,
     facet_value,
     result_collections,
+    search_link,
 )
 
 
@@ -93,3 +95,23 @@ class FacetTreeExpandedTest(SimpleTestCase):
         self.assertTrue(facet_tree_expanded(parent, ["grandchild"]))
         self.assertTrue(facet_tree_expanded(child, ["grandchild"]))
         self.assertFalse(facet_tree_expanded(grandchild, ["parent"]))
+
+
+class SearchLinkTest(SimpleTestCase):
+    def test_returns_the_search_url_when_no_params(self):
+        self.assertEqual(search_link(), reverse("cms_search"))
+
+    def test_adds_query_parameters(self):
+        self.assertEqual(
+            search_link(theme="climate", rank_by="date"),
+            f"{reverse('cms_search')}?theme=climate&rank_by=date",
+        )
+
+    def test_omits_empty_values(self):
+        self.assertEqual(search_link(q=None, collection=""), reverse("cms_search"))
+
+    def test_repeats_list_values(self):
+        self.assertEqual(
+            search_link(collection=["agriculture", "crops"], rank_by="date"),
+            f"{reverse('cms_search')}?collection=agriculture&collection=crops&rank_by=date",
+        )
