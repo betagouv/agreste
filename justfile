@@ -137,6 +137,11 @@ accept-deleted-by-us path:
 merge-sc-tag version:
     bash scripts/merge_sc_tag.sh "{{version}}"
 
+# Bump agreste_version.txt and open a PR from main-agreste into production-agreste.
+[group('Git')]
+create-release *args:
+    bash scripts/create_release.sh {{args}}
+
 test app="":
     {{docker_cmd}} {{uv_run}} python manage.py test {{app}} --buffer --parallel --settings config.settings_test
 
