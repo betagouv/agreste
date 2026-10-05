@@ -88,6 +88,10 @@ class PublicationPage(BlogEntryPage):
     ]
     search_fields = BlogEntryPage.search_fields + [
         index.SearchField("disaron_id"),
+        # The search in admin pages uses AutocompleteField, not SearchField.
+        index.AutocompleteField("disaron_id"),
+        # Sorting in the admin pages requires a FilterField.
+        index.FilterField("disaron_id"),
     ]
 
     settings_panels = BlogEntryPage.settings_panels[:]
