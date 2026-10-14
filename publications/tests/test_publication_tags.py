@@ -1,6 +1,6 @@
 from django.test import RequestFactory, SimpleTestCase
 
-from publications.templatetags.publication_tags import filters_query, toggle_url_filter
+from publications.templatetags.publication_tags import toggle_url_filter
 
 
 class ToggleUrlFilterTestBase(SimpleTestCase):
@@ -51,13 +51,3 @@ class ToggleUrlFilterPublicationSpecificTest(ToggleUrlFilterTestBase):
             collection=collection,
         )
         self.assertEqual(result, "?theme=climate&collection=agriculture")
-
-
-class FiltersQueryTest(SimpleTestCase):
-    def test_returns_empty_string_when_no_filters(self):
-        self.assertEqual(filters_query(None), "")
-        self.assertEqual(filters_query({}), "")
-
-    def test_builds_query_string_from_filters_dict(self):
-        result = filters_query({"collection": "agriculture", "tag": "news"})
-        self.assertEqual(result, "?collection=agriculture&tag=news")

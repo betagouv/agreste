@@ -1,7 +1,23 @@
+from urllib.parse import urlencode
+
 from django import template
 from django.template.loader import render_to_string as _render_to_string
+from django.urls import reverse
 
 register = template.Library()
+
+
+@register.simple_tag
+def search_link(**kwargs):
+    """URL of the search results page, with the given query parameters.
+
+    Empty values are omitted. A list or tuple is repeated as several values of the same parameter.
+    """
+    params = {key: value for key, value in kwargs.items() if value not in (None, "", [], ())}
+    url = reverse("cms_search")
+    if not params:
+        return url
+    return f"{url}?{urlencode(params, doseq=True)}"
 
 
 @register.simple_tag

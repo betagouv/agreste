@@ -1,7 +1,7 @@
 {# Forked from sites_conformes_blog/blog_entry_page.html: shows collections and themes (and their colophons) instead of blog categories. #}
 {% extends "publications/base.html" %}
 
-{% load i18n static dsfr_tags wagtailcore_tags wagtailimages_tags wagtail_dsfr_tags publication_tags %}
+{% load i18n static dsfr_tags wagtailcore_tags wagtailimages_tags wagtail_dsfr_tags publication_tags faceted_search_tags %}
 
 {% block title %}
   <title>{{ page.seo_title|default:page.title }} — {{ settings.sites_conformes_core.CmsDsfrConfig.site_title }}</title>
@@ -56,14 +56,14 @@
         {% if collections %}
           |
           {% for collection in collections %}
-            <a href="{% pageurl page.get_parent %}{% toggle_url_filter collection=collection %}">{{ collection.name }}</a>
+            <a href="{% search_link collection=collection.slug rank_by='date' %}">{{ collection.name }}</a>
             {% if not forloop.last %},{% endif %}
           {% endfor %}
         {% endif %}
         {% if themes %}
           {% if collections %}|{% endif %}
           {% for theme in themes %}
-            <a href="{% pageurl page.get_parent %}{% toggle_url_filter theme=theme %}">{{ theme.name }}</a>
+            <a href="{% search_link theme=theme.slug rank_by='date' %}">{{ theme.name }}</a>
             {% if not forloop.last %},{% endif %}
           {% endfor %}
         {% endif %}

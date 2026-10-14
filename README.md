@@ -29,25 +29,31 @@ Example : 2.8.0-4.1.0
 
 ## To create a release
 
-- Update the version number in `agreste_version.txt` :
+From a clean worktree (no uncommitted changes to tracked files):
 
-  ```sh
-  VERSION="2.8.0-4.1.0"; # ${agreste_version}-{SC_version}
-  git checkout main-agreste; git pull; 
-  echo $VERSION > agreste_version.txt; 
-  git add agreste_version.txt; 
-  git commit -m "Bump version to $VERSION"; 
-  git push
-  ```
+```sh
+just create-release
+```
 
-- Open a PR to merge `main-agreste` into `production-agreste`
-  <!-- markdownlint-disable-next-line MD013 -->
-  - `gh pr create --base production-agreste --head main-agreste --title "v$VERSION" --body ""`
-    The name is the version number ("v2.8.0-4.1.0") and will be picked up
-    automatically to name the version and tag.
-  - Solve any conflicts and merge. This will trigger a github action that will
-  create the release and tag. If the auto-deploy is configured on Scalingo, it
-  will deploy the release.
+The GitHub repository defaults to `https://github.com/betagouv/agreste`. Pass
+`--repo <url>` to use another one:
+
+```sh
+just create-release -- --repo https://github.com/other/agreste
+```
+
+The command lists pull requests merged into `main-agreste` since the last
+release, asks for the new version (`${agreste_version}-{SC_version}`, for
+example `2.8.0-4.1.0`), then on `main-agreste`:
+
+- writes that version to `agreste_version.txt`
+- commits `Bump version to $VERSION` and pushes
+- opens a pull request into `production-agreste` titled `v$VERSION`
+
+Then you should go resolve any conflicts on that PR and merge it.
+
+ Merging runs a GitHub Action that creates the release and tag. If
+auto-deploy is configured on Scalingo, it deploys the release.
 
 -----
 

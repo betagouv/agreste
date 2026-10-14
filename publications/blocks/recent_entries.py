@@ -1,12 +1,8 @@
-from urllib.parse import urlencode
-
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from wagtail import blocks
 from wagtail.blocks import BlockGroup, BooleanBlock
 from wagtail.snippets.blocks import SnippetChooserBlock
 
-from faceted_search.search import RANK_BY_DATE
 from sites_conformes.core.constants import HEADING_CHOICES_2_5
 
 PUBLICATION_RECENT_ENTRIES_BLOCK = "publication_recent_entries"
@@ -90,11 +86,6 @@ class PublicationRecentEntriesStructValue(blocks.StructValue):
             filters["theme"] = list(theme_filter.self_and_descendants().values_list("slug", flat=True))
 
         return filters
-
-    def see_all_url(self):
-        url = reverse("cms_search")
-        query = urlencode({"rank_by": RANK_BY_DATE, **self.see_all_link_filters()}, doseq=True)
-        return f"{url}?{query}"
 
     def see_all_button_label(self):
         from django.utils.translation import gettext
