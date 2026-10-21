@@ -92,6 +92,15 @@ msgstr "Tous les résultats"
 msgid "Search"
 msgstr "Rechercher"
 
+msgid "Search results"
+msgstr "Résultats de recherche"
+
+msgid "Query"
+msgstr "Requête"
+
+msgid "Default"
+msgstr "Par défaut"
+
 msgid "Filters"
 msgstr "Filtres"
 
