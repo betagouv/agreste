@@ -16,8 +16,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from wagtail.models import Page
 
-from publications.search_description import build_page_search_description
 from sites_conformes.core.abstract import SitesFacilesBasePage
+from sites_conformes.core.search_description import SEARCH_DESCRIPTION_MAX_CHARS, get_search_description
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +186,9 @@ def regenerate_page(page, *, dry_run: bool) -> PageResult:
 
     try:
         source = page if publishing else _draft_source(page)
-        description = build_page_search_description(source)
+        description = get_search_description(
+            source.hero, source.body, max_chars=SEARCH_DESCRIPTION_MAX_CHARS, page=source
+        )
     except Exception as exc:
         logger.exception("Could not build the search description of page %s", page.pk)
         return _make_result(
@@ -198,8 +200,7 @@ def regenerate_page(page, *, dry_run: bool) -> PageResult:
 
     old_description = source.search_description
     if not description:
-        # Never write an empty description: SitesFacilesBasePage.save() would
-        # then refill the field with the legacy 20-word extract.
+        # An empty result is not written.: it would clear a description the editor had set.
         return _make_result(source, SKIPPED_EMPTY, old_description=old_description)
     if description == old_description:
         return _make_result(source, UNCHANGED, old_description=old_description, new_description=description)

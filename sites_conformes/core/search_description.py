@@ -2,6 +2,7 @@ import logging
 import re
 
 from bs4 import BeautifulSoup
+from django.conf import settings
 from django.http import HttpRequest
 from wagtail.blocks import CharBlock, ListBlock, RichTextBlock, StreamBlock, StructBlock, TextBlock
 from wagtailmarkdown.blocks import MarkdownBlock
@@ -22,7 +23,7 @@ DO_NOT_RENDER_TEMPLATES = frozenset(
         "publication_recent_entries",
     }
 )
-SEARCH_DESCRIPTION_MAX_CHARS = 300
+SEARCH_DESCRIPTION_MAX_CHARS = 130
 _HIDDEN_CONTENT_SELECTOR = ".fr-sr-only, .visually-hidden, [hidden], [aria-hidden='true']"
 _BLOCK_LEVEL_TAGS = frozenset(
     {
@@ -45,17 +46,35 @@ _BLOCK_LEVEL_TAGS = frozenset(
     }
 )
 _SENTENCE_ENDINGS = (".", "!", "?", ":", ";")
+# get_text(" ") inserts a space where a tag was. Drop that space before "." and ",".
+# French keeps a space before the double marks ":;?!"; other languages do not.
+_NO_SPACE_BEFORE_FRENCH = ".,"
+_NO_SPACE_BEFORE_DEFAULT = ".,;:!?"
 
 
-def _normalize_text_piece(text: str) -> str:
+def _language_code(page) -> str:
+    locale = getattr(page, "locale", None)
+    code = getattr(locale, "language_code", None)
+    if code:
+        return code
+    return settings.LANGUAGE_CODE
+
+
+def _no_space_before(language_code: str) -> str:
+    primary = language_code.replace("_", "-").split("-", 1)[0].lower()
+    if primary == "fr":
+        return _NO_SPACE_BEFORE_FRENCH
+    return _NO_SPACE_BEFORE_DEFAULT
+
+
+def _normalize_text_piece(text: str, language_code: str) -> str:
     # Collapse HTML gaps (newlines, tags) into a single space.
     text = re.sub(r"\s+", " ", text)
-    # Tags around punctuation (e.g. </b>.) become "word ." with get_text(" ").
-    return re.sub(r"\s+([.,;:!?])", r"\1", text).strip()
+    punctuation = _no_space_before(language_code)
+    return re.sub(rf"\s+([{punctuation}])", r"\1", text).strip()
 
 
 def _join_text_parts(parts) -> str:
-    # Add a "." between text parts if needed.
     filtered = [part.strip() for part in parts if part and str(part).strip()]
     if not filtered:
         return ""
@@ -68,7 +87,7 @@ def _join_text_parts(parts) -> str:
     return result
 
 
-def _collect_block_texts(node, parts: list[str]) -> None:
+def _collect_block_texts(node, parts: list[str], language_code: str) -> None:
     # Split rendered HTML into leaf block-level pieces (heading, paragraph, …)
     # so they can be joined with ". " later. Nested blocks (e.g. p inside td)
     # are recursed so each leaf is collected once. Standalone <a> (DSFR buttons)
@@ -79,22 +98,22 @@ def _collect_block_texts(node, parts: list[str]) -> None:
     if name in _BLOCK_LEVEL_TAGS:
         if node.find(_BLOCK_LEVEL_TAGS):
             for child in node.children:
-                _collect_block_texts(child, parts)
+                _collect_block_texts(child, parts, language_code)
         else:
-            text = _normalize_text_piece(node.get_text(" "))
+            text = _normalize_text_piece(node.get_text(" "), language_code)
             if text:
                 parts.append(text)
         return
     if name == "a" and not node.find_parent(_BLOCK_LEVEL_TAGS):
-        text = _normalize_text_piece(node.get_text(" "))
+        text = _normalize_text_piece(node.get_text(" "), language_code)
         if text:
             parts.append(text)
         return
     for child in getattr(node, "children", []):
-        _collect_block_texts(child, parts)
+        _collect_block_texts(child, parts, language_code)
 
 
-def _html_to_text(html: str) -> str:
+def _html_to_text(html: str, language_code: str | None = None) -> str:
     if not html:
         return ""
     soup = BeautifulSoup(html, "html.parser")
@@ -102,18 +121,30 @@ def _html_to_text(html: str) -> str:
         el.decompose()
     for el in soup.select(_HIDDEN_CONTENT_SELECTOR):
         el.decompose()
+    if not language_code:
+        language_code = settings.LANGUAGE_CODE
     parts: list[str] = []
-    _collect_block_texts(soup, parts)
+    _collect_block_texts(soup, parts, language_code)
     if parts:
         return _join_text_parts(parts)
-    return _normalize_text_piece(soup.get_text(" "))
+    return _normalize_text_piece(soup.get_text(" "), language_code)
+
+
+def _allowed_http_host() -> str:
+    for host in settings.ALLOWED_HOSTS:
+        if not host or host == "*":
+            continue
+        if host.startswith("."):
+            return host[1:]
+        return host
+    return "localhost"
 
 
 def _render_context(page=None) -> dict:
+    # Make a dummy request for the context. The blocks need it for rendering.
     request = HttpRequest()
     request.method = "GET"
-    request.META["SERVER_NAME"] = "localhost"
-    request.META["SERVER_PORT"] = "80"
+    request.META["HTTP_HOST"] = _allowed_http_host()
     context = {"request": request}
     if page is not None:
         context["page"] = page
@@ -131,10 +162,10 @@ def _join_block_texts(children, page=None) -> str:
 def _extract_stored_text(inner, value, page=None) -> str:
     if isinstance(inner, RichTextBlock):
         html = value.source if hasattr(value, "source") else str(value)
-        return _html_to_text(html)
+        return _html_to_text(html, _language_code(page))
 
     if isinstance(inner, MarkdownBlock):
-        return _html_to_text(str(value))
+        return _html_to_text(str(value), _language_code(page))
 
     if isinstance(inner, (CharBlock, TextBlock)):
         return str(value).strip()
@@ -172,7 +203,7 @@ def _try_render_template(block, page=None) -> str | None:
             getattr(getattr(block, "block", None), "name", type(block).__name__),
         )
         return None
-    return _html_to_text(html)
+    return _html_to_text(html, _language_code(page))
 
 
 def get_streamblock_raw_text(block, page=None) -> str:
@@ -227,8 +258,3 @@ def get_search_description(*streamfields, max_chars: int | None = None, page=Non
         raw_text = f"{truncated.rstrip()} [...]"
 
     return raw_text
-
-
-def build_page_search_description(page) -> str:
-    """Get the search description a page would get from its hero and body."""
-    return get_search_description(page.hero, page.body, max_chars=SEARCH_DESCRIPTION_MAX_CHARS, page=page)

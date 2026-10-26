@@ -22,6 +22,11 @@ LONG_TEXT = (
     "Le service de la statistique et de la prospective publie chaque année des données "
     "détaillées sur les productions agricoles françaises et leurs évolutions récentes."
 )
+# The shared extractor cuts at 130 characters, on a word boundary.
+GENERATED_DESCRIPTION = (
+    "Le service de la statistique et de la prospective publie chaque année des données "
+    "détaillées sur les productions agricoles [...]"
+)
 DRAFT_TEXT = "Texte du brouillon, différent de la version publiée."
 
 
@@ -66,32 +71,33 @@ class RegenerateSearchDescriptionsTest(WagtailPageTestCase):
 
         output = self._run()
 
-        self.assertEqual(self._reload(page).search_description, LONG_TEXT)
+        self.assertEqual(self._reload(page).search_description, GENERATED_DESCRIPTION)
         self.assertIn(f"PUBLISHED: pk={page.pk}", output)
 
     def test_live_page_is_republished_with_a_new_revision(self):
-        page = self._content_page("republished-page")
+        page = self._content_page("republished-page", search_description="Description à remplacer")
         revision_before = page.get_latest_revision()
 
         self._run()
 
         page = self._reload(page)
         self.assertNotEqual(page.get_latest_revision().pk, revision_before.pk)
-        self.assertEqual(page.get_latest_revision().content["search_description"], LONG_TEXT)
+        self.assertEqual(page.get_latest_revision().content["search_description"], GENERATED_DESCRIPTION)
         self.assertTrue(page.live)
         self.assertFalse(page.has_unpublished_changes)
 
-    def test_generated_description_survives_the_legacy_save_hook(self):
-        # ContentPage.save() still runs the legacy 20-word extractor, which must
-        # not replace the description we just generated.
+    def test_auto_filled_description_is_left_in_place(self):
+        # Create-time save fills the description with the same extractor the
+        # command uses, so a later run leaves that value alone.
         page = self._content_page("content-page")
-        self.assertIn("[…]", page.search_description)
+        self.assertEqual(page.search_description, GENERATED_DESCRIPTION)
+        revision_before = page.get_latest_revision()
 
         self._run()
 
-        description = self._reload(page).search_description
-        self.assertEqual(description, LONG_TEXT)
-        self.assertNotIn("[…]", description)
+        page = self._reload(page)
+        self.assertEqual(page.search_description, GENERATED_DESCRIPTION)
+        self.assertEqual(page.get_latest_revision().pk, revision_before.pk)
 
     def test_publication_page_is_regenerated(self):
         index = self.home.add_child(
@@ -112,7 +118,7 @@ class RegenerateSearchDescriptionsTest(WagtailPageTestCase):
 
         self._run()
 
-        self.assertEqual(PublicationPage.objects.get(pk=page.pk).search_description, LONG_TEXT)
+        self.assertEqual(PublicationPage.objects.get(pk=page.pk).search_description, GENERATED_DESCRIPTION)
 
     def test_not_live_page_without_revision_gets_a_first_revision_and_the_row(self):
         page = self._content_page("draft-page", live=False, search_description="Description à remplacer")
@@ -122,8 +128,8 @@ class RegenerateSearchDescriptionsTest(WagtailPageTestCase):
 
         page = self._reload(page)
         revision = page.get_latest_revision()
-        self.assertEqual(revision.content["search_description"], LONG_TEXT)
-        self.assertEqual(page.search_description, LONG_TEXT)
+        self.assertEqual(revision.content["search_description"], GENERATED_DESCRIPTION)
+        self.assertEqual(page.search_description, GENERATED_DESCRIPTION)
         self.assertFalse(page.live)
         self._assert_shows_in_history(page, revision)
         self.assertIn(f"pk={page.pk} title='Draft page' type=sites_conformes_core.ContentPage", output)
@@ -158,7 +164,7 @@ class RegenerateSearchDescriptionsTest(WagtailPageTestCase):
         revision = page.get_latest_revision()
         self.assertNotEqual(revision.pk, draft_revision.pk)
         self.assertEqual(revision.content["title"], "Titre en cours de rédaction")
-        self.assertEqual(revision.content["search_description"], LONG_TEXT)
+        self.assertEqual(revision.content["search_description"], GENERATED_DESCRIPTION)
         # Nothing is published, so the live row keeps its description.
         self.assertEqual(page.search_description, "Description à remplacer")
         self.assertTrue(page.live)
@@ -236,7 +242,7 @@ class RegenerateSearchDescriptionsTest(WagtailPageTestCase):
                     self._run()
 
         self.assertEqual(self._reload(failing).search_description, "Description à remplacer")
-        self.assertEqual(self._reload(following).search_description, LONG_TEXT)
+        self.assertEqual(self._reload(following).search_description, GENERATED_DESCRIPTION)
 
     def test_page_type_filter_limits_the_run(self):
         content_page = self._content_page("filtered-out-page", search_description="Description à remplacer")

@@ -64,6 +64,9 @@ SF_USE_WHITENOISE = getenv_bool("SF_USE_WHITENOISE", False)
 # Selection order: S3_HOST wins if set, then SF_USE_DB_STORAGE, then filesystem (default)
 SF_USE_DB_STORAGE = getenv_bool("SF_USE_DB_STORAGE", False)
 
+# Ask search engines not to index anything served by this instance (disabled by default)
+SF_NOINDEX = getenv_bool("SF_NOINDEX", False)
+
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
@@ -103,6 +106,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "widget_tweaks",
     "dsfr",
+    "sites_conformes.customimages",
     "sites_conformes.core",
     "sites_conformes.blog",
     "sites_conformes.events",
@@ -135,6 +139,8 @@ if not TESTING and DEBUG and "localhost" in HOST_URL:
 # Middleware definition
 
 MIDDLEWARE = [
+    # Must stay first so that it also wraps WhiteNoise, appended below
+    "sites_conformes.core.middleware.NoIndexMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -438,7 +444,7 @@ LATEST_RELEASE_URL = os.getenv(
 # Human-facing releases page linked from the "new version available" notification (overridable for forks)
 RELEASES_URL = os.getenv("RELEASES_URL", "https://github.com/numerique-gouv/sites-conformes/releases")
 ADVERTISE_LATEST_VERSION = getenv_bool("ADVERTISE_LATEST_VERSION", True)
-
+WAGTAIL_ENABLE_UPDATE_CHECK = False  # Disable Wagtail's own update check, we use our own
 
 # Wagtailmenus: Obsolete, to be removed in a future version (replaced by "sites_conformes.menus")
 WAGTAILMENUS_FLAT_MENUS_HANDLE_CHOICES = (
@@ -466,6 +472,7 @@ WAGTAILMENUS_MAIN_MENUS_EDITABLE_IN_WAGTAILADMIN = False
 
 WAGTAILDOCS_MAX_UPLOAD_SIZE = int(os.getenv("WAGTAILDOCS_MAX_UPLOAD_SIZE", 10 * 1024 * 1024))  # 10MB
 
+WAGTAILIMAGES_IMAGE_MODEL = "sites_conformes_customimages.CustomImage"
 WAGTAILIMAGES_EXTENSIONS = ["gif", "jpg", "jpeg", "png", "webp", "svg"]
 WAGTAILDOCS_EXTENSIONS = ["pdf", "docx", "odt", "xlsx", "ods", "pptx", "odp", "csv", "txt"]
 SF_SCHEME_DEPENDENT_SVGS = getenv_bool("SF_SCHEME_DEPENDENT_SVGS", False)
@@ -566,14 +573,18 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 # sites_conformes.core.middleware.IframeMiddleware.
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
-# Sentry
+# Sentry config
 if sentry_dsn := os.getenv("SENTRY_DSN"):
     import sentry_sdk  # noqa: E402
 
+    # Share of requests traced for performance monitoring; tracing is
+    # disabled while unset.
+    traces_sample_rate = os.getenv("SENTRY_TRACES_SAMPLE_RATE")
     sentry_sdk.init(
         dsn=sentry_dsn,
-        send_default_pii=True,
+        send_default_pii=getenv_bool("SENTRY_SEND_DEFAULT_PII", False),
         environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
+        traces_sample_rate=float(traces_sample_rate) if traces_sample_rate else None,
     )
 
 SENTRY_USE_DEBUG_URL = getenv_bool("SENTRY_USE_DEBUG_URL", False)

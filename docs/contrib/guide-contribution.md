@@ -144,13 +144,7 @@ Pour que cette vérification soit faite systématiquement, nous utilisons des
 Ils doivent être installés via :
 
 ```sh
-pre-commit install
-```
-
-Il est possible de faire une passe manuelle sur l’ensemble du code via :
-
-```sh
-pre-commit run --all-files
+uv run prek install --overwrite
 ```
 
 ## Ajouter une dépendance
@@ -178,3 +172,8 @@ Pensez à committer le `uv.lock` mis à jour avec votre modification.
 
 La recette `just cloc` compte les lignes de code par application.
 Elle nécessite l’outil [`cloc`](https://github.com/AlDanial/cloc).
+
+### test-release
+
+La recette `just test-release` contient des tests supplémentaires, particulièrement
+gourmands en mémoire. Il faut la lancer manuellement avant une release.

@@ -1,25 +1,26 @@
 from unittest.mock import MagicMock, patch
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 from django.utils.translation import gettext
 from wagtail.blocks import BoundBlock, CharBlock, ListBlock
 
-from publications.models import PublicationPage
-from publications.search_description import (
+from sites_conformes.core.abstract import SitesFacilesBasePage
+from sites_conformes.core.blocks.related_entries import BlogRecentEntriesBlock
+from sites_conformes.core.models import ContentPage
+from sites_conformes.core.search_description import (
     SEARCH_DESCRIPTION_MAX_CHARS,
     _html_to_text,
     get_search_description,
     get_streamblock_raw_text,
 )
-from sites_conformes.core.blocks.related_entries import BlogRecentEntriesBlock
 
 
 def _body(data):
-    return PublicationPage._meta.get_field("body").to_python(data)
+    return ContentPage._meta.get_field("body").to_python(data)
 
 
 def _hero(data):
-    return PublicationPage._meta.get_field("hero").to_python(data)
+    return ContentPage._meta.get_field("hero").to_python(data)
 
 
 class SearchDescriptionTestCase(SimpleTestCase):
@@ -113,7 +114,7 @@ class SearchDescriptionTestCase(SimpleTestCase):
         kept = BoundBlock(CharBlock(), "Kept text")
         also_kept = BoundBlock(CharBlock(), "Also kept")
 
-        with self.assertLogs("publications.search_description", level="ERROR"):
+        with self.assertLogs("sites_conformes.core.search_description", level="ERROR"):
             result = get_search_description([kept, BrokenBlock(), also_kept])
 
         self.assertEqual(result, "Kept text. Also kept")
@@ -234,6 +235,25 @@ class SearchDescriptionTestCase(SimpleTestCase):
         self.assertNotIn("https://example.com", result)
         self.assertNotIn(gettext("Opens a new window"), result)
 
+    @override_settings(ALLOWED_HOSTS=["publications.example"])
+    def test_absolute_link_is_extracted_when_localhost_is_not_an_allowed_host(self):
+        body = _body(
+            [
+                {
+                    "type": "link",
+                    "value": {
+                        "link_type": "external_url",
+                        "text": "Read the report",
+                        "external_url": "https://example.com/report",
+                    },
+                }
+            ]
+        )
+
+        result = get_search_description(body)
+
+        self.assertEqual(result, "Read the report")
+
     def test_html_to_text_strips_hidden_and_script_content(self):
         html = (
             "<p>Visible copy.</p>"
@@ -268,6 +288,22 @@ class SearchDescriptionTestCase(SimpleTestCase):
         )
 
         self.assertEqual(get_search_description(body), "Section title. Details here.")
+
+    def test_page_locale_selects_punctuation_spacing(self):
+        body = _body(
+            [
+                {
+                    "type": "paragraph",
+                    "value": "<p>Résultat <b>:</b> blé. Vraiment <b>?</b> Fin<b></b>.</p>",
+                }
+            ]
+        )
+
+        french = type("Page", (), {"locale": type("Locale", (), {"language_code": "fr"})()})()
+        german = type("Page", (), {"locale": type("Locale", (), {"language_code": "de"})()})()
+
+        self.assertEqual(get_search_description(body, page=french), "Résultat : blé. Vraiment ? Fin.")
+        self.assertEqual(get_search_description(body, page=german), "Résultat: blé. Vraiment? Fin.")
 
     def test_table_caption_headings_and_cells_are_extracted(self):
         body = _body(
@@ -323,7 +359,7 @@ class SearchDescriptionTestCase(SimpleTestCase):
         page.hero = None
         page.body = _body([{"type": "paragraph", "value": "<p>Hello from the body.</p>"}])
 
-        PublicationPage._fill_search_description(page)
+        SitesFacilesBasePage._fill_search_description(page)
 
         self.assertEqual(page.search_description, "Hello from the body.")
 
@@ -333,6 +369,6 @@ class SearchDescriptionTestCase(SimpleTestCase):
         page.hero = None
         page.body = _body([{"type": "paragraph", "value": "<p>Hello from the body.</p>"}])
 
-        PublicationPage._fill_search_description(page)
+        SitesFacilesBasePage._fill_search_description(page)
 
         self.assertEqual(page.search_description, "Custom description")
