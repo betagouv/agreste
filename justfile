@@ -82,7 +82,7 @@ init:
 init-dev:
     {{docker_cmd}} uv sync
     just deploy
-    {{docker_cmd}} {{uv_run}} pre-commit install
+    {{docker_cmd}} {{uv_run}} prek install --overwrite
 
 alias messages := makemessages
 # Update the translation files
@@ -145,6 +145,10 @@ create-release *args:
 test app="":
     {{docker_cmd}} {{uv_run}} python manage.py test {{app}} --buffer --parallel --settings config.settings_test
 
+# Slow tests to run before a release (e.g. memory used by the migrations)
+test-release:
+    {{docker_cmd}} env RUN_RELEASE_TESTS=1 {{uv_run}} python manage.py test sites_conformes.core.tests.test_migrate_command.MigrateMemoryTestCase --settings config.settings_test
+
 unittest app="":
     {{docker_cmd}} {{uv_run}} python manage.py test {{app}} --settings config.settings_test
 
@@ -154,7 +158,7 @@ update:
 
 upgrade:
     {{docker_cmd}} uv lock --upgrade
-    {{docker_cmd}} {{uv_run}} pre-commit autoupdate
+    {{docker_cmd}} {{uv_run}} prek update --cooldown-days 7
     {{docker_cmd}} npm update
     just sync-tarteaucitron
     {{docker_cmd}} uv lock --upgrade --project ./demo
@@ -178,6 +182,11 @@ scalingo-postdeploy:
     python manage.py import_page_templates
     python manage.py update_index
 
+# Roll a Scalingo app back to a DB backup and to the code of a given git ref
+[group('Production')]
+scalingo-rollback app region="osc-fr1" ref="":
+    cd scripts && bash rollback_scalingo.sh {{app}} {{region}} {{ref}}
+
 #### Audit-related recipes
 
 # Run the Django system check framework
@@ -185,10 +194,10 @@ scalingo-postdeploy:
 check +apps="":
     {{docker_cmd}} {{uv_run}} python manage.py check {{apps}}
 
-# Run a global pre-commit check
+# Run a global quality check
 [group('Code audit')]
 quality:
-    {{docker_cmd}} {{uv_run}} pre-commit run --all-files
+    {{docker_cmd}} {{uv_run}} prek run --all-files
 
 # Check that all imported packages are declared as dependencies (and vice versa)
 [group('Code audit')]

@@ -166,6 +166,8 @@ adaptez `config` au nom réel du dossier de configuration du projet.
 utilisera pour parler à Gunicorn : plus rapide et plus sûr qu’un port réseau
 pour une communication locale.
 - Règle empirique pour `--workers` : `(2 × nombre de cœurs CPU) + 1`.
+Chaque worker occupe sa propre copie de l’application en mémoire : sur un
+serveur à la mémoire limitée, voir {doc}`gunicorn`.
 - Avec `uv`, remplacez le chemin de l’`ExecStart` par `uv run gunicorn …`
 exécuté dans le répertoire du projet.
 
@@ -255,8 +257,7 @@ jour de semaine 0 = dimanche).
 
 - `update` met à jour l’application (synchronise les dépendances verrouillées et
 redéploie).
-- `upgrade` **monte les versions** des dépendances
-(`uv lock --upgrade`, `pre-commit autoupdate`, `npm update`) :
+- `upgrade` **monte les versions** des dépendances (via `uv`, `prek` et `npm`) :
 c’est une opération de maintenance du dépôt, à réserver au développement,
 pas à un serveur de production.
 :::
