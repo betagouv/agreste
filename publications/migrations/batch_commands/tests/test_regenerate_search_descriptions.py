@@ -82,16 +82,16 @@ class RegenerateSearchDescriptionsTest(WagtailPageTestCase):
         self.assertFalse(page.has_unpublished_changes)
 
     def test_generated_description_survives_the_legacy_save_hook(self):
-        # ContentPage.save() still runs the legacy 20-word extractor, which must
-        # not replace the description we just generated.
+        # ContentPage.save() fills an empty description at 130 characters.
+        # Publishing the longer description must not put that truncation back.
         page = self._content_page("content-page")
-        self.assertIn("[…]", page.search_description)
+        self.assertIn("[...]", page.search_description)
 
         self._run()
 
         description = self._reload(page).search_description
         self.assertEqual(description, LONG_TEXT)
-        self.assertNotIn("[…]", description)
+        self.assertNotIn("[...]", description)
 
     def test_publication_page_is_regenerated(self):
         index = self.home.add_child(
