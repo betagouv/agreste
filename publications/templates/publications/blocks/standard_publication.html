@@ -1,9 +1,21 @@
-{% load wagtailcore_tags %}
+{% load i18n wagtailcore_tags %}
 <div class="cmsfr-block-standard-publication">
   <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--top">
     <div class="fr-col-12 fr-col-md-8">
       {% if value.subtitle %}<h2>{{ value.subtitle }}</h2>{% endif %}
       {% if value.summary %}{{ value.summary|richtext }}{% endif %}
+      {% if value.presentation %}
+        <h2>{% translate "Presentation" %}</h2>
+        {{ value.presentation }}
+      {% endif %}
+      {% if value.additional_information %}
+        <h2>{% translate "Additional information" %}</h2>
+        {{ value.additional_information }}
+      {% endif %}
+      {% if value.notes %}
+        <h2>{% translate "Notes" %}</h2>
+        {{ value.notes|richtext }}
+      {% endif %}
     </div>
     <div class="fr-col-12 fr-col-md-4 cmsfr-block-standard-publication__tiles">
       {% for downloadable_document in value.downloadable_documents.bound_blocks %}
