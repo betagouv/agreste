@@ -69,7 +69,7 @@ class StandardPublicationBlockTestCase(TestCase):
         self.assertNotIn("Presentation body.", tiles.get_text())
 
     def test_renders_without_subtitle_or_summary(self):
-        html = self._render_block(subtitle="", summary="")
+        html = self._render_block(subtitle="", summary="", notes='<p data-block-key="a"></p>')
 
         self.assertIn("cmsfr-block-standard-publication", html)
         self.assertNotIn("<h2>", html)

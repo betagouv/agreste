@@ -12,7 +12,7 @@
         <h2>{% translate "Additional information" %}</h2>
         {{ value.additional_information }}
       {% endif %}
-      {% if value.notes %}
+      {% if value.has_notes %}
         <h2>{% translate "Notes" %}</h2>
         {{ value.notes|richtext }}
       {% endif %}
