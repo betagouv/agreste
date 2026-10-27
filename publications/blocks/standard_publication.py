@@ -39,7 +39,7 @@ class StandardPublicationBlock(blocks.StructBlock):
     )
     notes = blocks.RichTextBlock(
         label=_("Notes"),
-        features=LIMITED_RICHTEXTFIELD_FEATURES,
+        features=[*LIMITED_RICHTEXTFIELD_FEATURES, "ul"],
         required=False,
     )
     downloadable_documents = blocks.ListBlock(

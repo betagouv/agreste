@@ -39,7 +39,7 @@ class StandardPublicationBlockTestCase(TestCase):
         html = self._render_block(
             presentation="<p>Presentation body.</p>",
             additional_information="<p>Additional information body.</p>",
-            notes="<p>Notes body.</p>",
+            notes="<ul><li>Notes body.</li></ul>",
         )
         soup = BeautifulSoup(html, "html.parser")
         first_column = soup.select_one(".fr-col-md-8")
@@ -61,6 +61,7 @@ class StandardPublicationBlockTestCase(TestCase):
         self.assertIn("Publication summary text.", column_text)
         self.assertIn("Presentation body.", column_text)
         self.assertIn("Additional information body.", column_text)
+        self.assertIsNotNone(first_column.find("ul"))
         self.assertIn("Notes body.", column_text)
         self.assertIn("fr-tile--download", str(tiles))
         self.assertIn(gettext("Download publication"), tiles.get_text())
