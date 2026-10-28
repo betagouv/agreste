@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 17:37+0200\n"
+"POT-Creation-Date: 2026-10-27 11:35+0100\n"
 "PO-Revision-Date: 2026-06-08 15:16+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -106,6 +106,22 @@ msgstr "Publications récentes"
 
 msgid "“See all publications” button"
 msgstr "Bouton « Voir toutes les publications »"
+
+msgid ""
+"Warning: Use HTML block with caution. Malicious code can compromise the "
+"security of the site."
+msgstr ""
+"Avertissement : Utilisez le bloc HTML avec précaution. Un code malveillant "
+"peut compromettre la sécurité du site."
+
+msgid "Presentation"
+msgstr "Présentation"
+
+msgid "Additional information"
+msgstr "Informations complémentaires"
+
+msgid "Notes"
+msgstr "Notes"
 
 msgid "Document to download"
 msgstr "Document à télécharger"
