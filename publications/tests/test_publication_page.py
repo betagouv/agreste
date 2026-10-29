@@ -46,6 +46,13 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
             slug="agriculture",
             locale=locale,
         )
+        self.parent_collection = Collection.objects.create(name="Crops", slug="crops", locale=locale)
+        self.child_collection = Collection.objects.create(
+            name="Wheat",
+            slug="wheat",
+            locale=locale,
+            parent=self.parent_collection,
+        )
         self.theme = Theme.objects.create(name="Climate", slug="climate", locale=locale)
         self.statistical_source = StatisticalSource.objects.create(
             name="SSP",
@@ -63,7 +70,7 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
             disaron_id="PostTaxonomies1",
         )
         self.index.add_child(instance=self.post)
-        self.post.collections.add(self.collection)
+        self.post.collections.add(self.collection, self.parent_collection, self.child_collection)
         self.post.themes.add(self.theme)
         self.post.statistical_sources.add(self.statistical_source)
         self.post.reference_years.add(self.reference_year)
@@ -81,6 +88,12 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
         self.assertIsNotNone(collection_link)
         self.assertIsNone(meta_paragraph.find("a", string=self.theme.name))
         self._assert_search_link(collection_link, collection=self.collection.slug)
+        self.assertIn(f"{self.parent_collection.name} > {self.child_collection.name}", meta_paragraph.get_text())
+        parent_links = meta_paragraph.find_all("a", string=self.parent_collection.name)
+        self.assertEqual(len(parent_links), 1)
+        self._assert_search_link(parent_links[0], collection=self.parent_collection.slug)
+        child_link = meta_paragraph.find("a", string=self.child_collection.name)
+        self._assert_search_link(child_link, collection=self.child_collection.slug)
 
         theme_link = soup.select_one("a.fr-tag")
         self.assertEqual(theme_link.get_text(strip=True), self.theme.name)

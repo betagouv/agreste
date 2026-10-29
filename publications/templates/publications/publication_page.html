@@ -55,9 +55,9 @@
         {% translate "Published on" %} <a href="{% pageurl page.get_parent %}{% toggle_url_filter year=page.date.year %}">{{ page.date |date:'l j F Y' }}</a>
         {% if collections %}
           |
-          {% for collection in collections %}
-            <a href="{% search_link collection=collection.slug rank_by='date' %}">{{ collection.name }}</a>
-            {% if not forloop.last %},{% endif %}
+          {% collection_chains collections as chains %}
+          {% for chain in chains %}
+            {% for collection in chain %}<a href="{% search_link collection=collection.slug rank_by='date' %}">{{ collection.name }}</a>{% if not forloop.last %} > {% endif %}{% endfor %}{% if not forloop.last %}, {% endif %}
           {% endfor %}
         {% endif %}
       </p>
