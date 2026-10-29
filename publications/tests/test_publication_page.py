@@ -72,21 +72,34 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
 
     def test_display_metadata(self):
         response = self.client.get(self.post.url)
+        html = response.content.decode()
+        soup = BeautifulSoup(html, "html.parser")
         meta_paragraph = next(
-            paragraph
-            for paragraph in BeautifulSoup(response.content, "html.parser").select("div.fr-container p")
-            if "Publié le" in paragraph.get_text()
+            paragraph for paragraph in soup.select("div.fr-container p") if "Publié le" in paragraph.get_text()
         )
         collection_link = meta_paragraph.find("a", string=self.collection.name)
-        theme_link = meta_paragraph.find("a", string=self.theme.name)
         self.assertIsNotNone(collection_link)
-        self.assertIsNotNone(theme_link)
+        self.assertIsNone(meta_paragraph.find("a", string=self.theme.name))
         self._assert_search_link(collection_link, collection=self.collection.slug)
+
+        theme_link = soup.select_one("a.fr-tag")
+        self.assertEqual(theme_link.get_text(strip=True), self.theme.name)
         self._assert_search_link(theme_link, theme=self.theme.slug)
-        for taxonomy in (self.statistical_source, self.reference_year, self.geographic_level):
-            self.assertIn(taxonomy.name, meta_paragraph.get_text())
-            self.assertIsNone(meta_paragraph.find("a", string=taxonomy.name))
-        self.assertIn("Statistical source colophon.", response.content.decode())
+        self.assertLess(html.find("Publié le"), html.find(self.theme.name))
+
+        labeled_values = {
+            "Sources statistiques": self.statistical_source.name,
+            "Années de référence": self.reference_year.name,
+            "Niveaux géographiques": self.geographic_level.name,
+        }
+        self.assertLess(html.find(self.theme.name), html.find("Sources statistiques"))
+        metadata = soup.find("dl", class_="publication-page__metadata")
+        for label, value in labeled_values.items():
+            term = metadata.find("dt", string=label)
+            description = term.find_next_sibling("dd")
+            self.assertEqual(description.get_text(strip=True), value)
+            self.assertIsNone(description.find("a"))
+        self.assertIn("Statistical source colophon.", html)
 
     def _assert_search_link(self, link, **expected_params):
         parsed = urlparse(link["href"])
