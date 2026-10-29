@@ -7,10 +7,19 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from wagtail.models import Page
+from wagtail.rich_text import RichText
 from wagtail.test.utils import WagtailPageTestCase
 
 from faceted_search.search import RANK_BY_DATE
-from publications.models import Collection, PublicationIndexPage, PublicationPage, Theme
+from publications.models import (
+    Collection,
+    GeographicLevel,
+    PublicationIndexPage,
+    PublicationPage,
+    ReferenceYear,
+    StatisticalSource,
+    Theme,
+)
 
 User = get_user_model()
 
@@ -38,6 +47,14 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
             locale=locale,
         )
         self.theme = Theme.objects.create(name="Climate", slug="climate", locale=locale)
+        self.statistical_source = StatisticalSource.objects.create(
+            name="SSP",
+            slug="ssp",
+            locale=locale,
+            colophon=[("paragraph", RichText("<p>Statistical source colophon.</p>"))],
+        )
+        self.reference_year = ReferenceYear.objects.create(name="2024", slug="2024", locale=locale)
+        self.geographic_level = GeographicLevel.objects.create(name="National", slug="national", locale=locale)
 
         self.post = PublicationPage(
             title="Post with taxonomies",
@@ -48,9 +65,12 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
         self.index.add_child(instance=self.post)
         self.post.collections.add(self.collection)
         self.post.themes.add(self.theme)
+        self.post.statistical_sources.add(self.statistical_source)
+        self.post.reference_years.add(self.reference_year)
+        self.post.geographic_levels.add(self.geographic_level)
         self.post.save_revision().publish()
 
-    def test_display_collections_and_themes(self):
+    def test_display_metadata(self):
         response = self.client.get(self.post.url)
         meta_paragraph = next(
             paragraph
@@ -63,6 +83,10 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
         self.assertIsNotNone(theme_link)
         self._assert_search_link(collection_link, collection=self.collection.slug)
         self._assert_search_link(theme_link, theme=self.theme.slug)
+        for taxonomy in (self.statistical_source, self.reference_year, self.geographic_level):
+            self.assertIn(taxonomy.name, meta_paragraph.get_text())
+            self.assertIsNone(meta_paragraph.find("a", string=taxonomy.name))
+        self.assertIn("Statistical source colophon.", response.content.decode())
 
     def _assert_search_link(self, link, **expected_params):
         parsed = urlparse(link["href"])

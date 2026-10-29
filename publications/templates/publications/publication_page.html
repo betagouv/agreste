@@ -1,4 +1,4 @@
-{# Forked from sites_conformes_blog/blog_entry_page.html: shows collections and themes (and their colophons) instead of blog categories. #}
+{# Forked from sites_conformes_blog/blog_entry_page.html: shows publication taxonomies (and their colophons) instead of blog categories. Collections and themes link to search; statistical sources, reference years, and geographic levels are plain text. #}
 {% extends "publications/base.html" %}
 
 {% load i18n static dsfr_tags wagtailcore_tags wagtailimages_tags wagtail_dsfr_tags publication_tags faceted_search_tags %}
@@ -38,7 +38,7 @@
 {% block content %}
   {% include "sites_conformes_core/blocks/heading.html" %}
 
-  {% with collections=page.collections.all themes=page.themes.all %}
+  {% with collections=page.collections.all themes=page.themes.all statistical_sources=page.statistical_sources.all reference_years=page.reference_years.all geographic_levels=page.geographic_levels.all %}
     <div class="fr-container fr-mt-6w">
       <div class="fr-grid-row fr-grid-row--gutters">
         <div class="fr-col-12">
@@ -67,6 +67,27 @@
             {% if not forloop.last %},{% endif %}
           {% endfor %}
         {% endif %}
+        {% if statistical_sources %}
+          |
+          {% for statistical_source in statistical_sources %}
+            {{ statistical_source.name }}
+            {% if not forloop.last %},{% endif %}
+          {% endfor %}
+        {% endif %}
+        {% if reference_years %}
+          |
+          {% for reference_year in reference_years %}
+            {{ reference_year.name }}
+            {% if not forloop.last %},{% endif %}
+          {% endfor %}
+        {% endif %}
+        {% if geographic_levels %}
+          |
+          {% for geographic_level in geographic_levels %}
+            {{ geographic_level.name }}
+            {% if not forloop.last %},{% endif %}
+          {% endfor %}
+        {% endif %}
       </p>
     </div>
 
@@ -92,6 +113,15 @@
     {% endfor %}
     {% for theme in themes %}
       {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=theme.colophon %}
+    {% endfor %}
+    {% for statistical_source in statistical_sources %}
+      {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=statistical_source.colophon %}
+    {% endfor %}
+    {% for reference_year in reference_years %}
+      {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=reference_year.colophon %}
+    {% endfor %}
+    {% for geographic_level in geographic_levels %}
+      {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=geographic_level.colophon %}
     {% endfor %}
   {% endwith %}
 
