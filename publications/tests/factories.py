@@ -1,7 +1,15 @@
 import factory
 from django.utils.text import slugify
 
-from publications.models import Collection, PublicationIndexPage, PublicationPage, Theme
+from publications.models import (
+    Collection,
+    GeographicLevel,
+    PublicationIndexPage,
+    PublicationPage,
+    ReferenceYear,
+    StatisticalSource,
+    Theme,
+)
 from sites_conformes.blog.tests.factories import DEFAULT_POST_DATE, PublishedPageFactory
 
 
@@ -36,6 +44,27 @@ class PublicationPageFactory(PublishedPageFactory):
             obj.themes.add(theme)
 
     @factory.post_generation
+    def statistical_sources(obj, create, extracted, **kwargs):
+        if not create or not extracted:
+            return
+        for statistical_source in extracted:
+            obj.statistical_sources.add(statistical_source)
+
+    @factory.post_generation
+    def reference_years(obj, create, extracted, **kwargs):
+        if not create or not extracted:
+            return
+        for reference_year in extracted:
+            obj.reference_years.add(reference_year)
+
+    @factory.post_generation
+    def geographic_levels(obj, create, extracted, **kwargs):
+        if not create or not extracted:
+            return
+        for geographic_level in extracted:
+            obj.geographic_levels.add(geographic_level)
+
+    @factory.post_generation
     def tags(obj, create, extracted, **kwargs):
         if not create or not extracted:
             return
@@ -63,4 +92,28 @@ class ThemeFactory(factory.django.DjangoModelFactory):
         model = Theme
 
     name = factory.Sequence(lambda n: f"Theme {n}")
+    slug = factory.LazyAttribute(lambda obj: slugify(obj.name))
+
+
+class StatisticalSourceFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = StatisticalSource
+
+    name = factory.Sequence(lambda n: f"Statistical source {n}")
+    slug = factory.LazyAttribute(lambda obj: slugify(obj.name))
+
+
+class ReferenceYearFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = ReferenceYear
+
+    name = factory.Sequence(lambda n: f"Reference year {n}")
+    slug = factory.LazyAttribute(lambda obj: slugify(obj.name))
+
+
+class GeographicLevelFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = GeographicLevel
+
+    name = factory.Sequence(lambda n: f"Geographic level {n}")
     slug = factory.LazyAttribute(lambda obj: slugify(obj.name))

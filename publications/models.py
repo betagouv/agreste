@@ -33,6 +33,24 @@ class Theme(AbstractTaxonomy):
         verbose_name_plural = _("Themes")
 
 
+class StatisticalSource(AbstractTaxonomy):
+    class Meta(AbstractTaxonomy.Meta):
+        verbose_name = _("Statistical source")
+        verbose_name_plural = _("Statistical sources")
+
+
+class ReferenceYear(AbstractTaxonomy):
+    class Meta(AbstractTaxonomy.Meta):
+        verbose_name = _("Reference year")
+        verbose_name_plural = _("Reference years")
+
+
+class GeographicLevel(AbstractTaxonomy):
+    class Meta(AbstractTaxonomy.Meta):
+        verbose_name = _("Geographic level")
+        verbose_name_plural = _("Geographic levels")
+
+
 class CollectionPublication(Orderable):
     """Through table linking collections to publication pages."""
 
@@ -57,6 +75,48 @@ class ThemePublication(Orderable):
         return str(self.theme)
 
 
+class StatisticalSourcePublication(Orderable):
+    """Through table linking statistical sources to publication pages."""
+
+    statistical_source = models.ForeignKey(
+        StatisticalSource,
+        related_name="+",
+        verbose_name=_("Statistical source"),
+        on_delete=models.CASCADE,
+    )
+    page = ParentalKey("PublicationPage", related_name="entry_statistical_sources")  # type: ignore
+    panels = [FieldPanel("statistical_source")]
+
+    def __str__(self):
+        return str(self.statistical_source)
+
+
+class ReferenceYearPublication(Orderable):
+    """Through table linking reference years to publication pages."""
+
+    reference_year = models.ForeignKey(
+        ReferenceYear, related_name="+", verbose_name=_("Reference year"), on_delete=models.CASCADE
+    )
+    page = ParentalKey("PublicationPage", related_name="entry_reference_years")  # type: ignore
+    panels = [FieldPanel("reference_year")]
+
+    def __str__(self):
+        return str(self.reference_year)
+
+
+class GeographicLevelPublication(Orderable):
+    """Through table linking geographic levels to publication pages."""
+
+    geographic_level = models.ForeignKey(
+        GeographicLevel, related_name="+", verbose_name=_("Geographic level"), on_delete=models.CASCADE
+    )
+    page = ParentalKey("PublicationPage", related_name="entry_geographic_levels")  # type: ignore
+    panels = [FieldPanel("geographic_level")]
+
+    def __str__(self):
+        return str(self.geographic_level)
+
+
 class PublicationPage(BlogEntryPage):
     disaron_id = models.CharField(
         _("Disaron identifier (former Agreste)"),
@@ -75,6 +135,24 @@ class PublicationPage(BlogEntryPage):
         through="ThemePublication",
         blank=True,
         verbose_name=_("Themes"),
+    )
+    statistical_sources = ParentalManyToManyField(
+        "StatisticalSource",
+        through="StatisticalSourcePublication",
+        blank=True,
+        verbose_name=_("Statistical sources"),
+    )
+    reference_years = ParentalManyToManyField(
+        "ReferenceYear",
+        through="ReferenceYearPublication",
+        blank=True,
+        verbose_name=_("Reference years"),
+    )
+    geographic_levels = ParentalManyToManyField(
+        "GeographicLevel",
+        through="GeographicLevelPublication",
+        blank=True,
+        verbose_name=_("Geographic levels"),
     )
 
     parent_page_types = ["publications.PublicationIndexPage"]
@@ -100,9 +178,12 @@ class PublicationPage(BlogEntryPage):
         [
             FieldPanel("collections"),
             FieldPanel("themes"),
+            FieldPanel("statistical_sources"),
+            FieldPanel("reference_years"),
+            FieldPanel("geographic_levels"),
             FieldPanel("tags"),
         ],
-        heading=_("Tags, collections and themes"),
+        heading=_("Metadata"),
     )
 
     api_fields = [
@@ -113,6 +194,9 @@ class PublicationPage(BlogEntryPage):
     ] + [
         APIField("collections"),
         APIField("themes"),
+        APIField("statistical_sources"),
+        APIField("reference_years"),
+        APIField("geographic_levels"),
     ]
 
     def clean(self):

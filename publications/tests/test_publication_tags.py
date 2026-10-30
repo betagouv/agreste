@@ -1,6 +1,7 @@
 from django.test import RequestFactory, SimpleTestCase
 
-from publications.templatetags.publication_tags import toggle_url_filter
+from publications.models import Collection
+from publications.templatetags.publication_tags import collection_chains, toggle_url_filter
 
 
 class ToggleUrlFilterTestBase(SimpleTestCase):
@@ -51,3 +52,30 @@ class ToggleUrlFilterPublicationSpecificTest(ToggleUrlFilterTestBase):
             collection=collection,
         )
         self.assertEqual(result, "?theme=climate&collection=agriculture")
+
+
+class CollectionChainsTest(SimpleTestCase):
+    def test_child_without_assigned_parent_stays_alone(self):
+        parent = Collection(pk=1, name="Parent")
+        child = Collection(pk=2, name="Child", parent=parent)
+        self.assertEqual(collection_chains([child]), [[child]])
+
+    def test_parent_and_child_form_one_chain(self):
+        parent = Collection(pk=1, name="Parent")
+        child = Collection(pk=2, name="Child", parent=parent)
+        self.assertEqual(collection_chains([parent, child]), [[parent, child]])
+
+    def test_two_children_make_two_chains(self):
+        parent = Collection(pk=1, name="Parent")
+        child_a = Collection(pk=2, name="Child A", parent=parent)
+        child_b = Collection(pk=3, name="Child B", parent=parent)
+        self.assertEqual(
+            collection_chains([parent, child_a, child_b]),
+            [[parent, child_a], [parent, child_b]],
+        )
+
+    def test_three_levels_form_one_chain(self):
+        grandparent = Collection(pk=1, name="Grandparent")
+        parent = Collection(pk=2, name="Parent", parent=grandparent)
+        child = Collection(pk=3, name="Child", parent=parent)
+        self.assertEqual(collection_chains([grandparent, parent, child]), [[grandparent, parent, child]])

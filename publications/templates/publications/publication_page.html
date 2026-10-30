@@ -1,4 +1,4 @@
-{# Forked from sites_conformes_blog/blog_entry_page.html: shows collections and themes (and their colophons) instead of blog categories. #}
+{# Forked from sites_conformes_blog/blog_entry_page.html: shows publication taxonomies (and their colophons) instead of blog categories. Collections stay in the date line and themes are search-linked tag chips; statistical sources, reference years, and geographic levels are labeled on the same line as their values. #}
 {% extends "publications/base.html" %}
 
 {% load i18n static dsfr_tags wagtailcore_tags wagtailimages_tags wagtail_dsfr_tags publication_tags faceted_search_tags %}
@@ -38,7 +38,7 @@
 {% block content %}
   {% include "sites_conformes_core/blocks/heading.html" %}
 
-  {% with collections=page.collections.all themes=page.themes.all %}
+  {% with collections=page.collections.all themes=page.themes.all statistical_sources=page.statistical_sources.all reference_years=page.reference_years.all geographic_levels=page.geographic_levels.all %}
     <div class="fr-container fr-mt-6w">
       <div class="fr-grid-row fr-grid-row--gutters">
         <div class="fr-col-12">
@@ -55,19 +55,50 @@
         {% translate "Published on" %} <a href="{% pageurl page.get_parent %}{% toggle_url_filter year=page.date.year %}">{{ page.date |date:'l j F Y' }}</a>
         {% if collections %}
           |
-          {% for collection in collections %}
-            <a href="{% search_link collection=collection.slug rank_by='date' %}">{{ collection.name }}</a>
-            {% if not forloop.last %},{% endif %}
-          {% endfor %}
-        {% endif %}
-        {% if themes %}
-          {% if collections %}|{% endif %}
-          {% for theme in themes %}
-            <a href="{% search_link theme=theme.slug rank_by='date' %}">{{ theme.name }}</a>
-            {% if not forloop.last %},{% endif %}
+          {% collection_chains collections as chains %}
+          {% for chain in chains %}
+            {% for collection in chain %}<a href="{% search_link collection=collection.slug rank_by='date' %}">{{ collection.name }}</a>{% if not forloop.last %} > {% endif %}{% endfor %}{% if not forloop.last %}, {% endif %}
           {% endfor %}
         {% endif %}
       </p>
+      {% if themes %}
+        <ul class="fr-tags-group">
+          {% for theme in themes %}
+            <li>
+              <a class="fr-tag"
+                 href="{% search_link theme=theme.slug rank_by='date' %}">{{ theme.name }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if statistical_sources or reference_years or geographic_levels %}
+        <dl class="publication-page__metadata">
+          {% if statistical_sources %}
+            <dt>{% translate "Source" %}</dt>
+            <dd>
+              {% for statistical_source in statistical_sources %}
+                {{ statistical_source.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </dd>
+          {% endif %}
+          {% if reference_years %}
+            <dt>{% translate "Reference years" %}</dt>
+            <dd>
+              {% for reference_year in reference_years %}
+                {{ reference_year.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </dd>
+          {% endif %}
+          {% if geographic_levels %}
+            <dt>{% translate "Geographic levels" %}</dt>
+            <dd>
+              {% for geographic_level in geographic_levels %}
+                {{ geographic_level.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </dd>
+          {% endif %}
+        </dl>
+      {% endif %}
     </div>
 
     {% include "sites_conformes_core/blocks/messages.html" %}
@@ -92,6 +123,15 @@
     {% endfor %}
     {% for theme in themes %}
       {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=theme.colophon %}
+    {% endfor %}
+    {% for statistical_source in statistical_sources %}
+      {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=statistical_source.colophon %}
+    {% endfor %}
+    {% for reference_year in reference_years %}
+      {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=reference_year.colophon %}
+    {% endfor %}
+    {% for geographic_level in geographic_levels %}
+      {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=geographic_level.colophon %}
     {% endfor %}
   {% endwith %}
 

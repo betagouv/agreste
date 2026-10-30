@@ -8,7 +8,13 @@ class PublicationsConfig(AppConfig):
 
     def ready(self):
         from config.api import api_router
-        from publications.api import CollectionsAPIViewSet, ThemesAPIViewSet
+        from publications.api import (
+            CollectionsAPIViewSet,
+            GeographicLevelsAPIViewSet,
+            ReferenceYearsAPIViewSet,
+            StatisticalSourcesAPIViewSet,
+            ThemesAPIViewSet,
+        )
         from publications.blocks.register_sites_conformes_blocks import register_sites_conformes_blocks
 
         # Inject publication StreamField blocks into Sites Conformes page types at
@@ -17,3 +23,6 @@ class PublicationsConfig(AppConfig):
 
         api_router.register_endpoint("collections", CollectionsAPIViewSet)
         api_router.register_endpoint("themes", ThemesAPIViewSet)
+        api_router.register_endpoint("statistical_sources", StatisticalSourcesAPIViewSet)
+        api_router.register_endpoint("reference_years", ReferenceYearsAPIViewSet)
+        api_router.register_endpoint("geographic_levels", GeographicLevelsAPIViewSet)
