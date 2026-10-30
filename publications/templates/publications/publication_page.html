@@ -74,7 +74,7 @@
       {% if statistical_sources or reference_years or geographic_levels %}
         <dl class="publication-page__metadata">
           {% if statistical_sources %}
-            <dt>{% translate "Statistical sources" %}</dt>
+            <dt>{% translate "Source" %}</dt>
             <dd>
               {% for statistical_source in statistical_sources %}
                 {{ statistical_source.name }}{% if not forloop.last %}, {% endif %}

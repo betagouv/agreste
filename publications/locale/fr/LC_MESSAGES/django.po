@@ -150,6 +150,9 @@ msgstr "Source statistique"
 msgid "Statistical sources"
 msgstr "Sources statistiques"
 
+msgid "Source"
+msgstr "Source"
+
 msgid "Reference year"
 msgstr "Année de référence"
 

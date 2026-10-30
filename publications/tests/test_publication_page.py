@@ -101,11 +101,11 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
         self.assertLess(html.find("Publié le"), html.find(self.theme.name))
 
         labeled_values = {
-            "Sources statistiques": self.statistical_source.name,
+            "Source": self.statistical_source.name,
             "Années de référence": self.reference_year.name,
             "Niveaux géographiques": self.geographic_level.name,
         }
-        self.assertLess(html.find(self.theme.name), html.find("Sources statistiques"))
+        self.assertLess(html.find(self.theme.name), html.find("Source"))
         metadata = soup.find("dl", class_="publication-page__metadata")
         for label, value in labeled_values.items():
             term = metadata.find("dt", string=label)
