@@ -14,3 +14,24 @@
 .cmsfr-block-standard-publication__tiles .fr-tile {
   height: auto;
 }
+
+/* Label column is as wide as the longest label, so the labels end on one edge and the values start on the next. */
+.publication-page__metadata {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 1rem;
+  row-gap: 0.5rem;
+  justify-content: start;
+  margin: 1rem 0 2rem;
+}
+
+.publication-page__metadata dt {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+}
+
+.publication-page__metadata dd {
+  margin: 0;
+  text-align: left;
+}

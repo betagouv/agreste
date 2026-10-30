@@ -5,7 +5,14 @@ from wagtail.admin.viewsets.pages import PageViewSet
 from wagtail.snippets.models import register_snippet
 from wagtail.snippets.views.snippets import SnippetViewSet
 
-from publications.models import Collection, PublicationPage, Theme
+from publications.models import (
+    Collection,
+    GeographicLevel,
+    PublicationPage,
+    ReferenceYear,
+    StatisticalSource,
+    Theme,
+)
 
 
 class CollectionViewSet(SnippetViewSet):
@@ -16,6 +23,21 @@ class CollectionViewSet(SnippetViewSet):
 class ThemeViewSet(SnippetViewSet):
     model = Theme
     icon = "tag"  # type: ignore
+
+
+class StatisticalSourceViewSet(SnippetViewSet):
+    model = StatisticalSource
+    icon = "doc-full-inverse"  # type: ignore
+
+
+class ReferenceYearViewSet(SnippetViewSet):
+    model = ReferenceYear
+    icon = "date"  # type: ignore
+
+
+class GeographicLevelViewSet(SnippetViewSet):
+    model = GeographicLevel
+    icon = "site"  # type: ignore
 
 
 class PublicationPageViewSet(PageViewSet):
@@ -31,6 +53,9 @@ class PublicationPageViewSet(PageViewSet):
 
 register_snippet(CollectionViewSet)
 register_snippet(ThemeViewSet)
+register_snippet(StatisticalSourceViewSet)
+register_snippet(ReferenceYearViewSet)
+register_snippet(GeographicLevelViewSet)
 
 
 @hooks.register("register_admin_viewset")
