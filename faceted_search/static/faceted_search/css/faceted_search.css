@@ -107,3 +107,42 @@
 #search-results .fr-card__detail {
     align-items: center;
 }
+
+/* Taxonomy rows reuse .fr-card__detail so they share the "Publié le" size,
+   colour, and line-height. Each label starts at the same left edge as that
+   line, and the value follows it. */
+#search-results .fr-card__end {
+    min-width: 0;
+}
+
+#search-results .agr-result-metadata {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+/* The date line's calendar icon is 1rem with a 0.5rem gap. Start these rows
+   where "Publié le" starts, not under the icon. */
+#search-results .fr-icon-calendar-line + .agr-result-metadata {
+    padding-left: 1.5rem;
+}
+
+#search-results .agr-result-metadata > .fr-card__detail {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    column-gap: 0.5rem;
+    align-items: baseline;
+    margin: 0;
+    text-align: left;
+}
+
+#search-results .agr-result-metadata__label {
+    flex: 0 0 auto;
+}
+
+#search-results .agr-result-metadata__value {
+    min-width: 0;
+    text-align: left;
+    overflow-wrap: break-word;
+}
