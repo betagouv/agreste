@@ -51,6 +51,12 @@ class GeographicLevel(AbstractTaxonomy):
         verbose_name_plural = _("Geographic levels")
 
 
+class Modality(AbstractTaxonomy):
+    class Meta(AbstractTaxonomy.Meta):
+        verbose_name = _("Modality")
+        verbose_name_plural = _("Modalities")
+
+
 class CollectionPublication(Orderable):
     """Through table linking collections to publication pages."""
 
@@ -117,6 +123,17 @@ class GeographicLevelPublication(Orderable):
         return str(self.geographic_level)
 
 
+class ModalityPublication(Orderable):
+    """Through table linking modalities to publication pages."""
+
+    modality = models.ForeignKey(Modality, related_name="+", verbose_name=_("Modality"), on_delete=models.CASCADE)
+    page = ParentalKey("PublicationPage", related_name="entry_modalities")  # type: ignore
+    panels = [FieldPanel("modality")]
+
+    def __str__(self):
+        return str(self.modality)
+
+
 class PublicationPage(BlogEntryPage):
     disaron_id = models.CharField(
         _("Disaron identifier (former Agreste)"),
@@ -154,6 +171,12 @@ class PublicationPage(BlogEntryPage):
         blank=True,
         verbose_name=_("Geographic levels"),
     )
+    modalities = ParentalManyToManyField(
+        "Modality",
+        through="ModalityPublication",
+        blank=True,
+        verbose_name=_("Modalities"),
+    )
 
     parent_page_types = ["publications.PublicationIndexPage"]
     subpage_types = []
@@ -181,6 +204,7 @@ class PublicationPage(BlogEntryPage):
             FieldPanel("statistical_sources"),
             FieldPanel("reference_years"),
             FieldPanel("geographic_levels"),
+            FieldPanel("modalities"),
             FieldPanel("tags"),
         ],
         heading=_("Metadata"),
@@ -197,6 +221,7 @@ class PublicationPage(BlogEntryPage):
         APIField("statistical_sources"),
         APIField("reference_years"),
         APIField("geographic_levels"),
+        APIField("modalities"),
     ]
 
     def clean(self):

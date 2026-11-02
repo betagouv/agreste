@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-29 16:16+0100\n"
+"POT-Creation-Date: 2026-11-02 11:37+0100\n"
 "PO-Revision-Date: 2026-06-08 15:16+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -150,9 +150,6 @@ msgstr "Source statistique"
 msgid "Statistical sources"
 msgstr "Sources statistiques"
 
-msgid "Source"
-msgstr "Source"
-
 msgid "Reference year"
 msgstr "Année de référence"
 
@@ -164,6 +161,12 @@ msgstr "Niveau géographique"
 
 msgid "Geographic levels"
 msgstr "Niveaux géographiques"
+
+msgid "Modality"
+msgstr "Modalité"
+
+msgid "Modalities"
+msgstr "Modalités"
 
 msgid "Disaron identifier (former Agreste)"
 msgstr "Identifiant Disaron (ancien Agreste)"
@@ -269,6 +272,9 @@ msgstr "non-sélectionné"
 
 msgid "Posts"
 msgstr "Articles"
+
+msgid "Source"
+msgstr "Source"
 
 msgid "Posted by:"
 msgstr "Écrit par :"
