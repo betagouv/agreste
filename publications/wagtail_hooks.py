@@ -8,6 +8,7 @@ from wagtail.snippets.views.snippets import SnippetViewSet
 from publications.models import (
     Collection,
     GeographicLevel,
+    Modality,
     PublicationPage,
     ReferenceYear,
     StatisticalSource,
@@ -40,6 +41,11 @@ class GeographicLevelViewSet(SnippetViewSet):
     icon = "site"  # type: ignore
 
 
+class ModalityViewSet(SnippetViewSet):
+    model = Modality
+    icon = "list-ul"  # type: ignore
+
+
 class PublicationPageViewSet(PageViewSet):
     """Explorer listing used when opening a publication index."""
 
@@ -56,6 +62,7 @@ register_snippet(ThemeViewSet)
 register_snippet(StatisticalSourceViewSet)
 register_snippet(ReferenceYearViewSet)
 register_snippet(GeographicLevelViewSet)
+register_snippet(ModalityViewSet)
 
 
 @hooks.register("register_admin_viewset")

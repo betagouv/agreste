@@ -14,6 +14,7 @@ from faceted_search.search import RANK_BY_DATE
 from publications.models import (
     Collection,
     GeographicLevel,
+    Modality,
     PublicationIndexPage,
     PublicationPage,
     ReferenceYear,
@@ -62,6 +63,7 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
         )
         self.reference_year = ReferenceYear.objects.create(name="2024", slug="2024", locale=locale)
         self.geographic_level = GeographicLevel.objects.create(name="National", slug="national", locale=locale)
+        self.modality = Modality.objects.create(name="Survey", slug="survey", locale=locale)
 
         self.post = PublicationPage(
             title="Post with taxonomies",
@@ -75,6 +77,7 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
         self.post.statistical_sources.add(self.statistical_source)
         self.post.reference_years.add(self.reference_year)
         self.post.geographic_levels.add(self.geographic_level)
+        self.post.modalities.add(self.modality)
         self.post.save_revision().publish()
 
     def test_display_metadata(self):
@@ -104,6 +107,7 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
             "Source": self.statistical_source.name,
             "Années de référence": self.reference_year.name,
             "Niveaux géographiques": self.geographic_level.name,
+            "Modalités": self.modality.name,
         }
         self.assertLess(html.find(self.theme.name), html.find("Source"))
         metadata = soup.find("dl", class_="publication-page__metadata")

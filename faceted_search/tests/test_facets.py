@@ -39,6 +39,7 @@ from faceted_search.views import FacetedSearchResultsView
 from publications.tests.factories import (
     CollectionFactory,
     GeographicLevelFactory,
+    ModalityFactory,
     PublicationIndexPageFactory,
     PublicationPageFactory,
     ReferenceYearFactory,
@@ -1066,10 +1067,11 @@ class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
         self.assertEqual(result_li.select_one(".fr-card__desc").get_text(strip=True), "A plain description")
         self.assertIsNone(result_li.select_one(".agr-result-metadata"))
 
-    def test_search_results_show_source_reference_year_and_geographic_level(self):
+    def test_search_results_show_metadata(self):
         source = StatisticalSourceFactory(locale=self.index.locale, name="SSP")
         year = ReferenceYearFactory(locale=self.index.locale, name="2024")
         level = GeographicLevelFactory(locale=self.index.locale, name="National")
+        modality = ModalityFactory(locale=self.index.locale, name="Survey")
         post = self.entry_page_factory(
             parent=self.index,
             owner=self.admin,
@@ -1078,12 +1080,14 @@ class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
             statistical_sources=[source],
             reference_years=[year],
             geographic_levels=[level],
+            modalities=[modality],
         )
         metadata = self._result_item(post.title).select_one(".agr-result-metadata")
         labeled_values = {
             "Source": source.name,
             "Années de référence": year.name,
             "Niveaux géographiques": level.name,
+            "Modalités": modality.name,
         }
         for label, value in labeled_values.items():
             term = metadata.find("span", class_="agr-result-metadata__label", string=f"{label}\u00a0:")

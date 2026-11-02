@@ -11,6 +11,7 @@ class PublicationsConfig(AppConfig):
         from publications.api import (
             CollectionsAPIViewSet,
             GeographicLevelsAPIViewSet,
+            ModalitiesAPIViewSet,
             ReferenceYearsAPIViewSet,
             StatisticalSourcesAPIViewSet,
             ThemesAPIViewSet,
@@ -26,3 +27,4 @@ class PublicationsConfig(AppConfig):
         api_router.register_endpoint("statistical_sources", StatisticalSourcesAPIViewSet)
         api_router.register_endpoint("reference_years", ReferenceYearsAPIViewSet)
         api_router.register_endpoint("geographic_levels", GeographicLevelsAPIViewSet)
+        api_router.register_endpoint("modalities", ModalitiesAPIViewSet)

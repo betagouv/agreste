@@ -38,7 +38,7 @@
 {% block content %}
   {% include "sites_conformes_core/blocks/heading.html" %}
 
-  {% with collections=page.collections.all themes=page.themes.all statistical_sources=page.statistical_sources.all reference_years=page.reference_years.all geographic_levels=page.geographic_levels.all %}
+  {% with collections=page.collections.all themes=page.themes.all statistical_sources=page.statistical_sources.all reference_years=page.reference_years.all geographic_levels=page.geographic_levels.all modalities=page.modalities.all %}
     <div class="fr-container fr-mt-6w">
       <div class="fr-grid-row fr-grid-row--gutters">
         <div class="fr-col-12">
@@ -71,7 +71,7 @@
           {% endfor %}
         </ul>
       {% endif %}
-      {% if statistical_sources or reference_years or geographic_levels %}
+      {% if statistical_sources or reference_years or geographic_levels or modalities %}
         <dl class="publication-page__metadata">
           {% if statistical_sources %}
             <dt>{% translate "Source" %}</dt>
@@ -94,6 +94,14 @@
             <dd>
               {% for geographic_level in geographic_levels %}
                 {{ geographic_level.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </dd>
+          {% endif %}
+          {% if modalities %}
+            <dt>{% translate "Modalities" %}</dt>
+            <dd>
+              {% for modality in modalities %}
+                {{ modality.name }}{% if not forloop.last %}, {% endif %}
               {% endfor %}
             </dd>
           {% endif %}
@@ -132,6 +140,9 @@
     {% endfor %}
     {% for geographic_level in geographic_levels %}
       {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=geographic_level.colophon %}
+    {% endfor %}
+    {% for modality in modalities %}
+      {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=modality.colophon %}
     {% endfor %}
   {% endwith %}
 

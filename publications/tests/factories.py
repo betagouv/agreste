@@ -4,6 +4,7 @@ from django.utils.text import slugify
 from publications.models import (
     Collection,
     GeographicLevel,
+    Modality,
     PublicationIndexPage,
     PublicationPage,
     ReferenceYear,
@@ -65,6 +66,13 @@ class PublicationPageFactory(PublishedPageFactory):
             obj.geographic_levels.add(geographic_level)
 
     @factory.post_generation
+    def modalities(obj, create, extracted, **kwargs):
+        if not create or not extracted:
+            return
+        for modality in extracted:
+            obj.modalities.add(modality)
+
+    @factory.post_generation
     def tags(obj, create, extracted, **kwargs):
         if not create or not extracted:
             return
@@ -116,4 +124,12 @@ class GeographicLevelFactory(factory.django.DjangoModelFactory):
         model = GeographicLevel
 
     name = factory.Sequence(lambda n: f"Geographic level {n}")
+    slug = factory.LazyAttribute(lambda obj: slugify(obj.name))
+
+
+class ModalityFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Modality
+
+    name = factory.Sequence(lambda n: f"Modality {n}")
     slug = factory.LazyAttribute(lambda obj: slugify(obj.name))
