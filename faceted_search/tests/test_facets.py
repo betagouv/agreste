@@ -38,8 +38,11 @@ from faceted_search.search import RANK_BY_RELEVANCE
 from faceted_search.views import FacetedSearchResultsView
 from publications.tests.factories import (
     CollectionFactory,
+    GeographicLevelFactory,
     PublicationIndexPageFactory,
     PublicationPageFactory,
+    ReferenceYearFactory,
+    StatisticalSourceFactory,
     ThemeFactory,
 )
 from publications.tests.test_publication_index_page import PublicationIndexPageFilterTestBase
@@ -1061,6 +1064,34 @@ class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
         self.assertIsNone(result_li.select_one(".fr-card__detail"))
         self.assertEqual(result_li.select(".fr-tag"), [])
         self.assertEqual(result_li.select_one(".fr-card__desc").get_text(strip=True), "A plain description")
+        self.assertIsNone(result_li.select_one(".agr-result-metadata"))
+
+    def test_search_results_show_source_reference_year_and_geographic_level(self):
+        source = StatisticalSourceFactory(locale=self.index.locale, name="SSP")
+        year = ReferenceYearFactory(locale=self.index.locale, name="2024")
+        level = GeographicLevelFactory(locale=self.index.locale, name="National")
+        post = self.entry_page_factory(
+            parent=self.index,
+            owner=self.admin,
+            title="Post with metadata taxonomies",
+            slug="post-with-metadata-taxonomies",
+            statistical_sources=[source],
+            reference_years=[year],
+            geographic_levels=[level],
+        )
+        metadata = self._result_item(post.title).select_one(".agr-result-metadata")
+        labeled_values = {
+            "Source": source.name,
+            "Années de référence": year.name,
+            "Niveaux géographiques": level.name,
+        }
+        for label, value in labeled_values.items():
+            term = metadata.find("span", class_="agr-result-metadata__label", string=f"{label}\u00a0:")
+            row = term.parent
+            self.assertIn("fr-card__detail", row["class"])
+            description = term.find_next_sibling("span", class_="agr-result-metadata__value")
+            self.assertEqual(description.get_text(strip=True), value)
+            self.assertIsNone(description.find("a"))
 
 
 class FacetCountsWithRankingTest(WagtailPageTestCase):

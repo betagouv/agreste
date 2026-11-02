@@ -26,17 +26,34 @@
             {% endif %}
           {% endwith %}
           {% result_collections post as collections %}
-          {% if post.date or collections %}
-            <div class="fr-card__end">
-              <p class="fr-card__detail{% if post.date %} fr-icon-calendar-line{% endif %}">
-                {% if post.date %}{% translate "Published on" %} {{ post.date|date:"j F Y" }}{% endif %}
-                {% if post.date and collections %} | {% endif %}
-                {% for collection in collections %}
-                  {{ collection.name }}{% if not forloop.last %} | {% endif %}
-                {% endfor %}
-              </p>
-            </div>
-          {% endif %}
+          {% with statistical_sources=post.statistical_sources.all reference_years=post.reference_years.all geographic_levels=post.geographic_levels.all %}
+            {% if post.date or collections or statistical_sources or reference_years or geographic_levels %}
+              <div class="fr-card__end">
+                {% if post.date or collections %}
+                  <p class="fr-card__detail{% if post.date %} fr-icon-calendar-line{% endif %}">
+                    {% if post.date %}{% translate "Published on" %} {{ post.date|date:"j F Y" }}{% endif %}
+                    {% if post.date and collections %} | {% endif %}
+                    {% for collection in collections %}
+                      {{ collection.name }}{% if not forloop.last %} | {% endif %}
+                    {% endfor %}
+                  </p>
+                {% endif %}
+                {% if statistical_sources or reference_years or geographic_levels %}
+                  <div class="agr-result-metadata">
+                    {% if statistical_sources %}
+                      <p class="fr-card__detail"><span class="agr-result-metadata__label">{% translate "Source" %}&nbsp;:</span><span class="agr-result-metadata__value">{% for statistical_source in statistical_sources %}{{ statistical_source.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></p>
+                    {% endif %}
+                    {% if reference_years %}
+                      <p class="fr-card__detail"><span class="agr-result-metadata__label">{% translate "Reference years" %}&nbsp;:</span><span class="agr-result-metadata__value">{% for reference_year in reference_years %}{{ reference_year.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></p>
+                    {% endif %}
+                    {% if geographic_levels %}
+                      <p class="fr-card__detail"><span class="agr-result-metadata__label">{% translate "Geographic levels" %}&nbsp;:</span><span class="agr-result-metadata__value">{% for geographic_level in geographic_levels %}{{ geographic_level.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></p>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              </div>
+            {% endif %}
+          {% endwith %}
         {% endwith %}
       </div>
     </div>
