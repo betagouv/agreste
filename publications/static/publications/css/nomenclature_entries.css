@@ -4,17 +4,46 @@
 
 .nomenclature-entries [data-streamfield-list-container] {
   display: grid;
-  grid-template-columns: auto minmax(0, max-content);
+  /* A stretched column centers the plus when the list is empty. Pack to the start. */
+  grid-template-columns: max-content minmax(0, max-content);
+  justify-content: start;
+  justify-items: start;
   align-items: center;
-  column-gap: 0.25rem;
-  row-gap: 0.35rem;
+  column-gap: 0.5rem;
+  row-gap: 0.5rem;
+  width: 100%;
 }
 
 .nomenclature-entries .c-sf-add-button {
   margin: 0;
-  justify-self: center;
+  justify-self: start;
+  align-self: center;
   position: static;
   top: auto;
+}
+
+/* The plus under the last row repeats the one on that row. Keep the sole plus when the list is empty. */
+.nomenclature-entries [data-streamfield-list-container] > .c-sf-add-button:last-child:not(:only-child) {
+  display: none;
+}
+
+/* Wagtail's field box is taller than the input, so a centered plus sits off the fields. */
+.nomenclature-entries .w-panel--nested .w-field__wrapper,
+.nomenclature-entries .w-field__wrapper {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  max-width: none;
+}
+
+.nomenclature-entries .w-field__input {
+  margin-top: 0;
+}
+
+.nomenclature-entries [data-streamfield-child] .w-panel__controls {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
 }
 
 .nomenclature-entries [data-streamfield-child] {
@@ -28,6 +57,7 @@
   gap: 0.5rem;
   width: fit-content;
   max-width: 100%;
+  margin: 0;
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -41,6 +71,10 @@
   padding: 0;
   background: none;
   border: 0;
+}
+
+.nomenclature-entries [data-streamfield-child] > .w-panel > .w-panel__content::after {
+  content: none;
 }
 
 .nomenclature-entries [data-streamfield-child] > .w-panel > .w-panel__header {
@@ -62,11 +96,6 @@
 .nomenclature-entries [data-streamfield-child] .w-panel__heading,
 .nomenclature-entries [data-streamfield-child] .w-panel__divider {
   display: none;
-}
-
-.nomenclature-entries [data-streamfield-child] .w-panel__controls {
-  display: flex;
-  align-items: center;
 }
 
 .nomenclature-entry {
