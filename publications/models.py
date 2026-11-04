@@ -9,9 +9,11 @@ from modelcluster.fields import ParentalKey, ParentalManyToManyField
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.api import APIField
 from wagtail.contrib.routable_page.models import path
+from wagtail.fields import StreamField
 from wagtail.models import Orderable
 from wagtail.search import index
 
+from publications.blocks.nomenclature import NomenclatureStreamBlock
 from publications.taxonomy import (
     AbstractTaxonomy,
     get_taxonomies_for_index,
@@ -177,6 +179,13 @@ class PublicationPage(BlogEntryPage):
         blank=True,
         verbose_name=_("Modalities"),
     )
+    nomenclatures = StreamField(
+        NomenclatureStreamBlock,
+        blank=True,
+        default=list,
+        use_json_field=True,
+        verbose_name=_("Nomenclatures"),
+    )
 
     parent_page_types = ["publications.PublicationIndexPage"]
     subpage_types = []
@@ -209,6 +218,7 @@ class PublicationPage(BlogEntryPage):
         ],
         heading=_("Metadata"),
     )
+    settings_panels.append(FieldPanel("nomenclatures"))
 
     api_fields = [
         # Exclude blog_categories from the API fields
@@ -262,7 +272,7 @@ class PublicationIndexPage(BlogIndexPage):
 
     @property
     def posts(self):
-        posts = PublicationPage.objects.descendant_of(self).live()
+        posts = PublicationPage.objects.descendant_of(self).live().defer("nomenclatures")
         posts = (
             posts.order_by("-date")
             .select_related("owner")

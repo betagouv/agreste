@@ -1,0 +1,17 @@
+/* Code and label share one row. The list block still supplies add, insert, and move.
+   Wagtail text inputs use 1.25rem of padding on each side, so the code column
+   adds that padding to 15ch and about 15 characters stay visible. */
+.nomenclature-entry {
+  display: grid;
+  grid-template-columns: calc(15ch + 2.5rem) minmax(0, 1fr);
+  column-gap: 1rem;
+  align-items: start;
+}
+
+.nomenclature-entry > [data-contentpath] {
+  min-width: 0;
+}
+
+.nomenclature-entry > [data-contentpath="code"] input {
+  min-width: 0;
+}
