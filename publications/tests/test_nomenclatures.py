@@ -31,8 +31,8 @@ class NomenclatureModalitiesTest(SimpleTestCase):
     def test_new_table_has_code_and_name_and_no_rows(self):
         default = self.block.get_default()
 
-        self.assertEqual([column["block"].name for column in default.columns], ["code", "name"])
-        self.assertEqual([column["heading"] for column in default.columns], [_("Code"), _("Name")])
+        self.assertEqual([column["block"].name for column in default.columns], ["code", "name", "code_old"])
+        self.assertEqual([column["heading"] for column in default.columns], [_("Code"), _("Name"), ""])
         self.assertEqual(default.row_data, [])
         self.assertEqual(default.caption, "")
 
@@ -59,9 +59,34 @@ class NomenclatureModalitiesTest(SimpleTestCase):
             "modalities",
         )
 
-        self.assertEqual([column["heading"] for column in table.columns], [_("Code"), _("Name")])
+        self.assertEqual([column["heading"] for column in table.columns], [_("Code"), _("Name"), ""])
+        self.assertEqual([column["block"].name for column in table.columns], ["code", "name", "code_old"])
         self.assertEqual(table.caption, "")
-        self.assertEqual(table.row_data[0]["values"], ["1", "World"])
+        self.assertEqual(table.row_data[0]["values"], ["1", "World", ""])
+
+    def test_blank_code_old_is_valid(self):
+        cleaned = self.block.clean(modalities(("1", "World")))
+
+        self.assertEqual(cleaned.row_data[0]["values"], ["1", "World", ""])
+
+    def test_code_old_is_kept(self):
+        cleaned = self.block.clean([{"code": "1", "name": "World", "code_old": "25"}])
+
+        self.assertEqual(cleaned.row_data[0]["values"], ["1", "World", "25"])
+
+    def test_two_column_row_loads_with_empty_code_old(self):
+        table = self.block.to_python(
+            {
+                "columns": [
+                    {"type": "code", "heading": "Code"},
+                    {"type": "name", "heading": "Name"},
+                ],
+                "rows": [{"values": ["1", "World"]}],
+                "caption": "",
+            }
+        )
+
+        self.assertEqual(table.row_data[0]["values"], ["1", "World", ""])
 
     def test_codes_in_numeric_order_are_valid(self):
         cleaned = self.block.clean(
