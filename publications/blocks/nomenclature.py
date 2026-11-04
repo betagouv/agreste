@@ -1,4 +1,4 @@
-"""Publication nomenclature rows, edited as a fixed two-column table and checked as a numeric tree."""
+"""Publication nomenclature rows, edited as a code and name table and checked as a numeric tree."""
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext, gettext_lazy as _
@@ -18,13 +18,15 @@ CODE_MAX_LENGTH = 64
 MODALITY_NAME_MAX_LENGTH = 255
 CODE_COLUMN = "code"
 NAME_COLUMN = "name"
+CODE_OLD_COLUMN = "code_old"
 
 
 class NomenclatureModalitiesBlock(TypedTableBlock):
-    """Code and name columns. The editor cannot add, remove, or rename columns."""
+    """Code and name columns, plus a former code that is stored and not shown."""
 
     code = blocks.CharBlock(label=_("Code"), max_length=CODE_MAX_LENGTH, search_index=False)
     name = blocks.CharBlock(label=_("Name"), max_length=MODALITY_NAME_MAX_LENGTH, search_index=False)
+    code_old = blocks.CharBlock(required=False, max_length=CODE_MAX_LENGTH, search_index=False)
 
     class Meta:
         icon = "table"
@@ -42,7 +44,16 @@ class NomenclatureModalitiesBlock(TypedTableBlock):
         if isinstance(value, list):
             return TypedTable(
                 columns=self._fixed_columns(),
-                row_data=[{"values": [_cell(item, CODE_COLUMN), _cell(item, NAME_COLUMN)]} for item in value],
+                row_data=[
+                    {
+                        "values": [
+                            _cell(item, CODE_COLUMN),
+                            _cell(item, NAME_COLUMN),
+                            _cell(item, CODE_OLD_COLUMN),
+                        ]
+                    }
+                    for item in value
+                ],
                 caption="",
             )
         if isinstance(value, dict) and "columns" in value:
@@ -109,15 +120,17 @@ class NomenclatureModalitiesBlock(TypedTableBlock):
         return [
             {"block": self.child_blocks[CODE_COLUMN], "heading": gettext("Code")},
             {"block": self.child_blocks[NAME_COLUMN], "heading": gettext("Name")},
+            {"block": self.child_blocks[CODE_OLD_COLUMN], "heading": ""},
         ]
 
     def _locked(self, table):
-        """Keep cell values and replace whatever columns were posted with code and name."""
+        """Keep cell values and force the columns to code, name, and code_old."""
         indexes = {}
         for index, column in enumerate(table.columns):
             indexes.setdefault(column["block"].name, index)
         code_index = indexes.get(CODE_COLUMN)
         name_index = indexes.get(NAME_COLUMN)
+        code_old_index = indexes.get(CODE_OLD_COLUMN)
         row_data = []
         for row in table.row_data:
             values = row["values"]
@@ -126,6 +139,7 @@ class NomenclatureModalitiesBlock(TypedTableBlock):
                     "values": [
                         _value_at(values, code_index),
                         _value_at(values, name_index),
+                        _value_at(values, code_old_index),
                     ]
                 }
             )
