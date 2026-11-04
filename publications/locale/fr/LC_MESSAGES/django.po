@@ -281,3 +281,30 @@ msgstr "Écrit par :"
 
 msgid "Disaron identifier"
 msgstr "Identifiant disaron"
+
+msgid "Nomenclatures"
+msgstr "Nomenclatures"
+
+msgid "Code"
+msgstr "Code"
+
+msgid "Nomenclature name"
+msgstr "Nom de la nomenclature"
+
+msgid "Nomenclature"
+msgstr "Nomenclature"
+
+msgid "Line %(line)s: code “%(code)s” must be dot-separated numbers."
+msgstr "Ligne %(line)s : le code « %(code)s » doit être une suite de nombres séparés par des points."
+
+msgid "Line %(line)s: code “%(code)s” is already used on line %(earlier)s."
+msgstr "Ligne %(line)s : le code « %(code)s » est déjà utilisé à la ligne %(earlier)s."
+
+msgid "Line %(line)s: code “%(code)s” has no parent “%(parent)s” above it."
+msgstr "Ligne %(line)s : le code « %(code)s » n'a pas de parent « %(parent)s » au-dessus."
+
+msgid "Line %(line)s: code “%(code)s” is out of order. It should come before “%(earlier_code)s” (line %(earlier)s)."
+msgstr "Ligne %(line)s : le code « %(code)s » n'est pas dans l'ordre. Il devrait précéder « %(earlier_code)s » (ligne %(earlier)s)."
+
+msgid "Line %(line)s: nomenclature name “%(name)s” is already used on line %(earlier)s."
+msgstr "Ligne %(line)s : le nom de nomenclature « %(name)s » est déjà utilisé à la ligne %(earlier)s."
