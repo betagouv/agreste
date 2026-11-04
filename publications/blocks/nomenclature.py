@@ -62,28 +62,32 @@ class NomenclatureModalitiesBlock(TypedTableBlock):
         previous = None
         for index, row in enumerate(cleaned.row_data):
             code = _text(row["values"][0])
+            name = _text(row["values"][1])
             parsed = _parse_code(code)
             line = index + 1
+            if not name:
+                # Draft saves skip CharBlock's required check, so an empty name has to be rejected here.
+                errors.setdefault(index, {})[1] = ValidationError(gettext("This field is required."))
             if parsed is None:
-                errors[index] = _code_cell_error(
+                errors.setdefault(index, {})[0] = ValidationError(
                     gettext("Line %(line)s: code “%(code)s” must be dot-separated numbers.")
                     % {"line": line, "code": code}
                 )
                 continue
             if parsed in seen:
-                errors[index] = _code_cell_error(
+                errors.setdefault(index, {})[0] = ValidationError(
                     gettext("Line %(line)s: code “%(code)s” is already used on line %(earlier)s.")
                     % {"line": line, "code": code, "earlier": seen[parsed]}
                 )
                 continue
             if len(parsed) > 1 and parsed[:-1] not in seen:
-                errors[index] = _code_cell_error(
+                errors.setdefault(index, {})[0] = ValidationError(
                     gettext("Line %(line)s: code “%(code)s” has no parent “%(parent)s” above it.")
                     % {"line": line, "code": code, "parent": _format_code(parsed[:-1])}
                 )
                 continue
             if previous is not None and parsed <= previous[0]:
-                errors[index] = _code_cell_error(
+                errors.setdefault(index, {})[0] = ValidationError(
                     gettext(
                         "Line %(line)s: code “%(code)s” is out of order. "
                         "It should come before “%(earlier_code)s” (line %(earlier)s)."
@@ -173,10 +177,6 @@ class NomenclatureStreamBlock(blocks.StreamBlock):
         if errors:
             raise StreamBlockValidationError(block_errors=errors)
         return cleaned
-
-
-def _code_cell_error(message):
-    return {0: ValidationError(message)}
 
 
 def _cell(item, key):

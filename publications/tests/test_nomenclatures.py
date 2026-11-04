@@ -75,6 +75,13 @@ class NomenclatureModalitiesTest(SimpleTestCase):
 
         self.assertEqual(row_codes(cleaned), ["1", "1.2"])
 
+    def test_empty_name_points_at_that_row(self):
+        for clean in (self.block.clean, self.block.clean_deferred):
+            with self.assertRaises(TypedTableBlockValidationError) as caught:
+                clean(modalities(("1", "World"), ("1.1", "  ")))
+
+            self.assertEqual(caught.exception.cell_errors[1][1].messages, [_("This field is required.")])
+
     def test_empty_code_points_at_that_row(self):
         with self.assertRaises(TypedTableBlockValidationError) as caught:
             self.block.clean(modalities(("1", "World"), ("", "Europe")))
