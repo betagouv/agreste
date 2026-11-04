@@ -118,6 +118,36 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
             self.assertIsNone(description.find("a"))
         self.assertIn("Statistical source colophon.", html)
 
+    def test_display_nomenclatures(self):
+        self.post.nomenclatures = [
+            (
+                "nomenclature",
+                {
+                    "name": "Crop codes",
+                    "modalities": [{"code": "1.2", "name": "Wheat belt", "code_old": "legacy-code-99"}],
+                },
+            )
+        ]
+        self.post.save_revision().publish()
+
+        response = self.client.get(self.post.url)
+        soup = BeautifulSoup(response.content, "html.parser")
+        section = soup.find("div", class_="publication-nomenclatures")
+        button = section.select_one(".fr-accordion__btn")
+        self.assertEqual(button.get("aria-expanded"), "false")
+        self.assertEqual(button.get_text(strip=True), "Crop codes")
+        panel = section.find(id=button["aria-controls"])
+        self.assertNotIn("fr-collapse--expanded", panel.get("class", []))
+        headers = [header.get_text(strip=True) for header in panel.select("th")]
+        self.assertEqual(headers, ["Code", "Nom"])
+        cells = [cell.get_text(strip=True) for cell in panel.select("tbody td")]
+        self.assertEqual(cells, ["1.2", "Wheat belt"])
+        self.assertNotIn("legacy-code-99", response.content.decode())
+
+        search = self.client.get(reverse("cms_search"))
+        result = BeautifulSoup(search.content, "html.parser").find("a", string=self.post.title).find_parent("li")
+        self.assertNotIn("Crop codes", result.get_text())
+
     def _assert_search_link(self, link, **expected_params):
         parsed = urlparse(link["href"])
         self.assertEqual(parsed.path, reverse("cms_search"))
