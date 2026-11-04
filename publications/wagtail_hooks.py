@@ -75,3 +75,8 @@ def register_publication_page_viewset():
 @hooks.register("insert_global_admin_css")
 def nomenclature_editor_css():
     return format_html('<link rel="stylesheet" href="{}">', static("publications/css/nomenclature_entries.css"))
+
+
+@hooks.register("insert_global_admin_js")
+def nomenclature_editor_js():
+    return format_html('<script src="{}"></script>', static("publications/js/nomenclature_modalities.js"))

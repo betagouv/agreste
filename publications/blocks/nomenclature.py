@@ -1,68 +1,92 @@
-"""Publication nomenclature rows, edited as a Wagtail list and checked as a numeric tree."""
+"""Publication nomenclature rows, edited as a fixed two-column table and checked as a numeric tree."""
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext, gettext_lazy as _
 from wagtail import blocks
-from wagtail.blocks.list_block import ListBlockValidationError
+from wagtail.admin.telepath import register
 from wagtail.blocks.stream_block import StreamBlockValidationError
 from wagtail.blocks.struct_block import StructBlockValidationError
+from wagtail.contrib.typed_table_block.blocks import (
+    TypedTable,
+    TypedTableBlock,
+    TypedTableBlockAdapter,
+    TypedTableBlockValidationError,
+)
 
 NAME_MAX_LENGTH = 150
 CODE_MAX_LENGTH = 64
 MODALITY_NAME_MAX_LENGTH = 255
+CODE_COLUMN = "code"
+NAME_COLUMN = "name"
 
 
-class NomenclatureEntryBlock(blocks.StructBlock):
+class NomenclatureModalitiesBlock(TypedTableBlock):
+    """Code and name columns. The editor cannot add, remove, or rename columns."""
+
     code = blocks.CharBlock(label=_("Code"), max_length=CODE_MAX_LENGTH, search_index=False)
     name = blocks.CharBlock(label=_("Name"), max_length=MODALITY_NAME_MAX_LENGTH, search_index=False)
 
     class Meta:
-        icon = "list-ul"
-        label_format = "{code} — {name}"
-        collapsed = False
-        form_classname = "struct-block nomenclature-entry"
+        icon = "table"
+        label = _("Modalities")
 
+    def get_default(self):
+        return self._empty_table()
 
-class NomenclatureEntryListBlock(blocks.ListBlock):
-    """Rows of code and name. Wagtail supplies add, insert, and move."""
+    def normalize(self, value):
+        if isinstance(value, TypedTable):
+            return self._locked(value)
+        return self.to_python(value)
 
-    class Meta:
-        default = []
-        min_num = 0
-        form_classname = "nomenclature-entries"
+    def to_python(self, value):
+        if isinstance(value, list):
+            return TypedTable(
+                columns=self._fixed_columns(),
+                row_data=[{"values": [_cell(item, CODE_COLUMN), _cell(item, NAME_COLUMN)]} for item in value],
+                caption="",
+            )
+        if isinstance(value, dict) and "columns" in value:
+            return self._locked(super().to_python(value))
+        if not value:
+            return self._empty_table()
+        return self._locked(super().to_python(value))
+
+    def value_from_datadict(self, data, files, prefix):
+        return self._locked(super().value_from_datadict(data, files, prefix))
 
     def clean(self, value):
-        cleaned = super().clean(value)
+        table = value if isinstance(value, TypedTable) else self.to_python(value)
+        cleaned = super().clean(self._locked(table))
         errors = {}
         seen = {}
         previous = None
-        for index, child in enumerate(cleaned):
-            code = _row_code(child)
+        for index, row in enumerate(cleaned.row_data):
+            code = _text(row["values"][0])
             parsed = _parse_code(code)
             line = index + 1
             if parsed is None:
-                errors[index] = _code_error(
+                errors[index] = _code_cell_error(
                     gettext("Line %(line)s: code “%(code)s” must be dot-separated numbers.")
                     % {"line": line, "code": code}
                 )
                 continue
             if parsed in seen:
-                errors[index] = _code_error(
+                errors[index] = _code_cell_error(
                     gettext("Line %(line)s: code “%(code)s” is already used on line %(earlier)s.")
                     % {"line": line, "code": code, "earlier": seen[parsed]}
                 )
                 continue
             if len(parsed) > 1 and parsed[:-1] not in seen:
-                errors[index] = _code_error(
+                errors[index] = _code_cell_error(
                     gettext("Line %(line)s: code “%(code)s” has no parent “%(parent)s” above it.")
                     % {"line": line, "code": code, "parent": _format_code(parsed[:-1])}
                 )
                 continue
             if previous is not None and parsed <= previous[0]:
-                errors[index] = _code_error(
+                errors[index] = _code_cell_error(
                     gettext(
                         "Line %(line)s: code “%(code)s” is out of order. "
-                        "It should come before line %(earlier)s (“%(earlier_code)s”)."
+                        "It should come before “%(earlier_code)s” (line %(earlier)s)."
                     )
                     % {"line": line, "code": code, "earlier": previous[1], "earlier_code": previous[2]}
                 )
@@ -71,15 +95,52 @@ class NomenclatureEntryListBlock(blocks.ListBlock):
             previous = (parsed, line, code)
 
         if errors:
-            raise ListBlockValidationError(block_errors=errors)
+            raise TypedTableBlockValidationError(cell_errors=errors)
         return cleaned
+
+    def _empty_table(self):
+        return TypedTable(columns=self._fixed_columns(), row_data=[], caption="")
+
+    def _fixed_columns(self):
+        return [
+            {"block": self.child_blocks[CODE_COLUMN], "heading": gettext("Code")},
+            {"block": self.child_blocks[NAME_COLUMN], "heading": gettext("Name")},
+        ]
+
+    def _locked(self, table):
+        """Keep cell values and replace whatever columns were posted with code and name."""
+        indexes = {}
+        for index, column in enumerate(table.columns):
+            indexes.setdefault(column["block"].name, index)
+        code_index = indexes.get(CODE_COLUMN)
+        name_index = indexes.get(NAME_COLUMN)
+        row_data = []
+        for row in table.row_data:
+            values = row["values"]
+            row_data.append(
+                {
+                    "values": [
+                        _value_at(values, code_index),
+                        _value_at(values, name_index),
+                    ]
+                }
+            )
+        return TypedTable(columns=self._fixed_columns(), row_data=row_data, caption="")
+
+
+class NomenclatureModalitiesBlockAdapter(TypedTableBlockAdapter):
+    def js_args(self, block):
+        args = super().js_args(block)
+        args[3]["classname"] = "nomenclature-modalities"
+        return args
+
+
+register(NomenclatureModalitiesBlockAdapter(), NomenclatureModalitiesBlock)
 
 
 class NomenclatureBlock(blocks.StructBlock):
     name = blocks.CharBlock(label=_("Nomenclature name"), max_length=NAME_MAX_LENGTH, search_index=False)
-    modalities = NomenclatureEntryListBlock(
-        NomenclatureEntryBlock(), label=_("Modalities : code and name"), search_index=False
-    )
+    modalities = NomenclatureModalitiesBlock(label=_("Modalities"), search_index=False)
 
     class Meta:
         icon = "list-ul"
@@ -114,15 +175,26 @@ class NomenclatureStreamBlock(blocks.StreamBlock):
         return cleaned
 
 
-def _code_error(message):
-    return StructBlockValidationError(block_errors={"code": ValidationError(message)})
+def _code_cell_error(message):
+    return {0: ValidationError(message)}
 
 
-def _row_code(child):
-    code = child["code"]
-    if not isinstance(code, str):
+def _cell(item, key):
+    if isinstance(item, dict):
+        return _text(item.get(key, ""))
+    return ""
+
+
+def _value_at(values, index):
+    if index is None or index >= len(values):
         return ""
-    return code.strip()
+    return values[index]
+
+
+def _text(value):
+    if not isinstance(value, str):
+        return ""
+    return value.strip()
 
 
 def _parse_code(code):

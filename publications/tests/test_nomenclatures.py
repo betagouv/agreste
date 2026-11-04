@@ -2,17 +2,13 @@ from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase
 from django.urls import reverse
 from django.utils.translation import gettext as _
-from wagtail.blocks.list_block import ListBlockValidationError
 from wagtail.blocks.stream_block import StreamBlockValidationError
 from wagtail.blocks.struct_block import StructBlockValidationError
+from wagtail.contrib.typed_table_block.blocks import TypedTableBlockValidationError
 from wagtail.models import Page
 from wagtail.test.utils import WagtailPageTestCase
 
-from publications.blocks.nomenclature import (
-    NomenclatureEntryBlock,
-    NomenclatureEntryListBlock,
-    NomenclatureStreamBlock,
-)
+from publications.blocks.nomenclature import NomenclatureModalitiesBlock, NomenclatureStreamBlock
 from publications.models import PublicationIndexPage, PublicationPage
 
 
@@ -20,44 +16,73 @@ def modalities(*rows):
     return [{"code": code, "name": name} for code, name in rows]
 
 
+def row_codes(table):
+    return [row["values"][0] for row in table.row_data]
+
+
 def code_message(error, index):
-    row_error = error.block_errors[index]
-    if not isinstance(row_error, StructBlockValidationError):
-        raise AssertionError(row_error)
-    return row_error.block_errors["code"].messages[0]
+    return error.cell_errors[index][0].messages[0]
 
 
-class NomenclatureEntryListTest(SimpleTestCase):
+class NomenclatureModalitiesTest(SimpleTestCase):
     def setUp(self):
-        self.block = NomenclatureEntryListBlock(NomenclatureEntryBlock())
+        self.block = NomenclatureModalitiesBlock()
 
-    def test_new_entry_list_starts_empty(self):
-        self.assertEqual(len(self.block.get_default()), 0)
+    def test_new_table_has_code_and_name_and_no_rows(self):
+        default = self.block.get_default()
+
+        self.assertEqual([column["block"].name for column in default.columns], ["code", "name"])
+        self.assertEqual([column["heading"] for column in default.columns], [_("Code"), _("Name")])
+        self.assertEqual(default.row_data, [])
+        self.assertEqual(default.caption, "")
+
+    def test_posted_headings_and_caption_are_ignored(self):
+        table = self.block.value_from_datadict(
+            {
+                "modalities-caption": "Ignore me",
+                "modalities-column-count": "2",
+                "modalities-column-0-type": "code",
+                "modalities-column-0-order": "0",
+                "modalities-column-0-heading": "Nope",
+                "modalities-column-0-deleted": "",
+                "modalities-column-1-type": "name",
+                "modalities-column-1-order": "1",
+                "modalities-column-1-heading": "Also nope",
+                "modalities-column-1-deleted": "",
+                "modalities-row-count": "1",
+                "modalities-row-0-order": "0",
+                "modalities-row-0-deleted": "",
+                "modalities-cell-0-0": "1",
+                "modalities-cell-0-1": "World",
+            },
+            {},
+            "modalities",
+        )
+
+        self.assertEqual([column["heading"] for column in table.columns], [_("Code"), _("Name")])
+        self.assertEqual(table.caption, "")
+        self.assertEqual(table.row_data[0]["values"], ["1", "World"])
 
     def test_codes_in_numeric_order_are_valid(self):
         cleaned = self.block.clean(
             modalities(("1", "World"), ("1.1", "Europe"), ("1.2", "Asia"), ("1.10", "Oceania"), ("2", "Other"))
         )
 
-        self.assertEqual([row["code"] for row in cleaned], ["1", "1.1", "1.2", "1.10", "2"])
+        self.assertEqual(row_codes(cleaned), ["1", "1.1", "1.2", "1.10", "2"])
 
     def test_a_gap_in_numbering_is_valid(self):
         cleaned = self.block.clean(modalities(("1", "World"), ("1.2", "Asia")))
 
-        self.assertEqual([row["code"] for row in cleaned], ["1", "1.2"])
+        self.assertEqual(row_codes(cleaned), ["1", "1.2"])
 
     def test_empty_code_points_at_that_row(self):
-        with self.assertRaises(ListBlockValidationError) as caught:
+        with self.assertRaises(TypedTableBlockValidationError) as caught:
             self.block.clean(modalities(("1", "World"), ("", "Europe")))
 
-        self.assertIn("code", caught.exception.block_errors[1].block_errors)
-        self.assertEqual(
-            caught.exception.block_errors[1].block_errors["code"].messages,
-            [_("This field is required.")],
-        )
+        self.assertEqual(caught.exception.cell_errors[1][0].messages, [_("This field is required.")])
 
     def test_malformed_code_points_at_that_row(self):
-        with self.assertRaises(ListBlockValidationError) as caught:
+        with self.assertRaises(TypedTableBlockValidationError) as caught:
             self.block.clean(modalities(("1", "World"), ("1.1", "Europe"), ("1.2", "Asia"), ("1.a", "Bad")))
 
         self.assertEqual(
@@ -66,7 +91,7 @@ class NomenclatureEntryListTest(SimpleTestCase):
         )
 
     def test_duplicate_code_points_at_the_later_row(self):
-        with self.assertRaises(ListBlockValidationError) as caught:
+        with self.assertRaises(TypedTableBlockValidationError) as caught:
             self.block.clean(
                 modalities(
                     ("1", "World"),
@@ -85,7 +110,7 @@ class NomenclatureEntryListTest(SimpleTestCase):
         )
 
     def test_leading_zeros_are_the_same_code(self):
-        with self.assertRaises(ListBlockValidationError) as caught:
+        with self.assertRaises(TypedTableBlockValidationError) as caught:
             self.block.clean(modalities(("1", "World"), ("01", "World again")))
 
         self.assertEqual(
@@ -95,7 +120,7 @@ class NomenclatureEntryListTest(SimpleTestCase):
         )
 
     def test_missing_parent_points_at_that_row(self):
-        with self.assertRaises(ListBlockValidationError) as caught:
+        with self.assertRaises(TypedTableBlockValidationError) as caught:
             self.block.clean(modalities(("1", "World"), ("1.1", "Europe"), ("1.1.1", "France"), ("1.2.1", "Japan")))
 
         self.assertEqual(
@@ -105,7 +130,7 @@ class NomenclatureEntryListTest(SimpleTestCase):
         )
 
     def test_out_of_order_code_points_at_that_row(self):
-        with self.assertRaises(ListBlockValidationError) as caught:
+        with self.assertRaises(TypedTableBlockValidationError) as caught:
             self.block.clean(
                 modalities(("1", "World"), ("1.2", "Asia"), ("1.2.1", "Japan"), ("2", "Other"), ("1.1", "Europe"))
             )
@@ -114,7 +139,7 @@ class NomenclatureEntryListTest(SimpleTestCase):
             code_message(caught.exception, 4),
             _(
                 "Line %(line)s: code “%(code)s” is out of order. "
-                "It should come before line %(earlier)s (“%(earlier_code)s”)."
+                "It should come before “%(earlier_code)s” (line %(earlier)s)."
             )
             % {"line": 5, "code": "1.1", "earlier": 4, "earlier_code": "2"},
         )
@@ -133,7 +158,7 @@ class NomenclatureStreamTest(SimpleTestCase):
         )
 
         self.assertEqual(
-            [row["code"] for child in cleaned for row in child.value["modalities"]],
+            [code for child in cleaned for code in row_codes(child.value["modalities"])],
             ["1", "1"],
         )
 
@@ -171,3 +196,4 @@ class NomenclatureEditorStylesheetTest(WagtailPageTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "nomenclature_entries.css")
+        self.assertContains(response, "nomenclature_modalities.js")

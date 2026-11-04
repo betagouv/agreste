@@ -1,128 +1,52 @@
-/* One line per modality: plus aligned with the row, code, name, then Wagtail's action icons.
-   Wagtail text inputs use 1.25rem of padding on each side, so the code column
-   adds that padding to 8ch and about eight characters stay visible. */
+/* Fixed code and name columns. Wagtail's typed table otherwise lets the editor add columns,
+   and gives every cell a 20rem minimum width. Text inputs use 1.25rem of padding on each side,
+   so the code column adds that padding to 8ch. */
 
-.nomenclature-entries [data-streamfield-list-container] {
-  display: grid;
-  /* A stretched column centers the plus when the list is empty. Pack to the start. */
-  grid-template-columns: max-content minmax(0, max-content);
-  justify-content: start;
-  justify-items: start;
-  align-items: center;
-  column-gap: 0.5rem;
-  row-gap: 0.5rem;
-  width: 100%;
-}
-
-.nomenclature-entries .c-sf-add-button {
-  margin: 0;
-  justify-self: start;
-  align-self: center;
-  position: static;
-  top: auto;
-}
-
-/* The plus under the last row repeats the one on that row. Keep the sole plus when the list is empty. */
-.nomenclature-entries [data-streamfield-list-container] > .c-sf-add-button:last-child:not(:only-child) {
+.typed-table-block.nomenclature-modalities > .w-field__wrapper {
   display: none;
 }
 
-/* Wagtail's field box is taller than the input, so a centered plus sits off the fields. */
-.nomenclature-entries .w-panel--nested .w-field__wrapper,
-.nomenclature-entries .w-field__wrapper {
-  margin-bottom: 0;
-  padding-bottom: 0;
-  max-width: none;
+.typed-table-block.nomenclature-modalities .append-column,
+.typed-table-block.nomenclature-modalities .prepend-column,
+.typed-table-block.nomenclature-modalities .delete-column,
+.typed-table-block.nomenclature-modalities .add-column-menu,
+.typed-table-block.nomenclature-modalities thead tr > th:last-child {
+  display: none;
 }
 
-.nomenclature-entries .w-field__input {
-  margin-top: 0;
-}
-
-.nomenclature-entries [data-streamfield-child] .w-panel__controls {
-  display: flex;
-  align-items: center;
-  margin: 0;
-  padding: 0;
-}
-
-.nomenclature-entries [data-streamfield-child] {
-  grid-column: 2;
-}
-
-.nomenclature-entries [data-streamfield-child] > .w-panel {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-  width: fit-content;
-  max-width: 100%;
-  margin: 0;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-}
-
-.nomenclature-entries [data-streamfield-child] > .w-panel > .w-panel__content {
-  order: 1;
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  background: none;
-  border: 0;
-}
-
-.nomenclature-entries [data-streamfield-child] > .w-panel > .w-panel__content::after {
-  content: none;
-}
-
-.nomenclature-entries [data-streamfield-child] > .w-panel > .w-panel__header {
-  order: 2;
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: 0;
+.typed-table-block.nomenclature-modalities .typed-table-block__wrapper {
   min-height: 0;
-  margin: 0;
-  padding: 0;
+}
+
+.typed-table-block.nomenclature-modalities table {
+  margin-top: 0.75rem;
+}
+
+.typed-table-block.nomenclature-modalities th input.column-heading {
+  border: 0;
   background: transparent;
-  border: 0;
-  transform: none;
-}
-
-.nomenclature-entries [data-streamfield-child] .w-panel__anchor,
-.nomenclature-entries [data-streamfield-child] .w-panel__toggle,
-.nomenclature-entries [data-streamfield-child] .w-panel__heading,
-.nomenclature-entries [data-streamfield-child] .w-panel__divider {
-  display: none;
-}
-
-.nomenclature-entry {
-  display: grid;
-  grid-template-columns: calc(8ch + 2.5rem) minmax(12rem, 28rem);
-  column-gap: 0.5rem;
-  align-items: center;
-}
-
-.nomenclature-entry > [data-contentpath] {
-  min-width: 0;
-}
-
-.nomenclature-entry > [data-contentpath="code"] input {
-  min-width: 0;
-}
-
-/* The names stay available to the inputs; they do not take a line. */
-.nomenclature-entries .nomenclature-entry > [data-contentpath] > .w-field__label {
-  border: 0;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
+  box-shadow: none;
   padding: 0;
-  position: absolute;
-  white-space: nowrap;
-  width: 1px;
+  min-height: 0;
+  width: 100%;
+  pointer-events: none;
+  font-weight: 700;
+}
+
+.typed-table-block.nomenclature-modalities thead tr > th:nth-child(2),
+.typed-table-block.nomenclature-modalities tbody tr > td:nth-child(2) {
+  width: calc(8ch + 2.5rem);
+  min-width: calc(8ch + 2.5rem);
+  max-width: calc(8ch + 2.5rem);
+}
+
+.typed-table-block.nomenclature-modalities thead tr > th:nth-child(3),
+.typed-table-block.nomenclature-modalities tbody tr > td:nth-child(3) {
+  width: 28rem;
+  min-width: 12rem;
+  max-width: 28rem;
+}
+
+.typed-table-block.nomenclature-modalities tbody tr > td:nth-child(2) input {
+  min-width: 0;
 }
