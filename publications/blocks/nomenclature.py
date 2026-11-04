@@ -9,26 +9,27 @@ from wagtail.blocks.struct_block import StructBlockValidationError
 
 NAME_MAX_LENGTH = 150
 CODE_MAX_LENGTH = 64
-LABEL_MAX_LENGTH = 255
+MODALITY_NAME_MAX_LENGTH = 255
 
 
 class NomenclatureEntryBlock(blocks.StructBlock):
     code = blocks.CharBlock(label=_("Code"), max_length=CODE_MAX_LENGTH, search_index=False)
-    label = blocks.CharBlock(label=_("Label"), max_length=LABEL_MAX_LENGTH, search_index=False)
+    name = blocks.CharBlock(label=_("Name"), max_length=MODALITY_NAME_MAX_LENGTH, search_index=False)
 
     class Meta:
         icon = "list-ul"
-        label_format = "{code} — {label}"
+        label_format = "{code} — {name}"
         collapsed = False
         form_classname = "struct-block nomenclature-entry"
 
 
 class NomenclatureEntryListBlock(blocks.ListBlock):
-    """Rows of code and label. Wagtail supplies add, insert, and move."""
+    """Rows of code and name. Wagtail supplies add, insert, and move."""
 
     class Meta:
         default = []
         min_num = 0
+        form_classname = "nomenclature-entries"
 
     def clean(self, value):
         cleaned = super().clean(value)
@@ -76,7 +77,9 @@ class NomenclatureEntryListBlock(blocks.ListBlock):
 
 class NomenclatureBlock(blocks.StructBlock):
     name = blocks.CharBlock(label=_("Nomenclature name"), max_length=NAME_MAX_LENGTH, search_index=False)
-    entries = NomenclatureEntryListBlock(NomenclatureEntryBlock(), label=_("Entries"), search_index=False)
+    modalities = NomenclatureEntryListBlock(
+        NomenclatureEntryBlock(), label=_("Modalities : code and name"), search_index=False
+    )
 
     class Meta:
         icon = "list-ul"

@@ -288,14 +288,11 @@ msgstr "Nomenclatures"
 msgid "Code"
 msgstr "Code"
 
-msgid "Label"
-msgstr "Libellé"
-
 msgid "Nomenclature name"
 msgstr "Nom de la nomenclature"
 
-msgid "Entries"
-msgstr "Entrées"
+msgid "Modalities : code and name"
+msgstr "Modalités : code et nom"
 
 msgid "Nomenclature"
 msgstr "Nomenclature"

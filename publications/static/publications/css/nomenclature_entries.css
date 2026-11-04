@@ -1,11 +1,79 @@
-/* Code and label share one row. The list block still supplies add, insert, and move.
+/* One line per modality: plus aligned with the row, code, name, then Wagtail's action icons.
    Wagtail text inputs use 1.25rem of padding on each side, so the code column
-   adds that padding to 15ch and about 15 characters stay visible. */
+   adds that padding to 8ch and about eight characters stay visible. */
+
+.nomenclature-entries [data-streamfield-list-container] {
+  display: grid;
+  grid-template-columns: auto minmax(0, max-content);
+  align-items: center;
+  column-gap: 0.25rem;
+  row-gap: 0.35rem;
+}
+
+.nomenclature-entries .c-sf-add-button {
+  margin: 0;
+  justify-self: center;
+  position: static;
+  top: auto;
+}
+
+.nomenclature-entries [data-streamfield-child] {
+  grid-column: 2;
+}
+
+.nomenclature-entries [data-streamfield-child] > .w-panel {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  max-width: 100%;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.nomenclature-entries [data-streamfield-child] > .w-panel > .w-panel__content {
+  order: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+.nomenclature-entries [data-streamfield-child] > .w-panel > .w-panel__header {
+  order: 2;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  transform: none;
+}
+
+.nomenclature-entries [data-streamfield-child] .w-panel__anchor,
+.nomenclature-entries [data-streamfield-child] .w-panel__toggle,
+.nomenclature-entries [data-streamfield-child] .w-panel__heading,
+.nomenclature-entries [data-streamfield-child] .w-panel__divider {
+  display: none;
+}
+
+.nomenclature-entries [data-streamfield-child] .w-panel__controls {
+  display: flex;
+  align-items: center;
+}
+
 .nomenclature-entry {
   display: grid;
-  grid-template-columns: calc(15ch + 2.5rem) minmax(0, 1fr);
-  column-gap: 1rem;
-  align-items: start;
+  grid-template-columns: calc(8ch + 2.5rem) minmax(12rem, 28rem);
+  column-gap: 0.5rem;
+  align-items: center;
 }
 
 .nomenclature-entry > [data-contentpath] {
@@ -14,4 +82,18 @@
 
 .nomenclature-entry > [data-contentpath="code"] input {
   min-width: 0;
+}
+
+/* The names stay available to the inputs; they do not take a line. */
+.nomenclature-entries .nomenclature-entry > [data-contentpath] > .w-field__label {
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }

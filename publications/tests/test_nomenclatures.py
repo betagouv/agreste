@@ -16,8 +16,8 @@ from publications.blocks.nomenclature import (
 from publications.models import PublicationIndexPage, PublicationPage
 
 
-def entries(*rows):
-    return [{"code": code, "label": label} for code, label in rows]
+def modalities(*rows):
+    return [{"code": code, "name": name} for code, name in rows]
 
 
 def code_message(error, index):
@@ -36,19 +36,19 @@ class NomenclatureEntryListTest(SimpleTestCase):
 
     def test_codes_in_numeric_order_are_valid(self):
         cleaned = self.block.clean(
-            entries(("1", "World"), ("1.1", "Europe"), ("1.2", "Asia"), ("1.10", "Oceania"), ("2", "Other"))
+            modalities(("1", "World"), ("1.1", "Europe"), ("1.2", "Asia"), ("1.10", "Oceania"), ("2", "Other"))
         )
 
         self.assertEqual([row["code"] for row in cleaned], ["1", "1.1", "1.2", "1.10", "2"])
 
     def test_a_gap_in_numbering_is_valid(self):
-        cleaned = self.block.clean(entries(("1", "World"), ("1.2", "Asia")))
+        cleaned = self.block.clean(modalities(("1", "World"), ("1.2", "Asia")))
 
         self.assertEqual([row["code"] for row in cleaned], ["1", "1.2"])
 
     def test_empty_code_points_at_that_row(self):
         with self.assertRaises(ListBlockValidationError) as caught:
-            self.block.clean(entries(("1", "World"), ("", "Europe")))
+            self.block.clean(modalities(("1", "World"), ("", "Europe")))
 
         self.assertIn("code", caught.exception.block_errors[1].block_errors)
         self.assertEqual(
@@ -58,7 +58,7 @@ class NomenclatureEntryListTest(SimpleTestCase):
 
     def test_malformed_code_points_at_that_row(self):
         with self.assertRaises(ListBlockValidationError) as caught:
-            self.block.clean(entries(("1", "World"), ("1.1", "Europe"), ("1.2", "Asia"), ("1.a", "Bad")))
+            self.block.clean(modalities(("1", "World"), ("1.1", "Europe"), ("1.2", "Asia"), ("1.a", "Bad")))
 
         self.assertEqual(
             code_message(caught.exception, 3),
@@ -68,7 +68,7 @@ class NomenclatureEntryListTest(SimpleTestCase):
     def test_duplicate_code_points_at_the_later_row(self):
         with self.assertRaises(ListBlockValidationError) as caught:
             self.block.clean(
-                entries(
+                modalities(
                     ("1", "World"),
                     ("1.1", "Europe"),
                     ("1.2", "Asia"),
@@ -86,7 +86,7 @@ class NomenclatureEntryListTest(SimpleTestCase):
 
     def test_leading_zeros_are_the_same_code(self):
         with self.assertRaises(ListBlockValidationError) as caught:
-            self.block.clean(entries(("1", "World"), ("01", "World again")))
+            self.block.clean(modalities(("1", "World"), ("01", "World again")))
 
         self.assertEqual(
             code_message(caught.exception, 1),
@@ -96,7 +96,7 @@ class NomenclatureEntryListTest(SimpleTestCase):
 
     def test_missing_parent_points_at_that_row(self):
         with self.assertRaises(ListBlockValidationError) as caught:
-            self.block.clean(entries(("1", "World"), ("1.1", "Europe"), ("1.1.1", "France"), ("1.2.1", "Japan")))
+            self.block.clean(modalities(("1", "World"), ("1.1", "Europe"), ("1.1.1", "France"), ("1.2.1", "Japan")))
 
         self.assertEqual(
             code_message(caught.exception, 3),
@@ -107,7 +107,7 @@ class NomenclatureEntryListTest(SimpleTestCase):
     def test_out_of_order_code_points_at_that_row(self):
         with self.assertRaises(ListBlockValidationError) as caught:
             self.block.clean(
-                entries(("1", "World"), ("1.2", "Asia"), ("1.2.1", "Japan"), ("2", "Other"), ("1.1", "Europe"))
+                modalities(("1", "World"), ("1.2", "Asia"), ("1.2.1", "Japan"), ("2", "Other"), ("1.1", "Europe"))
             )
 
         self.assertEqual(
@@ -127,13 +127,13 @@ class NomenclatureStreamTest(SimpleTestCase):
     def test_the_same_code_is_allowed_in_two_nomenclatures(self):
         cleaned = self.block.clean(
             [
-                ("nomenclature", {"name": "Geography", "entries": entries(("1", "World"))}),
-                ("nomenclature", {"name": "Animals", "entries": entries(("1", "Cattle"))}),
+                ("nomenclature", {"name": "Geography", "modalities": modalities(("1", "World"))}),
+                ("nomenclature", {"name": "Animals", "modalities": modalities(("1", "Cattle"))}),
             ]
         )
 
         self.assertEqual(
-            [row["code"] for child in cleaned for row in child.value["entries"]],
+            [row["code"] for child in cleaned for row in child.value["modalities"]],
             ["1", "1"],
         )
 
@@ -141,8 +141,8 @@ class NomenclatureStreamTest(SimpleTestCase):
         with self.assertRaises(StreamBlockValidationError) as caught:
             self.block.clean(
                 [
-                    ("nomenclature", {"name": "Geography", "entries": entries(("1", "World"))}),
-                    ("nomenclature", {"name": "Geography", "entries": entries(("2", "Europe"))}),
+                    ("nomenclature", {"name": "Geography", "modalities": modalities(("1", "World"))}),
+                    ("nomenclature", {"name": "Geography", "modalities": modalities(("2", "Europe"))}),
                 ]
             )
 
