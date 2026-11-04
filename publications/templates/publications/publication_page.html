@@ -113,6 +113,42 @@
 
     {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=page.body %}
 
+    {% if page.nomenclatures %}
+      <div class="fr-container fr-my-6w publication-nomenclatures">
+        <h2>{% translate "Nomenclatures" %}</h2>
+        <div class="fr-accordions-group" data-fr-group="false">
+          {% for child in page.nomenclatures %}
+            <section class="fr-accordion">
+              <h3 class="fr-accordion__title">
+                <button type="button"
+                        class="fr-accordion__btn"
+                        aria-expanded="false"
+                        aria-controls="nomenclature-{{ child.id }}">{{ child.value.name }}</button>
+              </h3>
+              <div class="fr-collapse" id="nomenclature-{{ child.id }}">
+                <table class="publication-nomenclature">
+                  <thead>
+                    <tr>
+                      <th scope="col">{% translate "Code" %}</th>
+                      <th scope="col">{% translate "Name" %}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in child.value.modalities.row_data %}
+                      <tr>
+                        <td>{{ row.values.0 }}</td>
+                        <td>{{ row.values.1 }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
     {% with authors=page.authors.all %}
       {% if authors %}
         <div class="fr-container fr-my-6w">

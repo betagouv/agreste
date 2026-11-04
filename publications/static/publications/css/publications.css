@@ -35,3 +35,25 @@
   margin: 0;
   text-align: left;
 }
+
+.publication-nomenclature {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.publication-nomenclature th,
+.publication-nomenclature td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.25rem 1rem 0.25rem 0;
+}
+
+.publication-nomenclature th:first-child,
+.publication-nomenclature td:first-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.publication-nomenclature td:last-child {
+  overflow-wrap: anywhere;
+}
