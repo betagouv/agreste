@@ -9,9 +9,11 @@ from modelcluster.fields import ParentalKey, ParentalManyToManyField
 from wagtail.admin.panels import FieldPanel, MultiFieldPanel
 from wagtail.api import APIField
 from wagtail.contrib.routable_page.models import path
+from wagtail.fields import StreamField
 from wagtail.models import Orderable
 from wagtail.search import index
 
+from publications.blocks.nomenclature import NomenclatureStreamBlock
 from publications.taxonomy import (
     AbstractTaxonomy,
     get_taxonomies_for_index,
@@ -49,6 +51,12 @@ class GeographicLevel(AbstractTaxonomy):
     class Meta(AbstractTaxonomy.Meta):
         verbose_name = _("Geographic level")
         verbose_name_plural = _("Geographic levels")
+
+
+class Modality(AbstractTaxonomy):
+    class Meta(AbstractTaxonomy.Meta):
+        verbose_name = _("Modality")
+        verbose_name_plural = _("Modalities")
 
 
 class CollectionPublication(Orderable):
@@ -117,6 +125,17 @@ class GeographicLevelPublication(Orderable):
         return str(self.geographic_level)
 
 
+class ModalityPublication(Orderable):
+    """Through table linking modalities to publication pages."""
+
+    modality = models.ForeignKey(Modality, related_name="+", verbose_name=_("Modality"), on_delete=models.CASCADE)
+    page = ParentalKey("PublicationPage", related_name="entry_modalities")  # type: ignore
+    panels = [FieldPanel("modality")]
+
+    def __str__(self):
+        return str(self.modality)
+
+
 class PublicationPage(BlogEntryPage):
     disaron_id = models.CharField(
         _("Disaron identifier (former Agreste)"),
@@ -154,6 +173,19 @@ class PublicationPage(BlogEntryPage):
         blank=True,
         verbose_name=_("Geographic levels"),
     )
+    modalities = ParentalManyToManyField(
+        "Modality",
+        through="ModalityPublication",
+        blank=True,
+        verbose_name=_("Modalities"),
+    )
+    nomenclatures = StreamField(
+        NomenclatureStreamBlock,
+        blank=True,
+        default=list,
+        use_json_field=True,
+        verbose_name=_("Nomenclatures"),
+    )
 
     parent_page_types = ["publications.PublicationIndexPage"]
     subpage_types = []
@@ -181,10 +213,12 @@ class PublicationPage(BlogEntryPage):
             FieldPanel("statistical_sources"),
             FieldPanel("reference_years"),
             FieldPanel("geographic_levels"),
+            FieldPanel("modalities"),
             FieldPanel("tags"),
         ],
         heading=_("Metadata"),
     )
+    settings_panels.append(FieldPanel("nomenclatures"))
 
     api_fields = [
         # Exclude blog_categories from the API fields
@@ -197,6 +231,7 @@ class PublicationPage(BlogEntryPage):
         APIField("statistical_sources"),
         APIField("reference_years"),
         APIField("geographic_levels"),
+        APIField("modalities"),
     ]
 
     def clean(self):
@@ -237,7 +272,7 @@ class PublicationIndexPage(BlogIndexPage):
 
     @property
     def posts(self):
-        posts = PublicationPage.objects.descendant_of(self).live()
+        posts = PublicationPage.objects.descendant_of(self).live().defer("nomenclatures")
         posts = (
             posts.order_by("-date")
             .select_related("owner")

@@ -453,7 +453,7 @@ def get_facet_context(
     # Includes PublicationPage entries (subclass of BlogEntryPage).
     blog_entries = BlogEntryPage.objects.descendant_of(root).live()
     content_pages = ContentPage.objects.descendant_of(root).live()
-    publication_pages = PublicationPage.objects.descendant_of(root).live()
+    publication_pages = PublicationPage.objects.descendant_of(root).live().defer("nomenclatures")
 
     if enabled_facets.get("category"):
         category_ids = blog_entries.values_list("blog_categories", flat=True)

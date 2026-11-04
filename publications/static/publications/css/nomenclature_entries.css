@@ -1,0 +1,57 @@
+/* Fixed code and name columns. Wagtail's typed table otherwise lets the editor add columns,
+   and gives every cell a 20rem minimum width. Text inputs use 1.25rem of padding on each side,
+   so the code column adds that padding to 8ch. */
+
+.typed-table-block.nomenclature-modalities > .w-field__wrapper {
+  display: none;
+}
+
+.typed-table-block.nomenclature-modalities .append-column,
+.typed-table-block.nomenclature-modalities .prepend-column,
+.typed-table-block.nomenclature-modalities .delete-column,
+.typed-table-block.nomenclature-modalities .add-column-menu,
+.typed-table-block.nomenclature-modalities thead tr > th:last-child {
+  display: none;
+}
+
+.typed-table-block.nomenclature-modalities .typed-table-block__wrapper {
+  min-height: 0;
+}
+
+.typed-table-block.nomenclature-modalities table {
+  margin-top: 0.75rem;
+}
+
+.typed-table-block.nomenclature-modalities th input.column-heading {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  min-height: 0;
+  width: 100%;
+  pointer-events: none;
+  font-weight: 700;
+}
+
+.typed-table-block.nomenclature-modalities thead tr > th:nth-child(2),
+.typed-table-block.nomenclature-modalities tbody tr > td:nth-child(2) {
+  width: calc(8ch + 2.5rem);
+  min-width: calc(8ch + 2.5rem);
+  max-width: calc(8ch + 2.5rem);
+}
+
+.typed-table-block.nomenclature-modalities thead tr > th:nth-child(4),
+.typed-table-block.nomenclature-modalities tbody tr > td:nth-child(4) {
+  display: none;
+}
+
+.typed-table-block.nomenclature-modalities thead tr > th:nth-child(3),
+.typed-table-block.nomenclature-modalities tbody tr > td:nth-child(3) {
+  width: 28rem;
+  min-width: 12rem;
+  max-width: 28rem;
+}
+
+.typed-table-block.nomenclature-modalities tbody tr > td:nth-child(2) input {
+  min-width: 0;
+}

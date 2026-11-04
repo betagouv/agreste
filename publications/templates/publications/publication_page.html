@@ -38,7 +38,7 @@
 {% block content %}
   {% include "sites_conformes_core/blocks/heading.html" %}
 
-  {% with collections=page.collections.all themes=page.themes.all statistical_sources=page.statistical_sources.all reference_years=page.reference_years.all geographic_levels=page.geographic_levels.all %}
+  {% with collections=page.collections.all themes=page.themes.all statistical_sources=page.statistical_sources.all reference_years=page.reference_years.all geographic_levels=page.geographic_levels.all modalities=page.modalities.all %}
     <div class="fr-container fr-mt-6w">
       <div class="fr-grid-row fr-grid-row--gutters">
         <div class="fr-col-12">
@@ -71,7 +71,7 @@
           {% endfor %}
         </ul>
       {% endif %}
-      {% if statistical_sources or reference_years or geographic_levels %}
+      {% if statistical_sources or reference_years or geographic_levels or modalities %}
         <dl class="publication-page__metadata">
           {% if statistical_sources %}
             <dt>{% translate "Source" %}</dt>
@@ -97,6 +97,14 @@
               {% endfor %}
             </dd>
           {% endif %}
+          {% if modalities %}
+            <dt>{% translate "Modalities" %}</dt>
+            <dd>
+              {% for modality in modalities %}
+                {{ modality.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </dd>
+          {% endif %}
         </dl>
       {% endif %}
     </div>
@@ -104,6 +112,42 @@
     {% include "sites_conformes_core/blocks/messages.html" %}
 
     {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=page.body %}
+
+    {% if page.nomenclatures %}
+      <div class="fr-container fr-my-6w publication-nomenclatures">
+        <h2>{% translate "Nomenclatures" %}</h2>
+        <div class="fr-accordions-group" data-fr-group="false">
+          {% for child in page.nomenclatures %}
+            <section class="fr-accordion">
+              <h3 class="fr-accordion__title">
+                <button type="button"
+                        class="fr-accordion__btn"
+                        aria-expanded="false"
+                        aria-controls="nomenclature-{{ child.id }}">{{ child.value.name }}</button>
+              </h3>
+              <div class="fr-collapse" id="nomenclature-{{ child.id }}">
+                <table class="publication-nomenclature">
+                  <thead>
+                    <tr>
+                      <th scope="col">{% translate "Code" %}</th>
+                      <th scope="col">{% translate "Name" %}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in child.value.modalities.row_data %}
+                      <tr>
+                        <td>{{ row.values.0 }}</td>
+                        <td>{{ row.values.1 }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
 
     {% with authors=page.authors.all %}
       {% if authors %}
@@ -132,6 +176,9 @@
     {% endfor %}
     {% for geographic_level in geographic_levels %}
       {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=geographic_level.colophon %}
+    {% endfor %}
+    {% for modality in modalities %}
+      {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=modality.colophon %}
     {% endfor %}
   {% endwith %}
 
