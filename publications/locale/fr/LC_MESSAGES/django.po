@@ -171,6 +171,13 @@ msgstr "Modalités"
 msgid "Disaron identifier (former Agreste)"
 msgstr "Identifiant Disaron (ancien Agreste)"
 
+msgid "Issue number"
+msgstr "Numéro de publication"
+
+#, python-format
+msgid "No. %(issue_number)s"
+msgstr "n° %(issue_number)s"
+
 msgid "Unique publication identifier. Shown at the bottom of the page."
 msgstr "Identifiant unique de la publication. Affiché en bas de page."
 

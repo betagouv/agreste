@@ -143,6 +143,12 @@ class PublicationPage(BlogEntryPage):
         unique=True,
         help_text=_("Unique publication identifier. Shown at the bottom of the page."),
     )
+    issue_number = models.CharField(
+        _("Issue number"),
+        max_length=64,
+        blank=True,
+        default="",
+    )
     collections = ParentalManyToManyField(
         "Collection",
         through="CollectionPublication",
@@ -193,6 +199,7 @@ class PublicationPage(BlogEntryPage):
 
     content_panels = BlogEntryPage.content_panels + [
         FieldPanel("disaron_id"),
+        FieldPanel("issue_number"),
     ]
     search_fields = BlogEntryPage.search_fields + [
         index.SearchField("disaron_id"),
@@ -232,11 +239,15 @@ class PublicationPage(BlogEntryPage):
         APIField("reference_years"),
         APIField("geographic_levels"),
         APIField("modalities"),
+        APIField("disaron_id"),
+        APIField("issue_number"),
     ]
 
     def clean(self):
         if isinstance(self.disaron_id, str):
             self.disaron_id = self.disaron_id.strip()
+        if isinstance(self.issue_number, str):
+            self.issue_number = self.issue_number.strip()
         if not self.disaron_id:
             raise ValidationError({"disaron_id": _("This field cannot be blank.")})
         super().clean()

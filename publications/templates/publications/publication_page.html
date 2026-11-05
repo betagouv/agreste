@@ -60,6 +60,10 @@
             {% for collection in chain %}<a href="{% search_link collection=collection.slug rank_by='date' %}">{{ collection.name }}</a>{% if not forloop.last %} > {% endif %}{% endfor %}{% if not forloop.last %}, {% endif %}
           {% endfor %}
         {% endif %}
+        {% if page.issue_number %}
+          |
+          {% blocktranslate with issue_number=page.issue_number %}No. {{ issue_number }}{% endblocktranslate %}
+        {% endif %}
       </p>
       {% if themes %}
         <ul class="fr-tags-group">
