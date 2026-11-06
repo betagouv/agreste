@@ -27,15 +27,19 @@
           {% endwith %}
           {% result_collections post as collections %}
           {% with statistical_sources=post.statistical_sources.all reference_years=post.reference_years.all geographic_levels=post.geographic_levels.all modalities=post.modalities.all %}
-            {% if post.date or collections or statistical_sources or reference_years or geographic_levels or modalities %}
+            {% if post.date or collections or post.issue_number or statistical_sources or reference_years or geographic_levels or modalities %}
               <div class="fr-card__end">
-                {% if post.date or collections %}
+                {% if post.date or collections or post.issue_number %}
                   <p class="fr-card__detail{% if post.date %} fr-icon-calendar-line{% endif %}">
                     {% if post.date %}{% translate "Published on" %} {{ post.date|date:"j F Y" }}{% endif %}
                     {% if post.date and collections %} | {% endif %}
                     {% for collection in collections %}
                       {{ collection.name }}{% if not forloop.last %} | {% endif %}
                     {% endfor %}
+                    {% if post.issue_number %}
+                      {% if post.date or collections %} | {% endif %}
+                      {% blocktranslate with issue_number=post.issue_number %}No. {{ issue_number }}{% endblocktranslate %}
+                    {% endif %}
                   </p>
                 {% endif %}
                 {% if statistical_sources or reference_years or geographic_levels or modalities %}

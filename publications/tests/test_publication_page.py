@@ -81,6 +81,9 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
         self.post.save_revision().publish()
 
     def test_display_metadata(self):
+        self.post.issue_number = "12"
+        self.post.save_revision().publish()
+
         response = self.client.get(self.post.url)
         html = response.content.decode()
         soup = BeautifulSoup(html, "html.parser")
@@ -97,6 +100,9 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
         self._assert_search_link(parent_links[0], collection=self.parent_collection.slug)
         child_link = meta_paragraph.find("a", string=self.child_collection.name)
         self._assert_search_link(child_link, collection=self.child_collection.slug)
+        paragraph_text = meta_paragraph.get_text()
+        self.assertLess(paragraph_text.find(self.collection.name), paragraph_text.find("n° 12"))
+        self.assertIsNone(meta_paragraph.find("a", string="n° 12"))
 
         theme_link = soup.select_one("a.fr-tag")
         self.assertEqual(theme_link.get_text(strip=True), self.theme.name)
@@ -117,6 +123,11 @@ class PublicationPageDisplayTest(WagtailPageTestCase):
             self.assertEqual(description.get_text(strip=True), value)
             self.assertIsNone(description.find("a"))
         self.assertIn("Statistical source colophon.", html)
+
+        api = self.client.get(reverse("wagtailapi:pages:detail", args=[self.post.id]))
+        self.assertEqual(api.status_code, 200)
+        self.assertEqual(api.json()["disaron_id"], self.post.disaron_id)
+        self.assertEqual(api.json()["issue_number"], "12")
 
     def test_display_nomenclatures(self):
         self.post.nomenclatures = [

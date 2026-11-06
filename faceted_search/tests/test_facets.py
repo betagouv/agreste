@@ -963,11 +963,13 @@ class FacetedSearchResultsDisplayTest(FacetedSearchTestBase):
         self.assertIn(date_format(self.post_with_collection.date, "j F Y"), result_li.get_text())
 
     def test_search_results_show_root_collection_in_detail_not_as_tag(self):
+        self.post_with_collection.issue_number = "12"
+        self.post_with_collection.save()
         result_li = self._result_item(self.post_with_collection.title)
         detail = result_li.select_one(".fr-card__detail")
         self.assertIsNotNone(detail)
-        self.assertIn(self.collection.name, detail.get_text())
-        self.assertIn(" | ", detail.get_text())
+        detail_text = " ".join(detail.get_text().split())
+        self.assertIn(f"{self.collection.name} | n° 12", detail_text)
         self.assertEqual(result_li.select(".fr-tag"), [])
 
     def test_search_results_show_themes_as_tags(self):
