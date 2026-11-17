@@ -14,6 +14,7 @@ from wagtail.models import Orderable
 from wagtail.search import index
 
 from publications.blocks.nomenclature import NomenclatureStreamBlock
+from publications.forms import PublicationPageCopyForm
 from publications.taxonomy import (
     AbstractTaxonomy,
     get_taxonomies_for_index,
@@ -196,6 +197,10 @@ class PublicationPage(BlogEntryPage):
     parent_page_types = ["publications.PublicationIndexPage"]
     subpage_types = []
     template = "publications/publication_page.html"
+    # Keep the parent exclusions. disaron_id is unique, so a copy must not reuse it.
+    # Wagtail then writes the saved value into every copied revision, as it does for id.
+    exclude_fields_in_copy = BlogEntryPage.exclude_fields_in_copy + ["disaron_id"]
+    copy_form_class = PublicationPageCopyForm
 
     content_panels = BlogEntryPage.content_panels + [
         FieldPanel("disaron_id"),
