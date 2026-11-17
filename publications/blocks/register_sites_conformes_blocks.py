@@ -3,7 +3,7 @@ Inject publications StreamField blocks into Sites Conformes at Django startup.
 
 The ``publications`` app extends page editors without editing ``sites_conformes``
 or generating migrations there. On startup (``publications.apps.PublicationsConfig.ready``),
-``register_sites_conformes_blocks()`` adds five blocks wherever ``blog_recent_entries``
+``register_sites_conformes_blocks()`` adds six blocks wherever ``blog_recent_entries``
 is already available:
 
 - ``publication_recent_entries`` — same picker group as ``blog_recent_entries``
@@ -11,6 +11,7 @@ is already available:
 - ``publication_subtitle`` — always in the "Agreste" group (from ``PublicationSubtitleBlock.Meta``)
 - ``publication_summary`` — always in the "Agreste" group (from ``PublicationSummaryBlock.Meta``)
 - ``standard_publication`` — always in the "Agreste" group (from ``StandardPublicationBlock.Meta``)
+- ``freeform_publication`` — always in the "Agreste" group (from ``FreeformPublicationBlock.Meta``)
 
 That includes the top-level ``body`` stream on every ``SitesFacilesBasePage``, and
 nested streams inside layout blocks (multicolumns, item grid, tabs, etc.).
@@ -38,6 +39,10 @@ from wagtail.fields import StreamField
 from publications.blocks.downloadable_document import (
     DOWNLOADABLE_DOCUMENT_BLOCK,
     DownloadableDocumentBlock,
+)
+from publications.blocks.freeform_publication import (
+    FREEFORM_PUBLICATION_BLOCK,
+    FreeformPublicationBlock,
 )
 from publications.blocks.publication_subtitle import (
     PUBLICATION_SUBTITLE_BLOCK,
@@ -97,7 +102,13 @@ def _make_standard_publication_block() -> StandardPublicationBlock:
     return block
 
 
-def _add_publications_blocks_to_mapping(blocks_mapping: dict) -> bool:
+def _make_freeform_publication_block() -> FreeformPublicationBlock:
+    block = FreeformPublicationBlock()
+    block.set_name(FREEFORM_PUBLICATION_BLOCK)
+    return block
+
+
+def _add_publications_blocks_to_mapping(blocks_mapping: dict, *, include_freeform_publication=True) -> bool:
     """Add publications blocks next to ``blog_recent_entries`` in a block mapping."""
     if BLOG_RECENT_ENTRIES_BLOCK not in blocks_mapping:
         return False
@@ -127,24 +138,39 @@ def _add_publications_blocks_to_mapping(blocks_mapping: dict) -> bool:
         blocks_mapping[STANDARD_PUBLICATION_BLOCK] = _make_standard_publication_block()
         added = True
 
+    if include_freeform_publication and FREEFORM_PUBLICATION_BLOCK not in blocks_mapping:
+        blocks_mapping[FREEFORM_PUBLICATION_BLOCK] = _make_freeform_publication_block()
+        added = True
+
     return added
 
 
-def _walk_and_patch_block_tree(block) -> None:
-    """Patch every ``StreamBlock`` in the tree that allows ``blog_recent_entries``."""
+def _walk_and_patch_block_tree(block, *, inside_freeform_publication=False) -> None:
+    """Patch every ``StreamBlock`` in the tree that allows ``blog_recent_entries``.
+
+    The free-form publication's content stream is one shared ``ColumnBlock``.
+    Do not insert ``freeform_publication`` there: that block's content is the same
+    stream, and Django's system check would recurse.
+    """
     if isinstance(block, StreamBlock):
-        _add_publications_blocks_to_mapping(block.child_blocks)
-        for child in block.child_blocks.values():
-            _walk_and_patch_block_tree(child)
+        _add_publications_blocks_to_mapping(
+            block.child_blocks,
+            include_freeform_publication=not inside_freeform_publication,
+        )
+        for name, child in block.child_blocks.items():
+            if inside_freeform_publication and name == FREEFORM_PUBLICATION_BLOCK:
+                continue
+            _walk_and_patch_block_tree(child, inside_freeform_publication=inside_freeform_publication)
         return
 
     if isinstance(block, blocks.StructBlock):
+        now_inside = inside_freeform_publication or isinstance(block, FreeformPublicationBlock)
         for child in block.child_blocks.values():
-            _walk_and_patch_block_tree(child)
+            _walk_and_patch_block_tree(child, inside_freeform_publication=now_inside)
         return
 
     if isinstance(block, blocks.ListBlock):
-        _walk_and_patch_block_tree(block.child_block)
+        _walk_and_patch_block_tree(block.child_block, inside_freeform_publication=inside_freeform_publication)
 
 
 def _add_publications_blocks_to_stream_field(field) -> bool:

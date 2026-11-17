@@ -1,12 +1,8 @@
-# Publications-only translations (French).
-# Strings shared with Sites Conformes (Filters, Tags, Name, …) are intentionally
-# omitted here; Django falls back to sites_conformes.* locale catalogs.
-#
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-02 11:37+0100\n"
+"POT-Creation-Date: 2026-11-17 13:29+0100\n"
 "PO-Revision-Date: 2026-06-08 15:16+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -42,6 +38,70 @@ msgstr "Document à télécharger"
 
 msgid "Agreste"
 msgstr "Agreste"
+
+msgid "Content"
+msgstr "Contenu"
+
+msgid "Document to download"
+msgstr "Document à télécharger"
+
+msgid "Documents to download"
+msgstr "Documents à télécharger"
+
+msgid "Free-form publication"
+msgstr "Publication format libre"
+
+msgid "Code"
+msgstr "Code"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "Modalities"
+msgstr "Modalités"
+
+msgid "This field is required."
+msgstr "Ce champ est obligatoire."
+
+#, python-format
+msgid "Line %(line)s: code “%(code)s” must be dot-separated numbers."
+msgstr ""
+"Ligne %(line)s : le code « %(code)s » doit être une suite de nombres séparés "
+"par des points."
+
+#, python-format
+msgid "Line %(line)s: code “%(code)s” is already used on line %(earlier)s."
+msgstr ""
+"Ligne %(line)s : le code « %(code)s » est déjà utilisé à la ligne "
+"%(earlier)s."
+
+#, python-format
+msgid "Line %(line)s: code “%(code)s” has no parent “%(parent)s” above it."
+msgstr ""
+"Ligne %(line)s : le code « %(code)s » n'a pas de parent « %(parent)s » au-"
+"dessus."
+
+#, python-format
+msgid ""
+"Line %(line)s: code “%(code)s” is out of order. It should come before "
+"“%(earlier_code)s” (line %(earlier)s)."
+msgstr ""
+"Ligne %(line)s : le code « %(code)s » n'est pas dans l'ordre. Il devrait "
+"précéder « %(earlier_code)s » (ligne %(earlier)s)."
+
+msgid "Nomenclature name"
+msgstr "Nom de la nomenclature"
+
+msgid "Nomenclature"
+msgstr "Nomenclature"
+
+#, python-format
+msgid ""
+"Line %(line)s: nomenclature name “%(name)s” is already used on line "
+"%(earlier)s."
+msgstr ""
+"Ligne %(line)s : le nom de nomenclature « %(name)s » est déjà utilisé à la "
+"ligne %(earlier)s."
 
 msgid "Subtitle"
 msgstr "Sous-titre"
@@ -123,12 +183,6 @@ msgstr "Informations complémentaires"
 msgid "Notes"
 msgstr "Notes"
 
-msgid "Document to download"
-msgstr "Document à télécharger"
-
-msgid "Documents to download"
-msgstr "Documents à télécharger"
-
 msgid "Standard publication"
 msgstr "Publication standard"
 
@@ -165,21 +219,17 @@ msgstr "Niveaux géographiques"
 msgid "Modality"
 msgstr "Modalité"
 
-msgid "Modalities"
-msgstr "Modalités"
-
 msgid "Disaron identifier (former Agreste)"
 msgstr "Identifiant Disaron (ancien Agreste)"
+
+msgid "Unique publication identifier. Shown at the bottom of the page."
+msgstr "Identifiant unique de la publication. Affiché en bas de page."
 
 msgid "Issue number"
 msgstr "Numéro de publication"
 
-#, python-format
-msgid "No. %(issue_number)s"
-msgstr "n° %(issue_number)s"
-
-msgid "Unique publication identifier. Shown at the bottom of the page."
-msgstr "Identifiant unique de la publication. Affiché en bas de page."
+msgid "Nomenclatures"
+msgstr "Nomenclatures"
 
 msgid "Tags and Categories"
 msgstr "Étiquettes et Catégories"
@@ -217,9 +267,6 @@ msgstr "Articles écrits par"
 #, python-format
 msgid "Posts published in %(year)s"
 msgstr "Articles publiés en %(year)s"
-
-msgid "Name"
-msgstr "Nom"
 
 msgid "Parent"
 msgstr "Parent"
@@ -280,6 +327,10 @@ msgstr "non-sélectionné"
 msgid "Posts"
 msgstr "Articles"
 
+#, python-format
+msgid "No. %(issue_number)s"
+msgstr "n° %(issue_number)s"
+
 msgid "Source"
 msgstr "Source"
 
@@ -288,30 +339,3 @@ msgstr "Écrit par :"
 
 msgid "Disaron identifier"
 msgstr "Identifiant disaron"
-
-msgid "Nomenclatures"
-msgstr "Nomenclatures"
-
-msgid "Code"
-msgstr "Code"
-
-msgid "Nomenclature name"
-msgstr "Nom de la nomenclature"
-
-msgid "Nomenclature"
-msgstr "Nomenclature"
-
-msgid "Line %(line)s: code “%(code)s” must be dot-separated numbers."
-msgstr "Ligne %(line)s : le code « %(code)s » doit être une suite de nombres séparés par des points."
-
-msgid "Line %(line)s: code “%(code)s” is already used on line %(earlier)s."
-msgstr "Ligne %(line)s : le code « %(code)s » est déjà utilisé à la ligne %(earlier)s."
-
-msgid "Line %(line)s: code “%(code)s” has no parent “%(parent)s” above it."
-msgstr "Ligne %(line)s : le code « %(code)s » n'a pas de parent « %(parent)s » au-dessus."
-
-msgid "Line %(line)s: code “%(code)s” is out of order. It should come before “%(earlier_code)s” (line %(earlier)s)."
-msgstr "Ligne %(line)s : le code « %(code)s » n'est pas dans l'ordre. Il devrait précéder « %(earlier_code)s » (ligne %(earlier)s)."
-
-msgid "Line %(line)s: nomenclature name “%(name)s” is already used on line %(earlier)s."
-msgstr "Ligne %(line)s : le nom de nomenclature « %(name)s » est déjà utilisé à la ligne %(earlier)s."
