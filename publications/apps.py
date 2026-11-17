@@ -17,10 +17,12 @@ class PublicationsConfig(AppConfig):
             ThemesAPIViewSet,
         )
         from publications.blocks.register_sites_conformes_blocks import register_sites_conformes_blocks
+        from publications.copying import install_disaron_id_copy
 
         # Inject publication StreamField blocks into Sites Conformes page types at
         # startup (skipped during makemigrations — see register_sites_conformes_blocks).
         register_sites_conformes_blocks()
+        install_disaron_id_copy()
 
         api_router.register_endpoint("collections", CollectionsAPIViewSet)
         api_router.register_endpoint("themes", ThemesAPIViewSet)
