@@ -8,6 +8,7 @@ from wagtail.models import Page
 from wagtail.test.utils import WagtailPageTestCase
 
 from publications.blocks.downloadable_document import DOWNLOADABLE_DOCUMENT_BLOCK
+from publications.blocks.freeform_publication import FREEFORM_PUBLICATION_BLOCK
 from publications.blocks.publication_subtitle import PUBLICATION_SUBTITLE_BLOCK
 from publications.blocks.publication_summary import PUBLICATION_SUMMARY_BLOCK
 from publications.blocks.recent_entries import PUBLICATION_RECENT_ENTRIES_BLOCK
@@ -41,6 +42,9 @@ class PublicationsBlockRegistrationTestCase(SimpleTestCase):
 
         self.assertIn(STANDARD_PUBLICATION_BLOCK, child_blocks)
         self.assertEqual(child_blocks[STANDARD_PUBLICATION_BLOCK].meta.group, "Agreste")
+
+        self.assertIn(FREEFORM_PUBLICATION_BLOCK, child_blocks)
+        self.assertEqual(child_blocks[FREEFORM_PUBLICATION_BLOCK].meta.group, "Agreste")
 
 
 class PublicationsBlockAvailabilityTestCase(WagtailPageTestCase):
@@ -78,6 +82,7 @@ class PublicationsBlockAvailabilityTestCase(WagtailPageTestCase):
         self.assertIn(PUBLICATION_SUBTITLE_BLOCK, stream_block.child_blocks)
         self.assertIn(PUBLICATION_SUMMARY_BLOCK, stream_block.child_blocks)
         self.assertIn(STANDARD_PUBLICATION_BLOCK, stream_block.child_blocks)
+        self.assertIn(FREEFORM_PUBLICATION_BLOCK, stream_block.child_blocks)
 
     def _publication_block_value(self, **overrides):
         return {
@@ -280,6 +285,62 @@ class PublicationsBlockAvailabilityTestCase(WagtailPageTestCase):
                 )
                 self.assertIsNotNone(block)
                 self.assertIn(subtitle, block.get_text())
+                self.assertIn(self.document.title, block.get_text())
+
+    def _freeform_publication_block_value(self, **overrides):
+        return {
+            "content": [("text", "<p>Free-form body.</p>")],
+            "downloadable_documents": [
+                {
+                    "download_type": "publication",
+                    "document": self.document,
+                }
+            ],
+            **overrides,
+        }
+
+    def _freeform_publication_nested_cases(self):
+        return (
+            (
+                "multicolumn column",
+                "freeform-publication-in-multicolumn-column",
+                [
+                    (
+                        "multicolumns",
+                        {
+                            "columns": [
+                                (
+                                    "column",
+                                    {
+                                        "width": "6",
+                                        "content": [
+                                            (
+                                                FREEFORM_PUBLICATION_BLOCK,
+                                                self._freeform_publication_block_value(),
+                                            ),
+                                        ],
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                ],
+                "Free-form body.",
+            ),
+        )
+
+    def test_can_render_page_with_freeform_publication_in_nested_streams(self):
+        for case_label, slug, body, body_text in self._freeform_publication_nested_cases():
+            with self.subTest(stream=case_label):
+                page = self._content_page_with_body(slug, body)
+                self.assertPageIsRenderable(page)
+
+                response = self.client.get(page.url)
+                block = BeautifulSoup(response.content, "html.parser").select_one(
+                    ".cmsfr-block-freeform-publication",
+                )
+                self.assertIsNotNone(block)
+                self.assertIn(body_text, block.get_text())
                 self.assertIn(self.document.title, block.get_text())
 
     # TODO test that the block picker offers the registered blocks (e2e test)

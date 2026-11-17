@@ -1,0 +1,13 @@
+{% load wagtailcore_tags %}
+<div class="cmsfr-block-freeform-publication">
+  <div class="fr-grid-row fr-grid-row--gutters fr-grid-row--top">
+    <div class="fr-col-12 fr-col-md-8">
+      {% include_block value.content %}
+    </div>
+    <div class="fr-col-12 fr-col-md-4 cmsfr-block-freeform-publication__tiles">
+      {% for downloadable_document in value.downloadable_documents.bound_blocks %}
+        {% include_block downloadable_document %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
