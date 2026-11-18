@@ -36,7 +36,8 @@
               {% if use_proconnect and not disable_local_login %}
                 <p class="fr-hr-or">{% translate "or" %}</p>
               {% endif %}
-              {% if not disable_local_login %}
+              {% comment %}The local login can only be disabled if another login method is available{% endcomment %}
+              {% if not use_proconnect or not disable_local_login %}
                 <div>
                   <form id="login-form" action="{% url 'wagtailadmin_login' %}" method="post">
                     <fieldset class="fr-fieldset"
@@ -86,13 +87,15 @@
                                    id="id_password-show"
                                    type="checkbox"
                                    aria-describedby="id_password-show-messages">
-                            <label class="fr-password__checkbox fr-label" for="id_password-show">{% translate "Show" %}</label>
+                            <label class="fr-password__checkbox fr-label"
+                                   for="id_password-show">{% translate "Show" %}</label>
                             <div class="fr-messages-group"
                                  id="id_password-show-messages"
                                  aria-live="assertive"></div>
                           </div>
                           {% if show_password_reset %}
-                            <a class="fr-link" href="{% url 'wagtailadmin_password_reset' %}">{% translate "Forgotten password?" %}</a>
+                            <a class="fr-link"
+                               href="{% url 'wagtailadmin_password_reset' %}">{% translate "Forgotten password?" %}</a>
                           {% endif %}
                         </div>
                       </div>
@@ -100,7 +103,8 @@
                         <div class="fr-checkbox-group fr-checkbox-group--sm">
                           <div class="fr-checkbox-group}">
                             {{ form.remember }}
-                            <label for="{{ form.remember.id_for_label }}" class="fr-label">{% translate "Remember me" %}</label>
+                            <label for="{{ form.remember.id_for_label }}"
+                                   class="fr-label">{% translate "Remember me" %}</label>
                           </div>
                         </div>
                       </div>
