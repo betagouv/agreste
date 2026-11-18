@@ -131,7 +131,7 @@ accept-deleted-by-us path:
     bash scripts/accept_deleted_by_us.sh "{{path}}"
 
 # Merge Sites Conformes tag v<version> into a fresh branch from main-agreste.
-# Resolves known Agreste paths (deleted demo/tarteaucitron, ours package.json, uv.lock).
+# Resolves known Agreste paths (drops the whole demo/ tree, including new files from the tag, deleted tarteaucitron/e2e workflows, ours package.json and SECURITY.md, uv.lock).
 # Example: just merge-sc-tag 4.2.0-rc1
 [group('Git')]
 merge-sc-tag version:
