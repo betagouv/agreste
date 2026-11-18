@@ -48,8 +48,7 @@
 
 {% block extra_css %}
   <link href="{% static 'faceted_search/css/faceted_search.css' %}"
-        rel="stylesheet"
-        type="text/css" />
+        rel="stylesheet" />
   {{ block.super }}
 {% endblock extra_css %}
 
@@ -63,7 +62,8 @@
     <div class="fr-col fr-col-md-4 fr-col-12">
       <nav class="fr-sidemenu fr-sidemenu--sticky-full-height fr-mb-0-5v">
         <div class="fr-sidemenu__inner">
-          <button class="fr-sidemenu__btn"
+          <button type="button"
+                  class="fr-sidemenu__btn"
                   hidden
                   aria-controls="fr-sidemenu-wrapper-search"
                   aria-expanded="false">{% translate "Filters" %}</button>
@@ -104,9 +104,7 @@
       {% endfor %}
     </ul>
     {% if page_obj.paginator.num_pages > 1 %}
-      <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">
-        {% dsfr_pagination page_obj %}
-      </div>
+      <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">{% dsfr_pagination page_obj %}</div>
     {% endif %}
   {% else %}
     {% block search_no_results %}

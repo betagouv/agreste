@@ -93,7 +93,8 @@
         <div class="fr-col fr-col-md-4 fr-col-12">
           <nav class="fr-sidemenu fr-sidemenu--sticky-full-height fr-mb-0-5v">
             <div class="fr-sidemenu__inner">
-              <button class="fr-sidemenu__btn"
+              <button type="button"
+                      class="fr-sidemenu__btn"
                       hidden
                       aria-controls="fr-sidemenu-wrapper-{{ page.slug }}"
                       aria-expanded="false">{% translate "Filters" %}</button>
@@ -194,7 +195,9 @@
 
         <div class="fr-col fr-col-md-8 fr-col-12" id="posts-list">
           <h2>{% translate "Posts" %}</h2>
-          <div class="fr-grid-row fr-grid-row--gutters">{% include "publications/blocks/publication_index_posts_list.html" %}</div>
+          <div class="fr-grid-row fr-grid-row--gutters">
+            {% include "publications/blocks/publication_index_posts_list.html" %}
+          </div>
           {% if posts.paginator.num_pages > 1 %}
             <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">{% dsfr_pagination posts %}</div>
           {% endif %}
@@ -204,7 +207,9 @@
     {% else %}
       <div id="posts-list">
         <h2>{% translate "Posts" %}</h2>
-        <div class="fr-grid-row fr-grid-row--gutters">{% include "publications/blocks/publication_index_posts_list.html" %}</div>
+        <div class="fr-grid-row fr-grid-row--gutters">
+          {% include "publications/blocks/publication_index_posts_list.html" %}
+        </div>
         {% if posts.paginator.num_pages > 1 %}
           <div class="fr-container fr-grid-row fr-grid-row--center fr-mt-6w">{% dsfr_pagination posts %}</div>
         {% endif %}
