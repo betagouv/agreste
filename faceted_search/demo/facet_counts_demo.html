@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Facet count semantics demo</title>
-  <style>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Facet count semantics demo</title>
+    <style>
     :root {
       --bg: #f3f0e8;
       --ink: #1c2420;
@@ -254,47 +254,54 @@
       font-size: 0.82rem;
       color: var(--ink);
     }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>Facet count semantics demo</h1>
-    <p class="lede">
-      Toy catalog (no database). Filters combine as in search: <strong>OR within a facet</strong>,
-      <strong>AND across facets</strong>. Switch count modes and click tags to see what each number means.
-    </p>
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Facet count semantics demo</h1>
+      <p class="lede">
+        Toy catalog (no database). Filters combine as in search: <strong>OR within a facet</strong>,
+        <strong>AND across facets</strong>. Switch count modes and click tags to see what each number means.
+      </p>
 
-    <div class="mode" role="group" aria-label="Count mode">
-      <button type="button" data-mode="result_count" aria-pressed="true">Result count</button>
-      <button type="button" data-mode="union">OR-union (click preview)</button>
-      <button type="button" data-mode="distribution">Current-result distribution</button>
-      <button type="button" data-mode="absolute">Query only (ignore other filters)</button>
-    </div>
-    <p class="mode-help" id="mode-help"></p>
+      <div class="mode" role="group" aria-label="Count mode">
+        <button type="button" data-mode="result_count" aria-pressed="true">Result count</button>
+        <button type="button" data-mode="union">OR-union (click preview)</button>
+        <button type="button" data-mode="distribution">Current-result distribution</button>
+        <button type="button" data-mode="absolute">Query only (ignore other filters)</button>
+      </div>
+      <p class="mode-help" id="mode-help"></p>
 
-    <div class="layout">
-      <aside class="panel" id="filters"></aside>
-      <section class="panel">
-        <div class="results-header">
-          <strong id="result-count"></strong>
-          <button type="button" class="reset" id="reset">Clear filters</button>
-        </div>
-        <ol class="pages" id="pages"></ol>
-        <div class="explain" id="explain"></div>
-        <div class="catalog">
-          <strong>Full toy catalog</strong> (always the same 7 pages; “search” is fixed)
-          <table>
-            <thead>
-              <tr><th>Page</th><th>Themes</th><th>Tags</th></tr>
-            </thead>
-            <tbody id="catalog-body"></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-  </main>
+      <div class="layout">
+        <aside class="panel" id="filters">
+        </aside>
+        <section class="panel">
+          <div class="results-header">
+            <strong id="result-count"></strong>
+            <button type="button" class="reset" id="reset">Clear filters</button>
+          </div>
+          <ol class="pages" id="pages">
+          </ol>
+          <div class="explain" id="explain"></div>
+          <div class="catalog">
+            <strong>Full toy catalog</strong> (always the same 7 pages; “search” is fixed)
+            <table>
+              <thead>
+                <tr>
+                  <th>Page</th>
+                  <th>Themes</th>
+                  <th>Tags</th>
+                </tr>
+              </thead>
+              <tbody id="catalog-body">
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
 
-  <script>
+    <script>
     const PAGES = [
       { id: "P1", themes: ["Agriculture"], tags: ["Report"] },
       { id: "P2", themes: ["Agriculture"], tags: ["Report", "Data"] },
@@ -533,6 +540,6 @@
 
     renderCatalog();
     render();
-  </script>
-</body>
+    </script>
+  </body>
 </html>

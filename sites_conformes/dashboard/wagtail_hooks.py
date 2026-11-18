@@ -1,15 +1,16 @@
 from django.conf import settings
 from django.templatetags.static import static
-from django.urls import reverse
+from django.urls import path, reverse
 from django.utils.html import escape, format_html
 from django.utils.translation import gettext_lazy as _
+from django.views.i18n import JavaScriptCatalog
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem
 from wagtail.admin.ui.components import Component
 from wagtail.rich_text import LinkHandler
 
 from sites_conformes import __version__
-from sites_conformes.dashboard.views import NotificationPanel, ShortcutsPanel, TutorialsPanel
+from sites_conformes.dashboard.views import NotificationPanel, SendEmailCodeView, ShortcutsPanel, TutorialsPanel
 
 
 @hooks.register("insert_global_admin_css")
@@ -21,6 +22,11 @@ def global_admin_css():
         static("dsfr/dist/component/notice/notice.min.css"),
         static("css/admin.css"),
     )
+
+
+@hooks.register("register_admin_urls")
+def register_2fa_email_code_url():
+    return [path("2fa/email-code/", SendEmailCodeView.as_view(), name="sites_conformes_2fa_email_code")]
 
 
 @hooks.register("construct_help_menu")
@@ -39,6 +45,18 @@ def add_version_help_menu_item(request, menu_items):
 @hooks.register("register_icons")
 def register_icons(icons):
     return icons + ["admin_icons/anchor.svg"]
+
+
+@hooks.register("register_admin_urls")
+def register_javascript_catalog_url():
+    # Not "jsi18n/": hook URLs come before Wagtail's own, so it would shadow its catalog
+    return [
+        path(
+            "sites-conformes/jsi18n/",
+            JavaScriptCatalog.as_view(packages=["sites_conformes.dashboard"]),
+            name="sites_conformes_javascript_catalog",
+        )
+    ]
 
 
 @hooks.register("insert_editor_js")

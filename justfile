@@ -22,7 +22,7 @@ collectstatic:
 # Compile the translation files
 [group('Internationalization')]
 compilemessages:
-    {{docker_cmd}} {{uv_run}} python manage.py compilemessages -l fr --ignore=.venv
+    {{docker_cmd}} {{uv_run}} python manage.py compilemessages -l fr --ignore=.venv*
 
 alias csu := createsuperuser
 createsuperuser:
@@ -30,8 +30,9 @@ createsuperuser:
 
 alias first-deploy := deploy
 deploy:
-    just migrate
     just collectstatic
+    just compilemessages
+    just migrate
     {{docker_cmd}} {{uv_run}} python manage.py create_starter_pages
     {{docker_cmd}} {{uv_run}} python manage.py import_page_templates
     {{docker_cmd}} {{uv_run}} python manage.py import_illustration_images
@@ -184,7 +185,7 @@ scalingo-postdeploy:
 
 # Roll a Scalingo app back to a DB backup and to the code of a given git ref
 [group('Production')]
-scalingo-rollback app region="osc-fr1" ref="":
+scalingo-rollback app region="-" ref="":
     cd scripts && bash rollback_scalingo.sh {{app}} {{region}} {{ref}}
 
 #### Audit-related recipes
