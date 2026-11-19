@@ -64,3 +64,4 @@ class Command(BaseCommand):
             pages_data=pages_data, parent_page_slug=parent_page_slug, image_folder=image_folder
         )
         page_importer.import_pages()
+        page_importer.fix_page_links(source_site_url)

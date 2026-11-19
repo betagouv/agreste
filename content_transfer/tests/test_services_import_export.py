@@ -15,8 +15,10 @@ from content_transfer.import_export import (
     ExportPage,
     ImportExportImages,
     ImportPages,
+    locate_page_ids,
     remove_block_ids,
     update_streamfield_image_ids,
+    update_streamfield_page_ids,
 )
 from sites_conformes.core.models import ContentPage
 
@@ -91,6 +93,33 @@ class StreamfieldHelpersTestCase(SimpleTestCase):
         self.assertEqual(
             update_streamfield_image_ids(value, image_data),
             [{"type": "image", "value": {"image": 70}}, {"value": {"bg_image": 80, "other": 7}}, {"image": 9}],
+        )
+
+    def test_locate_page_ids(self):
+        value = [
+            {"type": "link", "value": {"page": 20, "document": None}},
+            {"type": "tile", "value": {"link": {"page": None}}},
+            {"type": "paragraph", "value": '<p><a linktype="page" id="30">x</a></p>'},
+            {"blog": 40, "index_page": "50"},
+        ]
+
+        self.assertEqual(locate_page_ids(value), {20, 30, 40, 50})
+
+    def test_update_streamfield_page_ids(self):
+        page_id_map = {"20": 200, "30": 300}
+        value = [
+            {"type": "link", "value": {"page": 20}},
+            {"type": "link", "value": {"page": 99}},
+            {"type": "paragraph", "value": '<p><a linktype="page" id="30">x</a></p>'},
+        ]
+
+        self.assertEqual(
+            update_streamfield_page_ids(value, page_id_map),
+            [
+                {"type": "link", "value": {"page": 200}},
+                {"type": "link", "value": {"page": 99}},
+                {"type": "paragraph", "value": '<p><a linktype="page" id="300">x</a></p>'},
+            ],
         )
 
 
@@ -211,3 +240,58 @@ class ImportPagesWithParentTestCase(WagtailPageTestCase):
         self.assertEqual(updated_page.pk, page.pk)
         self.assertEqual(updated_page.title, "Modèle mis à jour")
         self.assertFalse(ContentPage.objects.filter(slug="page_templates_index").exists())
+
+    def test_page_links_are_remapped_after_import(self):
+        pages_data = {
+            "image_ids": [],
+            "pages": {
+                "10": {
+                    "meta": {"html_url": "https://source.example.com/source/", "slug": "source"},
+                    "title": "Source",
+                    "body": [
+                        {
+                            "type": "link",
+                            "value": {
+                                "text": "Cible",
+                                "link_type": "page",
+                                "page": 20,
+                                "document": None,
+                                "external_url": "",
+                                "anchor": "",
+                                "query_string": "",
+                                "icon": "",
+                                "size": "",
+                            },
+                        }
+                    ],
+                    "header_image": None,
+                    "header_with_title": False,
+                    "header_color_class": None,
+                    "header_large": False,
+                    "header_darken": False,
+                    "header_cta_text": "",
+                    "header_cta_buttons": [],
+                },
+                "20": {
+                    "meta": {"html_url": "https://source.example.com/target/", "slug": "target"},
+                    "title": "Target",
+                    "body": [{"type": "paragraph", "value": "<p>Cible</p>"}],
+                    "header_image": None,
+                    "header_with_title": False,
+                    "header_color_class": None,
+                    "header_large": False,
+                    "header_darken": False,
+                    "header_cta_text": "",
+                    "header_cta_buttons": [],
+                },
+            },
+        }
+
+        importer = ImportPages(pages_data=pages_data, parent_page_slug="parent", image_folder=self.image_folder)
+        with redirect_stdout(StringIO()):
+            importer.import_pages()
+            importer.fix_page_links("https://source.example.com/")
+
+        source_page = ContentPage.objects.child_of(self.parent).get(slug="source")
+        target_page = ContentPage.objects.child_of(self.parent).get(slug="target")
+        self.assertEqual(source_page.body.raw_data[0]["value"]["page"], target_page.pk)

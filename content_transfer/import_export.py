@@ -9,6 +9,7 @@ Example::
 import copy
 import json
 import os
+import re
 import sys
 from io import BytesIO
 from pathlib import PosixPath
@@ -25,12 +26,17 @@ from wagtail.utils.file import hash_filelike
 
 from sites_conformes.core.constants import HEADER_FIELDS
 from sites_conformes.core.services.accessors import get_or_create_collection, get_or_create_content_page
+from sites_conformes.core.utils import get_default_site
 
 ContentPage = swapper.load_model("sites_conformes_core", "ContentPage")
 
 PAGE_TEMPLATES_ROOT = settings.BASE_DIR / "sites_conformes/core/page_templates"
 TEMPLATES_DATA_FILE = PAGE_TEMPLATES_ROOT / "pages_data.json"
 IMAGES_FOLDER = PAGE_TEMPLATES_ROOT / "img"
+
+# PageChooser field names used in Sites Conformes StreamField blocks
+PAGE_CHOOSER_KEYS = frozenset({"page", "blog", "index_page"})
+PAGE_LINK_RICHTEXT_RE = re.compile(r'(linktype="page" id=")(\d+)(")')
 
 User = get_user_model()
 Image = get_image_model()
@@ -178,18 +184,21 @@ class ImportPages:
             slug="page_templates_index", title="Modèles de pages à copier", body=body, parent_page=parent_page
         )
 
-    def import_pages(self):
+    def import_pages(self) -> list[ContentPage]:
         """
         Import the images, then the pages.
 
         A page that was already imported under the parent page (same `source_url`)
         is updated instead of being duplicated.
+
+        Returns the created or updated pages, in the order of the export.
         """
         self.image_importer.import_images()
 
         if not self.parent_page:
             self.parent_page = self.get_or_create_page_templates_index()
 
+        self.transferred_pages: dict[str, ContentPage] = {}
         for page_id in self.pages.keys():
             self.update_image_ids(page_id)
 
@@ -198,9 +207,83 @@ class ImportPages:
 
             page_exists = ContentPage.objects.child_of(self.parent_page).filter(source_url=source_url).first()
             if page_exists:
-                self.update_page(page_id, page_exists)
+                page = self.update_page(page_id, page_exists)
             else:
-                self.import_page(page_id)
+                page = self.import_page(page_id)
+            self.transferred_pages[str(page_id)] = page
+
+        return list(self.transferred_pages.values())
+
+    def fix_page_links(self, source_site: str) -> None:
+        """
+        Replace source page IDs in transferred page bodies with local page IDs.
+
+        Matching is by slug: source page id → source slug → local page pk.
+        """
+        if not getattr(self, "transferred_pages", None):
+            return
+
+        source_id_to_slug = {str(source_id): raw_page["meta"]["slug"] for source_id, raw_page in self.pages.items()}
+
+        referenced_ids: set[int] = set()
+        for raw_page in self.pages.values():
+            locate_page_ids(raw_page.get("body"), referenced_ids)
+            locate_page_ids(raw_page.get("header_cta_buttons"), referenced_ids)
+
+        for page_id in referenced_ids:
+            page_id_str = str(page_id)
+            if page_id_str in source_id_to_slug:
+                continue
+            slug = self.fetch_source_page_slug(source_site, page_id)
+            if slug:
+                source_id_to_slug[page_id_str] = slug
+
+        page_id_map = {}
+        for source_id, slug in source_id_to_slug.items():
+            local_pk = self.local_page_pk_for_slug(slug)
+            if local_pk is not None:
+                page_id_map[source_id] = local_pk
+
+        for source_id, page in self.transferred_pages.items():
+            raw_page = self.pages.get(source_id)
+            if raw_page is None and source_id.isdigit():
+                raw_page = self.pages.get(int(source_id))
+            raw_page["body"] = update_streamfield_page_ids(raw_page["body"], page_id_map)
+            if raw_page.get("header_cta_buttons"):
+                raw_page["header_cta_buttons"] = update_streamfield_page_ids(
+                    raw_page["header_cta_buttons"], page_id_map
+                )
+            page.body = raw_page["body"]
+            if "header_cta_buttons" in raw_page and raw_page["header_cta_buttons"] is not None:
+                page.header_cta_buttons = raw_page["header_cta_buttons"]
+            page.save()
+            sys.stdout.write(f"Page links updated on {page.slug}.\n")
+
+    def fetch_source_page_slug(self, source_site: str, page_id: int) -> str | None:
+        """
+        Fetch a page from the source API and return its slug, or None on failure.
+        """
+        url = f"{source_site}api/v2/pages/{page_id}/"
+        try:
+            response = requests.get(url, timeout=5)
+            response.raise_for_status()
+            return response.json()["meta"]["slug"]
+        except (requests.RequestException, KeyError, TypeError, ValueError):
+            sys.stdout.write(f"Could not resolve source page {page_id} to a slug.\n")
+            return None
+
+    def local_page_pk_for_slug(self, slug: str) -> int | None:
+        """
+        Return the local page pk for ``slug``, preferring a child of the import parent.
+        """
+        if self.parent_page:
+            under_parent = Page.objects.child_of(self.parent_page).filter(slug=slug).first()
+            if under_parent:
+                return under_parent.pk
+
+        locale = get_default_site().root_page.locale
+        page = Page.objects.filter(slug=slug, locale=locale).first()
+        return page.pk if page else None
 
     def import_page(self, page_id: str) -> ContentPage:
         """
@@ -423,4 +506,61 @@ def update_streamfield_image_ids(json_object, image_ids):
                 update_streamfield_image_ids(v, image_ids)
     elif isinstance(json_object, list):
         return [update_streamfield_image_ids(v, image_ids) for v in json_object]
+    return json_object
+
+
+def locate_page_ids(json_object, found: set[int] | None = None) -> set[int]:
+    """
+    Recursively collect page IDs from PageChooser fields and rich-text page links.
+    """
+    if found is None:
+        found = set()
+
+    if isinstance(json_object, dict):
+        for key, value in json_object.items():
+            if key in PAGE_CHOOSER_KEYS and isinstance(value, int):
+                found.add(value)
+            elif key in PAGE_CHOOSER_KEYS and isinstance(value, str) and value.isdigit():
+                found.add(int(value))
+            else:
+                locate_page_ids(value, found)
+    elif isinstance(json_object, list):
+        for item in json_object:
+            locate_page_ids(item, found)
+    elif isinstance(json_object, str):
+        for match in PAGE_LINK_RICHTEXT_RE.finditer(json_object):
+            found.add(int(match.group(2)))
+
+    return found
+
+
+def update_streamfield_page_ids(json_object, page_id_map: dict):
+    """
+    Replace source page IDs with local IDs in a StreamField JSON representation.
+
+    ``page_id_map`` maps source page IDs (as strings) to local page pks.
+    Unknown IDs are left unchanged. The structure is updated in place and returned.
+    """
+    if isinstance(json_object, dict):
+        for key, value in json_object.items():
+            if key in PAGE_CHOOSER_KEYS and value is not None:
+                value_str = str(value)
+                if value_str in page_id_map:
+                    json_object[key] = page_id_map[value_str]
+                else:
+                    json_object[key] = update_streamfield_page_ids(value, page_id_map)
+            else:
+                json_object[key] = update_streamfield_page_ids(value, page_id_map)
+    elif isinstance(json_object, list):
+        for index, item in enumerate(json_object):
+            json_object[index] = update_streamfield_page_ids(item, page_id_map)
+    elif isinstance(json_object, str):
+
+        def replace_richtext_id(match):
+            source_id = match.group(2)
+            if source_id in page_id_map:
+                return f"{match.group(1)}{page_id_map[source_id]}{match.group(3)}"
+            return match.group(0)
+
+        return PAGE_LINK_RICHTEXT_RE.sub(replace_richtext_id, json_object)
     return json_object
