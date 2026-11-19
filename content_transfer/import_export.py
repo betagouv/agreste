@@ -1,5 +1,5 @@
 """
-Import and export of pages and images between Wagtail instances, through the API (`api/v2/`).
+Import and export of pages, images and documents between Wagtail instances, through the API (`api/v2/`).
 
 Example::
 
@@ -12,14 +12,16 @@ import os
 import re
 import sys
 from io import BytesIO
-from pathlib import PosixPath
+from pathlib import Path, PosixPath
 
 import requests
 import swapper
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.files.base import File
 from django.core.files.images import ImageFile
 from django.utils import timezone
+from wagtail.documents import get_document_model
 from wagtail.images import get_image_model
 from wagtail.models import Page
 from wagtail.utils.file import hash_filelike
@@ -33,13 +35,20 @@ ContentPage = swapper.load_model("sites_conformes_core", "ContentPage")
 PAGE_TEMPLATES_ROOT = settings.BASE_DIR / "sites_conformes/core/page_templates"
 TEMPLATES_DATA_FILE = PAGE_TEMPLATES_ROOT / "pages_data.json"
 IMAGES_FOLDER = PAGE_TEMPLATES_ROOT / "img"
+DOCUMENTS_FOLDER = PAGE_TEMPLATES_ROOT / "docs"
 
 # PageChooser field names used in Sites Conformes StreamField blocks
 PAGE_CHOOSER_KEYS = frozenset({"page", "blog", "index_page"})
 PAGE_LINK_RICHTEXT_RE = re.compile(r'(linktype="page" id=")(\d+)(")')
+DOCUMENT_LINK_RICHTEXT_RE = re.compile(r'(linktype="document" id=")(\d+)(")')
 
 User = get_user_model()
 Image = get_image_model()
+Document = get_document_model()
+
+
+class DocumentTransferError(Exception):
+    """Raised when a document cannot be safely matched or imported on the destination."""
 
 
 class ExportPage:
@@ -48,8 +57,9 @@ class ExportPage:
 
     The page is fetched from the API of `source_site` (a base URL ending with a slash)
     when the class is instantiated. The block IDs, the tags, the rendered header images
-    and some meta keys are removed, and the IDs of the images used by the page are
-    listed in `image_ids`, so that they can be exported with `ImportExportImages`.
+    and some meta keys are removed, and the IDs of the images and documents used by the
+    page are listed in `image_ids` / `document_ids` for export with `ImportExportImages`
+    and `ImportExportDocuments`.
     """
 
     def __init__(self, source_page_id, source_site) -> None:
@@ -68,7 +78,9 @@ class ExportPage:
 
         self.images = {}
         self.image_ids = []
+        self.document_ids = []
         self.get_source_images()
+        self.get_source_documents()
 
     @property
     def json_export(self) -> dict:
@@ -133,6 +145,15 @@ class ExportPage:
             for item in json_object:
                 self.locate_image_ids(item)
 
+    def get_source_documents(self) -> None:
+        """
+        Collect document IDs from the body and header CTA buttons, without duplicates.
+        """
+        found: set[int] = set()
+        locate_document_ids(self.source_body, found)
+        locate_document_ids(self.source_content.get("header_cta_buttons"), found)
+        self.document_ids = list(found)
+
     def clear_meta_keys(self):
         """
         Remove the meta keys that should not be copied to the imported page.
@@ -147,7 +168,7 @@ class ImportPages:
     Generic class for import of a list of ContentPages from a previously made export
 
     `pages_data` is a dict with a `pages` key (the exported pages, by source page ID)
-    and an `image_ids` key. It defaults to the content of `TEMPLATES_DATA_FILE`.
+    and `image_ids` / `document_ids` keys. It defaults to the content of `TEMPLATES_DATA_FILE`.
     The pages are imported under the page whose slug is `parent_page_slug`, or under
     a page templates index created right under the Root page.
     """
@@ -157,6 +178,7 @@ class ImportPages:
         pages_data: dict | None = None,
         parent_page_slug: str | None = None,
         image_folder: PosixPath | None = IMAGES_FOLDER,
+        document_folder: PosixPath | None = DOCUMENTS_FOLDER,
     ) -> None:
         if pages_data is None:
             with open(TEMPLATES_DATA_FILE, "r") as json_file:
@@ -164,8 +186,10 @@ class ImportPages:
 
         self.pages = pages_data["pages"]  # type: ignore
         self.image_ids = pages_data["image_ids"]  # type: ignore
+        self.document_ids = pages_data.get("document_ids", [])  # type: ignore
 
         self.image_importer = ImportExportImages(self.image_ids, image_folder=image_folder)
+        self.document_importer = ImportExportDocuments(self.document_ids, document_folder=document_folder)
 
         if parent_page_slug:
             self.parent_page = ContentPage.objects.get(slug=parent_page_slug)
@@ -186,7 +210,7 @@ class ImportPages:
 
     def import_pages(self) -> list[ContentPage]:
         """
-        Import the images, then the pages.
+        Import the images and documents, then the pages.
 
         A page that was already imported under the parent page (same `source_url`)
         is updated instead of being duplicated.
@@ -194,6 +218,7 @@ class ImportPages:
         Returns the created or updated pages, in the order of the export.
         """
         self.image_importer.import_images()
+        self.document_importer.import_documents()
 
         if not self.parent_page:
             self.parent_page = self.get_or_create_page_templates_index()
@@ -201,6 +226,7 @@ class ImportPages:
         self.transferred_pages: dict[str, ContentPage] = {}
         for page_id in self.pages.keys():
             self.update_image_ids(page_id)
+            self.update_document_ids(page_id)
 
             raw_page = self.pages[page_id]
             source_url = raw_page["meta"]["html_url"]
@@ -340,6 +366,16 @@ class ImportPages:
 
         page["body"] = update_streamfield_image_ids(page["body"], self.image_importer.image_data)
 
+    def update_document_ids(self, page_id):
+        """
+        Replace the source document IDs of the exported page with the IDs of the imported documents.
+        """
+        page = self.pages[page_id]
+        document_data = self.document_importer.document_data
+        page["body"] = update_streamfield_document_ids(page["body"], document_data)
+        if page.get("header_cta_buttons"):
+            page["header_cta_buttons"] = update_streamfield_document_ids(page["header_cta_buttons"], document_data)
+
 
 class ImportExportImages:
     """
@@ -476,6 +512,179 @@ class ImportExportImages:
         return image
 
 
+class ImportExportDocuments:
+    """
+    Import/export of Documents from a Wagtail instance via the documents API.
+
+    `document_folder` holds the files and a `document_data.json` metadata file.
+    `source_site` is only needed to download documents.
+
+    Local reuse requires a unique match on title, filename basename, and file_hash.
+    """
+
+    def __init__(self, document_ids, source_site=None, document_folder: PosixPath | None = DOCUMENTS_FOLDER) -> None:
+        self.user = User.objects.filter(is_superuser=True).first()
+
+        self.document_ids = set(document_ids)
+        self.source_site = source_site
+
+        self.document_folder = document_folder
+        os.makedirs(document_folder, exist_ok=True)
+
+        self.document_data_file = self.document_folder / "document_data.json"  # type: ignore
+
+        self.collection = get_or_create_collection("Documents des modèles de page")
+
+        self.document_data = self.get_document_data()
+
+    def get_document_data(self) -> dict:
+        """
+        Return the content of `document_data.json`, or an empty dict if the file doesn't exist.
+        """
+        if os.path.isfile(self.document_data_file):
+            with open(self.document_data_file, "r") as json_file:
+                return json.load(json_file)
+        return {}
+
+    def source_document_api_url(self, document_id: int | str) -> str:
+        """
+        Return the URL of the document in the API of the source site.
+        """
+        return f"{self.source_site}api/v2/documents/{document_id}/"
+
+    def get_content_from_source_document(self, document_id: int | str) -> dict:
+        """
+        Fetch the document from the API of the source site and return its JSON content.
+        """
+        response = requests.get(self.source_document_api_url(document_id), timeout=5)
+        response.raise_for_status()
+        return response.json()
+
+    def download_documents(self) -> None:
+        """
+        Download documents from the source site to `document_folder`, and save metadata
+        in `document_data.json`.
+        """
+        for document_id in self.document_ids:
+            document_id = str(document_id)
+            document = self.get_content_from_source_document(document_id)
+
+            if document_id not in self.document_data:
+                self.document_data[document_id] = {}
+            self.document_data[document_id]["meta"] = document["meta"]
+            self.document_data[document_id]["title"] = document["title"]
+
+            document_url = document["meta"].pop("download_url")
+            document_name = document_url.split("?")[0].split("/")[-1]
+
+            with requests.get(document_url, timeout=5, stream=True) as document_response:
+                document_response.raise_for_status()
+                with open(self.document_folder / document_name, "wb") as document_file:
+                    for chunk in document_response.iter_content(chunk_size=8192):
+                        document_file.write(chunk)
+
+            self.document_data[document_id]["filename"] = document_name
+
+        with open(self.document_data_file, "w") as json_file:
+            json.dump(self.document_data, json_file, indent=2)
+            json_file.write("\n")
+
+    def import_documents(self) -> None:
+        """
+        Resolve or create each document and store its local ID in `document_data`.
+        """
+        for document_id in self.document_ids:
+            document_id = str(document_id)
+            document_data = self.document_data[document_id]
+            document = self.resolve_or_create_document(document_id, document_data)
+            document_data["local_id"] = document.id
+
+    def resolve_or_create_document(self, source_id: str, document_data: dict) -> Document:
+        """
+        Reuse a local document matching title, filename and hash, or create one.
+
+        Raises ``DocumentTransferError`` on ambiguous or partial name matches.
+        """
+        filename = document_data["filename"]
+        title = document_data["title"]
+        path = self.document_folder / filename
+
+        with open(path, "rb") as document_file:
+            file_hash = hash_filelike(document_file)
+
+        name_hits = self.find_documents_by_title_or_filename(title, filename)
+        full_hits = [
+            doc
+            for doc in name_hits
+            if doc.title == title and Path(doc.file.name).name == filename and doc.file_hash == file_hash
+        ]
+
+        if len(full_hits) == 1 and len(name_hits) == 1:
+            existing = full_hits[0]
+            sys.stdout.write(
+                f"Document already present: source id {source_id} "
+                f"(title={title!r}, filename={filename!r}) → local id {existing.pk}.\n"
+            )
+            return existing
+
+        if len(full_hits) > 1:
+            raise DocumentTransferError(
+                f"Ambiguous document match for source id {source_id} "
+                f"(title={title!r}, filename={filename!r}, hash={file_hash}): "
+                f"{len(full_hits)} local documents match title, filename and hash."
+            )
+
+        if name_hits:
+            raise DocumentTransferError(
+                f"Conflicting document on destination for source id {source_id} "
+                f"(title={title!r}, filename={filename!r}, hash={file_hash}): "
+                f"found {len(name_hits)} document(s) with the same title or filename "
+                f"but not a unique title+filename+hash match."
+            )
+
+        document = self.create_document(document_data)
+        sys.stdout.write(
+            f"Document created: source id {source_id} "
+            f"(title={title!r}, filename={filename!r}) → local id {document.pk}.\n"
+        )
+        return document
+
+    def find_documents_by_title_or_filename(self, title: str, filename: str) -> list:
+        """
+        Return local documents whose title equals ``title`` or whose file basename equals ``filename``.
+        """
+        by_title = list(Document.objects.filter(title=title))
+        by_filename = [
+            doc
+            for doc in Document.objects.filter(file__endswith=filename)
+            if Path(doc.file.name).name == filename and doc not in by_title
+        ]
+        return by_title + by_filename
+
+    def create_document(self, document_data: dict) -> Document:
+        """
+        Create a local Document from the file in `document_folder`.
+
+        The original basename is kept so a later transfer can match title + filename + hash.
+        ``_set_document_file_metadata`` fills ``file_size`` and ``file_hash`` (same as
+        ``create_publications._create_wagtail_document``).
+        """
+        filename = document_data["filename"]
+        title = document_data["title"]
+
+        with open(self.document_folder / filename, "rb") as document_file:
+            document = Document(
+                title=title,
+                file=File(BytesIO(document_file.read()), name=filename),
+                uploaded_by_user=self.user,
+                collection=self.collection,
+            )
+            document._set_document_file_metadata()
+            document.save()
+
+        return document
+
+
 def remove_block_ids(json_object):
     """
     Parse a page JSON StreamField representation and strip the block IDs
@@ -534,6 +743,31 @@ def locate_page_ids(json_object, found: set[int] | None = None) -> set[int]:
     return found
 
 
+def locate_document_ids(json_object, found: set[int] | None = None) -> set[int]:
+    """
+    Recursively collect document IDs from DocumentChooser fields and rich-text document links.
+    """
+    if found is None:
+        found = set()
+
+    if isinstance(json_object, dict):
+        for key, value in json_object.items():
+            if key == "document" and isinstance(value, int):
+                found.add(value)
+            elif key == "document" and isinstance(value, str) and value.isdigit():
+                found.add(int(value))
+            else:
+                locate_document_ids(value, found)
+    elif isinstance(json_object, list):
+        for item in json_object:
+            locate_document_ids(item, found)
+    elif isinstance(json_object, str):
+        for match in DOCUMENT_LINK_RICHTEXT_RE.finditer(json_object):
+            found.add(int(match.group(2)))
+
+    return found
+
+
 def update_streamfield_page_ids(json_object, page_id_map: dict):
     """
     Replace source page IDs with local IDs in a StreamField JSON representation.
@@ -563,4 +797,37 @@ def update_streamfield_page_ids(json_object, page_id_map: dict):
             return match.group(0)
 
         return PAGE_LINK_RICHTEXT_RE.sub(replace_richtext_id, json_object)
+    return json_object
+
+
+def update_streamfield_document_ids(json_object, document_ids):
+    """
+    Replace source document IDs with local IDs in a StreamField JSON representation.
+
+    ``document_ids`` maps source document IDs (as strings) to dicts holding the local ID
+    in their ``local_id`` key, such as ``ImportExportDocuments.document_data``.
+    Unknown IDs are left unchanged. The structure is updated in place and returned.
+    """
+    if isinstance(json_object, dict):
+        for key, value in json_object.items():
+            if key == "document" and value is not None:
+                value_str = str(value)
+                if value_str in document_ids:
+                    json_object[key] = document_ids[value_str]["local_id"]
+                else:
+                    json_object[key] = update_streamfield_document_ids(value, document_ids)
+            else:
+                json_object[key] = update_streamfield_document_ids(value, document_ids)
+    elif isinstance(json_object, list):
+        for index, item in enumerate(json_object):
+            json_object[index] = update_streamfield_document_ids(item, document_ids)
+    elif isinstance(json_object, str):
+
+        def replace_richtext_id(match):
+            source_id = match.group(2)
+            if source_id in document_ids:
+                return f"{match.group(1)}{document_ids[source_id]['local_id']}{match.group(3)}"
+            return match.group(0)
+
+        return DOCUMENT_LINK_RICHTEXT_RE.sub(replace_richtext_id, json_object)
     return json_object

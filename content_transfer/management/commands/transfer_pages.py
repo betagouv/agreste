@@ -2,7 +2,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand
 
-from content_transfer.import_export import ExportPage, ImportExportImages, ImportPages
+from content_transfer.import_export import ExportPage, ImportExportDocuments, ImportExportImages, ImportPages
 from sites_conformes.core.utils import get_default_site
 
 SOURCE_URL = "https://sites.beta.gouv.fr/"
@@ -40,10 +40,12 @@ class Command(BaseCommand):
             site = get_default_site()
             parent_page_slug = site.root_page.slug
 
-        # Fixed path (not tempfile.mkdtemp()) so downloaded images and image_data.json
+        # Fixed paths (not tempfile.mkdtemp()) so downloaded files and metadata JSON
         # persist and are reused/resumed across separate runs of this command.
         image_folder = Path("/tmp/sf_img")  # nosec B108 -- developer-run-only CLI tool
+        document_folder = Path("/tmp/sf_docs")  # nosec B108 -- developer-run-only CLI tool
         image_ids = []
+        document_ids = []
 
         pages = {}
 
@@ -54,14 +56,21 @@ class Command(BaseCommand):
             page = ExportPage(page_id, source_site_url)
             pages[page_id] = page.json_export
             image_ids += page.image_ids
+            document_ids += page.document_ids
 
         image_exporter = ImportExportImages(image_ids, source_site_url, image_folder=image_folder)
         image_exporter.download_images()
 
-        pages_data = {"image_ids": image_ids, "pages": pages}
+        document_exporter = ImportExportDocuments(document_ids, source_site_url, document_folder=document_folder)
+        document_exporter.download_documents()
+
+        pages_data = {"image_ids": image_ids, "document_ids": document_ids, "pages": pages}
 
         page_importer = ImportPages(
-            pages_data=pages_data, parent_page_slug=parent_page_slug, image_folder=image_folder
+            pages_data=pages_data,
+            parent_page_slug=parent_page_slug,
+            image_folder=image_folder,
+            document_folder=document_folder,
         )
         page_importer.import_pages()
         page_importer.fix_page_links(source_site_url)

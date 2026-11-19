@@ -2,25 +2,34 @@ import copy
 import json
 import tempfile
 from contextlib import redirect_stdout
-from io import StringIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from django.core.files.base import File
 from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase
+from wagtail.documents import get_document_model
 from wagtail.models import Page
 from wagtail.test.utils import WagtailPageTestCase
+from wagtail.utils.file import hash_filelike
 
 from content_transfer.import_export import (
+    DocumentTransferError,
     ExportPage,
+    ImportExportDocuments,
     ImportExportImages,
     ImportPages,
+    locate_document_ids,
     locate_page_ids,
     remove_block_ids,
+    update_streamfield_document_ids,
     update_streamfield_image_ids,
     update_streamfield_page_ids,
 )
 from sites_conformes.core.models import ContentPage
+
+Document = get_document_model()
 
 
 class ImportPagesTestCase(WagtailPageTestCase):
@@ -69,7 +78,18 @@ def page_api_response():
                 "id": "block-4",
                 "value": {"image": {"image": None, "alt_text": None, "decorative": None}},
             },
+            {
+                "type": "link",
+                "id": "block-5",
+                "value": {"page": None, "document": 11},
+            },
+            {
+                "type": "paragraph",
+                "id": "block-6",
+                "value": '<p><a linktype="document" id="12">Doc</a></p>',
+            },
         ],
+        "header_cta_buttons": [{"type": "button", "value": {"document": 11, "page": None}}],
         "tags": ["tag"],
         "header_image": {"id": 5, "meta": {"download_url": "https://source.example.com/media/header.png"}},
         "header_image_render": {"url": "render"},
@@ -105,6 +125,16 @@ class StreamfieldHelpersTestCase(SimpleTestCase):
 
         self.assertEqual(locate_page_ids(value), {20, 30, 40, 50})
 
+    def test_locate_document_ids(self):
+        value = [
+            {"type": "link", "value": {"page": 20, "document": 11}},
+            {"type": "link", "value": {"document": None}},
+            {"type": "paragraph", "value": '<p><a linktype="document" id="12">x</a></p>'},
+            {"document": "13"},
+        ]
+
+        self.assertEqual(locate_document_ids(value), {11, 12, 13})
+
     def test_update_streamfield_page_ids(self):
         page_id_map = {"20": 200, "30": 300}
         value = [
@@ -119,6 +149,23 @@ class StreamfieldHelpersTestCase(SimpleTestCase):
                 {"type": "link", "value": {"page": 200}},
                 {"type": "link", "value": {"page": 99}},
                 {"type": "paragraph", "value": '<p><a linktype="page" id="300">x</a></p>'},
+            ],
+        )
+
+    def test_update_streamfield_document_ids(self):
+        document_data = {"11": {"local_id": 110}, "12": {"local_id": 120}}
+        value = [
+            {"type": "link", "value": {"document": 11}},
+            {"type": "link", "value": {"document": 99}},
+            {"type": "paragraph", "value": '<p><a linktype="document" id="12">x</a></p>'},
+        ]
+
+        self.assertEqual(
+            update_streamfield_document_ids(value, document_data),
+            [
+                {"type": "link", "value": {"document": 110}},
+                {"type": "link", "value": {"document": 99}},
+                {"type": "paragraph", "value": '<p><a linktype="document" id="120">x</a></p>'},
             ],
         )
 
@@ -144,6 +191,8 @@ class ExportPageTestCase(TestCase):
 
         # Header image, body images (plain and with alt), no duplicate, and no null id
         self.assertEqual(sorted(export.image_ids), [5, 7, 8])
+        # Document chooser in body and header CTA, plus rich-text document link
+        self.assertEqual(sorted(export.document_ids), [11, 12])
 
 
 class ImportExportImagesTestCase(TestCase):
@@ -195,11 +244,120 @@ class ImportExportImagesTestCase(TestCase):
         self.assertEqual(reloaded.image_data, image_data)
 
 
+class ImportExportDocumentsTestCase(TestCase):
+    def setUp(self):
+        tmp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp_dir.cleanup)
+        self.document_folder = Path(tmp_dir.name)
+
+    def _write_source_file(self, filename, content):
+        path = self.document_folder / filename
+        path.write_bytes(content)
+        return path
+
+    def _prepare_importer(self, source_id, title, filename, content):
+        self._write_source_file(filename, content)
+        importer = ImportExportDocuments([source_id], document_folder=self.document_folder)
+        importer.document_data = {
+            str(source_id): {
+                "title": title,
+                "filename": filename,
+                "meta": {},
+            }
+        }
+        return importer
+
+    @patch("content_transfer.import_export.requests.get")
+    def test_download_documents(self, mock_get):
+        def fake_get(url, **kwargs):
+            response = MagicMock()
+            if kwargs.get("stream"):
+                response.__enter__.return_value.iter_content.return_value = [b"%PDF", b"-data"]
+            else:
+                response.json.return_value = {
+                    "title": "Rapport",
+                    "meta": {"download_url": "https://source.example.com/media/documents/rapport.pdf?v=1"},
+                }
+            return response
+
+        mock_get.side_effect = fake_get
+
+        exporter = ImportExportDocuments([9], "https://source.example.com/", document_folder=self.document_folder)
+        exporter.download_documents()
+
+        self.assertEqual((self.document_folder / "rapport.pdf").read_bytes(), b"%PDF-data")
+        document_data = json.loads((self.document_folder / "document_data.json").read_text())
+        self.assertEqual(document_data["9"]["filename"], "rapport.pdf")
+        self.assertEqual(document_data["9"]["title"], "Rapport")
+        self.assertNotIn("download_url", document_data["9"]["meta"])
+
+    def test_import_reuses_triple_match(self):
+        content = b"%PDF-same"
+        digest = hash_filelike(BytesIO(content))
+        existing = Document(title="Rapport", file=File(BytesIO(content), name="rapport.pdf"))
+        existing.save()
+        # Keep basename + hash stable (storage may rename the uploaded file)
+        Document.objects.filter(pk=existing.pk).update(file="documents/rapport.pdf", file_hash=digest)
+
+        importer = self._prepare_importer(9, "Rapport", "rapport.pdf", content)
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            importer.import_documents()
+
+        self.assertEqual(importer.document_data["9"]["local_id"], existing.pk)
+        self.assertEqual(Document.objects.filter(title="Rapport").count(), 1)
+        self.assertIn("Document already present: source id 9", stdout.getvalue())
+        self.assertIn(f"local id {existing.pk}", stdout.getvalue())
+
+    def test_import_creates_when_no_name_match(self):
+        content = b"%PDF-new"
+        filename = "rapport-neuf-create.pdf"
+        importer = self._prepare_importer(9, "Rapport neuf create", filename, content)
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            importer.import_documents()
+
+        created = Document.objects.get(title="Rapport neuf create")
+        self.assertEqual(importer.document_data["9"]["local_id"], created.pk)
+        self.assertTrue(Path(created.file.name).name.startswith("rapport-neuf-create"))
+        self.assertEqual(created.file_hash, hash_filelike(BytesIO(content)))
+        self.assertEqual(created.file_size, len(content))
+        self.assertIn("Document created: source id 9", stdout.getvalue())
+        self.assertIn(f"local id {created.pk}", stdout.getvalue())
+
+    def test_import_errors_on_title_without_matching_hash(self):
+        Document(
+            title="Rapport",
+            file=File(BytesIO(b"%PDF-old"), name="rapport.pdf"),
+        ).save()
+
+        importer = self._prepare_importer(9, "Rapport", "rapport.pdf", b"%PDF-new")
+        with self.assertRaises(DocumentTransferError) as ctx:
+            importer.import_documents()
+        self.assertIn("same title or filename", str(ctx.exception))
+
+    def test_import_errors_on_multiple_full_matches(self):
+        content = b"%PDF-dup"
+        digest = hash_filelike(BytesIO(content))
+        for _ in range(2):
+            doc = Document(title="Rapport", file=File(BytesIO(content), name="rapport.pdf"))
+            doc.save()
+            # Force identical basename + hash so both count as full triple matches
+            Document.objects.filter(pk=doc.pk).update(file="documents/rapport.pdf", file_hash=digest)
+
+        importer = self._prepare_importer(9, "Rapport", "rapport.pdf", content)
+        with self.assertRaises(DocumentTransferError) as ctx:
+            importer.import_documents()
+        self.assertIn("Ambiguous", str(ctx.exception))
+
+
 class ImportPagesWithParentTestCase(WagtailPageTestCase):
     def setUp(self):
         tmp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(tmp_dir.cleanup)
         self.image_folder = Path(tmp_dir.name)
+        self.document_folder = Path(tmp_dir.name) / "docs"
+        self.document_folder.mkdir()
 
         home = Page.objects.get(slug="home")
         self.parent = home.add_child(instance=ContentPage(title="Parent", slug="parent"))
@@ -217,11 +375,14 @@ class ImportPagesWithParentTestCase(WagtailPageTestCase):
             "header_cta_text": "",
             "header_cta_buttons": [],
         }
-        return {"image_ids": [], "pages": {"32": page}}
+        return {"image_ids": [], "document_ids": [], "pages": {"32": page}}
 
     def import_pages(self, title):
         importer = ImportPages(
-            pages_data=self.pages_data(title), parent_page_slug="parent", image_folder=self.image_folder
+            pages_data=self.pages_data(title),
+            parent_page_slug="parent",
+            image_folder=self.image_folder,
+            document_folder=self.document_folder,
         )
         with redirect_stdout(StringIO()):
             importer.import_pages()
@@ -244,6 +405,7 @@ class ImportPagesWithParentTestCase(WagtailPageTestCase):
     def test_page_links_are_remapped_after_import(self):
         pages_data = {
             "image_ids": [],
+            "document_ids": [],
             "pages": {
                 "10": {
                     "meta": {"html_url": "https://source.example.com/source/", "slug": "source"},
@@ -287,7 +449,12 @@ class ImportPagesWithParentTestCase(WagtailPageTestCase):
             },
         }
 
-        importer = ImportPages(pages_data=pages_data, parent_page_slug="parent", image_folder=self.image_folder)
+        importer = ImportPages(
+            pages_data=pages_data,
+            parent_page_slug="parent",
+            image_folder=self.image_folder,
+            document_folder=self.document_folder,
+        )
         with redirect_stdout(StringIO()):
             importer.import_pages()
             importer.fix_page_links("https://source.example.com/")
@@ -295,3 +462,66 @@ class ImportPagesWithParentTestCase(WagtailPageTestCase):
         source_page = ContentPage.objects.child_of(self.parent).get(slug="source")
         target_page = ContentPage.objects.child_of(self.parent).get(slug="target")
         self.assertEqual(source_page.body.raw_data[0]["value"]["page"], target_page.pk)
+
+    def test_document_links_are_remapped_on_import(self):
+        content = b"%PDF-linked"
+        (self.document_folder / "rapport.pdf").write_bytes(content)
+        document_data = {
+            "11": {
+                "title": "Rapport",
+                "filename": "rapport.pdf",
+                "meta": {},
+            }
+        }
+        pages_data = {
+            "image_ids": [],
+            "document_ids": [11],
+            "pages": {
+                "10": {
+                    "meta": {"html_url": "https://source.example.com/with-doc/", "slug": "with-doc"},
+                    "title": "With doc",
+                    "body": [
+                        {
+                            "type": "link",
+                            "value": {
+                                "text": "PDF",
+                                "link_type": "document",
+                                "page": None,
+                                "document": 11,
+                                "external_url": "",
+                                "anchor": "",
+                                "query_string": "",
+                                "icon": "",
+                                "size": "",
+                            },
+                        },
+                        {
+                            "type": "paragraph",
+                            "value": '<p><a linktype="document" id="11">PDF</a></p>',
+                        },
+                    ],
+                    "header_image": None,
+                    "header_with_title": False,
+                    "header_color_class": None,
+                    "header_large": False,
+                    "header_darken": False,
+                    "header_cta_text": "",
+                    "header_cta_buttons": [],
+                },
+            },
+        }
+
+        importer = ImportPages(
+            pages_data=pages_data,
+            parent_page_slug="parent",
+            image_folder=self.image_folder,
+            document_folder=self.document_folder,
+        )
+        importer.document_importer.document_data = document_data
+        with redirect_stdout(StringIO()):
+            importer.import_pages()
+
+        page = ContentPage.objects.child_of(self.parent).get(slug="with-doc")
+        local_document = Document.objects.get(title="Rapport")
+        self.assertEqual(page.body.raw_data[0]["value"]["document"], local_document.pk)
+        self.assertIn(f'linktype="document" id="{local_document.pk}"', page.body.raw_data[1]["value"])
