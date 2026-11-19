@@ -20,8 +20,8 @@ Example : 2.8.0-4.1.0
   ```
 
   This will attempt to merge the given tag from SC into main-agreste, and
-  resolve known conflicts (uv.lock and deleted code : demo/, tarteaucitron lib,
-  package.json, uv.lock) and makemigrations.
+  resolve known conflicts (uv.lock, the whole demo/ tree including new files
+  from the tag, tarteaucitron lib, package.json) and makemigrations.
 
 - Review remaining changes (especially any new migrations), commit, push
 

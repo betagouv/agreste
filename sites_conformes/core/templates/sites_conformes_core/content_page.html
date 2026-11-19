@@ -38,7 +38,7 @@
   {% include "sites_conformes_core/blocks/heading.html" %}
   <div class="fr-container fr-pt-4w">
     {% include "sites_conformes_core/blocks/breadcrumbs.html" %}
-    
+
     {% if page.show_title %}
       <h1>
         {{ page.title }}
@@ -50,6 +50,9 @@
   {% include "sites_conformes_core/blocks/messages.html" %}
 
   {% include "sites_conformes_core/blocks/blocks_stream.html" with stream=page.body %}
+
+  {% block after_body %}
+  {% endblock after_body %}
 
   {% with tags=page.tags.all|dictsort:"slug" %}
     {% if tags %}

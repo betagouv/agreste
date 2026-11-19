@@ -13,7 +13,8 @@
                  name="{{ facet }}"
                  value="{{ item_value }}"
                  {% if item in selected_values %}checked{% endif %} />
-          <label class="fr-label" for="facet-{{ facet }}-{{ item_value }}">{% facet_label item.name item.result_count %}</label>
+          <label class="fr-label"
+                 for="facet-{{ facet }}-{{ item_value }}">{% facet_label item.name item.result_count %}</label>
         </div>
       </li>
     {% endfor %}

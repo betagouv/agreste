@@ -83,9 +83,11 @@
 
     <div class="fr-grid-row fr-grid-row--gutters fr-mb-3w">
       <div class="fr-col fr-col-md-4 fr-col-12">
-        <nav class="fr-sidemenu fr-sidemenu--sticky-full-height fr-mb-0-5v" aria-labelledby="fr-sidemenu-title">
+        <nav class="fr-sidemenu fr-sidemenu--sticky-full-height fr-mb-0-5v"
+             aria-labelledby="fr-sidemenu-title">
           <div class="fr-sidemenu__inner">
             <button class="fr-sidemenu__btn"
+                    type="button"
                     hidden
                     aria-controls="fr-sidemenu-wrapper-{{ page.slug }}"
                     aria-expanded="false">{% translate "Filters" %}</button>
@@ -95,7 +97,9 @@
               <form method="get"
                     action="{% pageurl page %}#posts-list"
                     id="events-filters-form">
-                {% for name, value in preserved_filters %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+                {% for name, value in preserved_filters %}
+                  <input type="hidden" name="{{ name }}" value="{{ value }}">
+                {% endfor %}
                 <fieldset class="fr-fieldset" aria-labelledby="events-period-legend">
                   <legend class="fr-fieldset__legend fr-fieldset__legend--regular"
                           id="events-period-legend">

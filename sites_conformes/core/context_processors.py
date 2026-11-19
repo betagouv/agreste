@@ -1,19 +1,17 @@
-from sites_conformes.core.models import MegaMenu
-
-
 def skiplinks(request) -> dict:
     return {
         "skiplinks": [
             {"link": "#content", "label": "Contenu"},
             {"link": "#fr-navigation", "label": "Menu"},
+            {"link": "#footer", "label": "Pied de page"},
         ]
     }
 
 
 def mega_menus(request) -> dict:
-    menus = list(MegaMenu.objects.all().values_list("parent_menu_item_id", flat=True))
-
-    return {"mega_menus": menus}
+    # Deprecated: the legacy mega menus have been removed. Kept as a no-op so that host projects
+    # still listing it in their settings don't break. To be removed along with wagtailmenus.
+    return {"mega_menus": []}
 
 
 def iframe(request) -> dict:

@@ -32,12 +32,12 @@
                 {% if post.date or collections or post.issue_number %}
                   <p class="fr-card__detail{% if post.date %} fr-icon-calendar-line{% endif %}">
                     {% if post.date %}{% translate "Published on" %} {{ post.date|date:"j F Y" }}{% endif %}
-                    {% if post.date and collections %} | {% endif %}
+                    {% if post.date and collections %}|{% endif %}
                     {% for collection in collections %}
                       {{ collection.name }}{% if not forloop.last %} | {% endif %}
                     {% endfor %}
                     {% if post.issue_number %}
-                      {% if post.date or collections %} | {% endif %}
+                      {% if post.date or collections %}|{% endif %}
                       {% blocktranslate with issue_number=post.issue_number %}No. {{ issue_number }}{% endblocktranslate %}
                     {% endif %}
                   </p>

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Merge Sites Conformes tag v<version> into a fresh branch from main-agreste.
-# Resolves known Agreste paths (deleted demo/tarteaucitron, ours package.json, uv.lock).
+# Resolves known Agreste paths (drops the whole demo/ tree, including new files from the tag,
+# deleted tarteaucitron/e2e workflows, ours package.json and SECURITY.md, uv.lock).
 # Usage: merge_sc_tag.sh <version>   e.g. merge_sc_tag.sh 4.2.0-rc1
 # Prefer: just merge-sc-tag <version>
 set -euo pipefail
@@ -20,6 +21,30 @@ run_uv() {
     else
         uv "$@"
     fi
+}
+
+# Migrations written by makemigrations and not yet staged.
+# Tag files already in the index with the same blob are omitted.
+# Unmerged paths are left for the conflict report.
+list_unstaged_migrations() {
+    git ls-files -co --exclude-standard -z -- ':(glob)**/migrations/*.py' \
+        | while IFS= read -r -d '' path; do
+            if [ -n "$(git ls-files -u -- "$path")" ]; then
+                continue
+            fi
+            if [ ! -e "$path" ]; then
+                printf 'D %s\n' "$path"
+                continue
+            fi
+            work="$(git hash-object -- "$path")"
+            if index="$(git rev-parse -q --verify ":$path")"; then
+                if [ "$work" != "$index" ]; then
+                    printf 'M %s\n' "$path"
+                fi
+            else
+                printf 'A %s\n' "$path"
+            fi
+        done
 }
 
 current_branch="$(git branch --show-current)"
@@ -107,13 +132,21 @@ if [ "${#blocked[@]}" -gt 0 ]; then
     exit 1
 fi
 
-just accept-deleted-by-us demo
-just accept-deleted-by-us sites_conformes/static/lib/tarteaucitronjs
+echo "==> demo/: dropping the whole tree, including files added by the tag"
+git rm -rf --ignore-unmatch -- demo
 
-# Always keep Agreste's package.json; never take upstream changes.
+just accept-deleted-by-us sites_conformes/static/lib/tarteaucitronjs
+just accept-deleted-by-us .github/actions/setup-e2e/action.yml
+just accept-deleted-by-us .github/workflows/_e2e.yml
+
+# Always keep Agreste's package.json and SECURITY.md; never take upstream changes.
 echo "==> package.json: forcing ours (main-agreste)"
 git checkout main-agreste -- package.json
 git add -- package.json
+
+echo "==> SECURITY.md: forcing ours (main-agreste)"
+git checkout main-agreste -- SECURITY.md
+git add -- SECURITY.md
 
 if git ls-files -u -- uv.lock | grep -q .; then
     echo "==> uv.lock: taking theirs, then regenerating"
@@ -128,7 +161,7 @@ git add -- uv.lock
 
 echo "==> Running makemigrations"
 just makemigrations
-migrations_changed="$(git status --porcelain -- '**/migrations/*.py' || true)"
+migrations_changed="$(list_unstaged_migrations)"
 if [ -n "${migrations_changed}" ]; then
     echo ""
     echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"

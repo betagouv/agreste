@@ -165,18 +165,33 @@ show_pull_requests "$since" "$repo_url"
 echo
 
 current="$(git show origin/main-agreste:agreste_version.txt | tr -d '[:space:]')"
-if [[ "$current" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)-([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-    agreste_only="${BASH_REMATCH[1]}.$((10#${BASH_REMATCH[2]} + 1)).0-${BASH_REMATCH[4]}.${BASH_REMATCH[5]}.${BASH_REMATCH[6]}"
-    with_sc="${BASH_REMATCH[1]}.$((10#${BASH_REMATCH[2]} + 1)).0-${BASH_REMATCH[4]}.$((10#${BASH_REMATCH[5]} + 1)).0"
+# Agreste is always X.Y.Z; Sites Conformes is everything after the first "-".
+# SC may be X.Y.Z, X.Y.ZrcN, X.Y.Z-rcN, or X.Y-rcN.
+if [[ "$current" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)-(.*)$ ]]; then
+    agreste_major="${BASH_REMATCH[1]}"
+    agreste_minor="${BASH_REMATCH[2]}"
+    sc_current="${BASH_REMATCH[4]}"
+    if [[ "$sc_current" =~ ^([0-9]+)\.([0-9]+) ]]; then
+        agreste_next="${agreste_major}.$((10#${agreste_minor} + 1)).0"
+        sc_major="${BASH_REMATCH[1]}"
+        sc_minor="${BASH_REMATCH[2]}"
+        agreste_only="${agreste_next}-${sc_current}"
+        with_sc="${agreste_next}-${sc_major}.$((10#${sc_minor} + 1)).0"
+    else
+        agreste_only="2.21.0-4.2.0"
+        with_sc="2.21.0-4.3.0"
+    fi
 else
     agreste_only="2.21.0-4.2.0"
     with_sc="2.21.0-4.3.0"
 fi
 
 echo "Current version: ${current}"
-echo "Format: <Agreste X.Y.Z>-<Sites Conformes X.Y.Z>"
+echo "Format: <Agreste X.Y.Z>-<Sites Conformes version>"
+echo "  Sites Conformes may be X.Y.Z, X.Y.ZrcN, X.Y.Z-rcN, or X.Y-rcN"
 echo "  Example : ${agreste_only}  bumps minor version of Agreste only"
 echo "  Example : ${with_sc}  bumps minor version of Agreste, and specifies a new version of Sites Conformes"
+echo "  Example : 2.31.0-4.4.0rc1  or  2.31.0-4.2.0-rc1"
 echo
 
 while true; do
@@ -186,8 +201,12 @@ while true; do
         echo "Cancelled."
         exit 0
     fi
-    if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo "Version must look like ${agreste_only} (Agreste X.Y.Z-Sites Conformes X.Y.Z)." >&2
+    if [[ "$version" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-(.*)$ ]] \
+        && [[ "${BASH_REMATCH[2]}" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?(-?rc[0-9]+)?$ ]]; then
+        :
+    else
+        echo "Version must look like ${agreste_only} (Agreste X.Y.Z-Sites Conformes version)." >&2
+        echo "  Sites Conformes examples: 4.3.1, 4.4.0rc1, 4.2.0-rc1, 4.1-rc2" >&2
         continue
     fi
     if [ "$version" = "$current" ]; then

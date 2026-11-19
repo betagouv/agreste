@@ -22,7 +22,7 @@ collectstatic:
 # Compile the translation files
 [group('Internationalization')]
 compilemessages:
-    {{docker_cmd}} {{uv_run}} python manage.py compilemessages -l fr --ignore=.venv
+    {{docker_cmd}} {{uv_run}} python manage.py compilemessages -l fr --ignore=.venv*
 
 alias csu := createsuperuser
 createsuperuser:
@@ -30,8 +30,9 @@ createsuperuser:
 
 alias first-deploy := deploy
 deploy:
-    just migrate
     just collectstatic
+    just compilemessages
+    just migrate
     {{docker_cmd}} {{uv_run}} python manage.py create_starter_pages
     {{docker_cmd}} {{uv_run}} python manage.py import_page_templates
     {{docker_cmd}} {{uv_run}} python manage.py import_illustration_images
@@ -131,7 +132,7 @@ accept-deleted-by-us path:
     bash scripts/accept_deleted_by_us.sh "{{path}}"
 
 # Merge Sites Conformes tag v<version> into a fresh branch from main-agreste.
-# Resolves known Agreste paths (deleted demo/tarteaucitron, ours package.json, uv.lock).
+# Resolves known Agreste paths (drops the whole demo/ tree, including new files from the tag, deleted tarteaucitron/e2e workflows, ours package.json and SECURITY.md, uv.lock).
 # Example: just merge-sc-tag 4.2.0-rc1
 [group('Git')]
 merge-sc-tag version:
@@ -184,7 +185,7 @@ scalingo-postdeploy:
 
 # Roll a Scalingo app back to a DB backup and to the code of a given git ref
 [group('Production')]
-scalingo-rollback app region="osc-fr1" ref="":
+scalingo-rollback app region="-" ref="":
     cd scripts && bash rollback_scalingo.sh {{app}} {{region}} {{ref}}
 
 #### Audit-related recipes

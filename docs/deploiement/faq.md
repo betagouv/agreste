@@ -69,7 +69,7 @@ La commande à lancer via le CLI Scalingo, en remplaçant `mon-site` par le nom 
 votre application :
 
 ```sh
-scalingo -a mon-site run python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+scalingo -a mon-site run 'python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"'
 ```
 
 Copiez la valeur affichée dans la variable `SECRET_KEY`
@@ -144,6 +144,14 @@ Pensez à y mettre **tous** les domaines par lesquels le site est joignable
 
 À l’adresse de votre site suivie de **`/cms-admin/`** par défaut. Ce chemin est
 configurable via la variable `WAGTAILADMIN_PATH`.
+
+### Je ne peux plus me connecter à l’administration avec ProConnect
+
+Lorsque `SF_DISABLE_LOCAL_LOGIN` est activé, ProConnect est le seul moyen de
+se connecter. Si ProConnect est indisponible, ou si plus aucun compte n’a les
+droits nécessaires, une personne ayant accès au serveur peut rétablir
+temporairement la connexion par mot de passe : voir
+l’{ref}`accès de secours <acces-de-secours>`.
 
 ### À quoi sert le panneau de notifications de l’administration ?
 
@@ -246,7 +254,20 @@ répercutez-le en base :
 python manage.py set_config
 ```
 
-Voir {doc}`migrer-hebergement` pour la procédure complète.
+Voir {doc}`changer-nom-de-domaine`.
+
+### Les e-mails contiennent l’adresse `*.scalingo.io` au lieu de mon domaine
+
+Les liens des e-mails (mot de passe perdu, notifications…) sont construits à
+partir de `HOST_URL`. Remplacez sa valeur par votre domaine définitif (nom de
+domaine seul), vérifiez qu’il figure dans `ALLOWED_HOSTS`, puis lancez :
+
+```sh
+python manage.py set_config
+```
+
+Voir {doc}`changer-nom-de-domaine` et, sur Scalingo,
+{ref}`scalingo-domaine-definitif`.
 
 ### Les e-mails ne partent pas
 
