@@ -26,7 +26,7 @@ cd "$(git rev-parse --show-toplevel)"
 require_clean_worktree() {
     if ! git diff --quiet || ! git diff --cached --quiet; then
         echo "ERROR: tracked files have uncommitted changes. Commit or stash them first." >&2
-        #exit 1
+        exit 1
     fi
 }
 
