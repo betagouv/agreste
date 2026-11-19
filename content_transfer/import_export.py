@@ -1,6 +1,16 @@
 """
 Import and export of pages, images and documents between Wagtail instances, through the API (`api/v2/`).
 
+Only ``ContentPage`` is supported: every transferred page is created or updated as a
+``sites_conformes_core.ContentPage``. The source ``meta.type`` is ignored; other page
+types (for example ``PublicationPage``) are not preserved.
+
+Publications blocks registered on ``ContentPage.body``
+(``downloadable_document``, ``standard_publication``, ``freeform_publication``,
+``publication_recent_entries``, …) use the same nested StreamField keys
+(``document``, ``image`` / ``bg_image``, ``page`` / ``index_page``, rich-text
+``linktype``) and are covered by the recursive image, page and document walkers.
+
 Example::
 
     python manage.py transfer_pages --ids 5 7 --site_url https://source.example.com/ --parent_page_slug donnees

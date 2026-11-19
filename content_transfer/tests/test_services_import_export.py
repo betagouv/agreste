@@ -169,6 +169,71 @@ class StreamfieldHelpersTestCase(SimpleTestCase):
             ],
         )
 
+    def test_publications_contentpage_blocks_locate_and_update(self):
+        """Publications-registered ContentPage blocks nest the same chooser keys."""
+        body = [
+            {
+                "type": "downloadable_document",
+                "value": {"download_type": "publication", "document": 11},
+            },
+            {
+                "type": "standard_publication",
+                "value": {
+                    "subtitle": "Titre",
+                    "summary": '<p><a linktype="document" id="12">Doc</a> ' '<a linktype="page" id="30">Page</a></p>',
+                    "notes": "<p>Notes</p>",
+                    "downloadable_documents": [
+                        {"download_type": "data", "document": 13},
+                    ],
+                },
+            },
+            {
+                "type": "freeform_publication",
+                "value": {
+                    "content": [
+                        {
+                            "type": "image",
+                            "value": {"image": {"image": 7, "alt_text": "", "decorative": False}},
+                        },
+                        {"type": "paragraph", "value": '<p><a linktype="page" id="31">x</a></p>'},
+                    ],
+                    "downloadable_documents": [
+                        {"download_type": "publication", "document": 14},
+                    ],
+                },
+            },
+            {
+                "type": "publication_recent_entries",
+                "value": {"index_page": 50, "collection_filter": 3},
+            },
+        ]
+
+        self.assertEqual(locate_document_ids(body), {11, 12, 13, 14})
+        self.assertEqual(locate_page_ids(body), {30, 31, 50})
+
+        export = ExportPage.__new__(ExportPage)
+        export.image_ids = []
+        export.locate_image_ids(body)
+        self.assertEqual(export.image_ids, [7])
+
+        remapped = update_streamfield_document_ids(
+            copy.deepcopy(body),
+            {"11": {"local_id": 110}, "12": {"local_id": 120}, "13": {"local_id": 130}, "14": {"local_id": 140}},
+        )
+        remapped = update_streamfield_page_ids(remapped, {"30": 300, "31": 310, "50": 500})
+        remapped = update_streamfield_image_ids(remapped, {"7": {"local_id": 70}})
+
+        self.assertEqual(remapped[0]["value"]["document"], 110)
+        self.assertEqual(remapped[1]["value"]["downloadable_documents"][0]["document"], 130)
+        self.assertIn('linktype="document" id="120"', remapped[1]["value"]["summary"])
+        self.assertIn('linktype="page" id="300"', remapped[1]["value"]["summary"])
+        self.assertEqual(remapped[2]["value"]["content"][0]["value"]["image"]["image"], 70)
+        self.assertIn('linktype="page" id="310"', remapped[2]["value"]["content"][1]["value"])
+        self.assertEqual(remapped[2]["value"]["downloadable_documents"][0]["document"], 140)
+        self.assertEqual(remapped[3]["value"]["index_page"], 500)
+        # Snippet filters are left unchanged (out of scope for image/page/document transfer)
+        self.assertEqual(remapped[3]["value"]["collection_filter"], 3)
+
 
 class ExportPageTestCase(TestCase):
     @patch("content_transfer.import_export.requests.get")

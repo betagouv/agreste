@@ -9,6 +9,11 @@ SOURCE_URL = "https://sites.beta.gouv.fr/"
 
 
 class Command(BaseCommand):
+    help = (
+        "Download ContentPage pages (and their images/documents) from a distant Wagtail "
+        "site and clone them locally as ContentPage. Other page types are not supported."
+    )
+
     def add_arguments(self, parser):
         parser.add_argument("--ids", nargs="+", type=int, help="IDs of the page(s) to migrate, e.g. 5 7")
 
@@ -19,12 +24,12 @@ class Command(BaseCommand):
         parser.add_argument(
             "--parent_page_slug",
             type=str,
-            help="[Optional] Slug of the parent page. Defaults to the root page of the default site.",
+            help="[Optional] Slug of the parent ContentPage. Defaults to the root page of the default site.",
         )
 
     def handle(self, *args, **kwargs):
         """
-        Download pages from a distant site and clones them locally.
+        Download ContentPage pages from a distant site and clone them locally as ContentPage.
         """
 
         page_ids = kwargs.get("ids")
